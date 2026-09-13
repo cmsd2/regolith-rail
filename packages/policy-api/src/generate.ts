@@ -136,13 +136,17 @@ export function luaSourcesModule(
 /** Lua files the generator embeds, by directory relative to the repository root. */
 export const LUA_SOURCE_DIRECTORIES = {
   policies: "packages/policy-api/policies",
+  ops: "packages/policy-api/ops",
 } as const;
 
 /**
- * Every generated file, by path relative to the repository root. `policies`
- * maps built-in policy names to their Lua source.
+ * Every generated file, by path relative to the repository root. `lua` holds
+ * the Lua sources read from each of `LUA_SOURCE_DIRECTORIES`, by file name.
  */
-export function generatedFiles(policies: Record<string, string>): Record<string, string> {
+export function generatedFiles(lua: {
+  policies: Record<string, string>;
+  ops: Record<string, string>;
+}): Record<string, string> {
   return {
     "packages/engine/src/snapshot.generated.ts": snapshotTypesSource(),
     "packages/policy-api/generated/policy-api.lua": luaAnnotationsSource(),
@@ -150,7 +154,12 @@ export function generatedFiles(policies: Record<string, string>): Record<string,
     "packages/policy-api/src/policies.generated.ts": luaSourcesModule(
       "Built-in policies shipped with the application, by name.",
       "BUILT_IN_POLICIES",
-      policies,
+      lua.policies,
+    ),
+    "packages/policy-api/src/ops.generated.ts": luaSourcesModule(
+      "The ops building-block library, loaded into every policy's sandbox.",
+      "OPS_LIBRARY",
+      lua.ops,
     ),
   };
 }

@@ -10,13 +10,13 @@
     "typecheck": "tsc -p . && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
-    "@regolith-rail/policy-api": "workspace:*",
     "@types/luaparse": "0.2.13",
     "@types/node": "^24.13.4",
     "typescript": "7.0.2"
   },
   "dependencies": {
     "@regolith-rail/engine": "workspace:*",
+    "@regolith-rail/policy-api": "workspace:*",
     "luaparse": "0.3.1",
     "wasmoon": "1.16.0"
   }

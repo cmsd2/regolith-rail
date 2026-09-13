@@ -12,16 +12,18 @@ SHALL return a policy module that can be returned directly from a policy file.
 
 #### Scenario: One-line baseline
 - **WHEN** a policy file contains `return ops.policy { target = ops.balance {} }`
-- **THEN** its event log is identical to that of `naive.lua` on every starter
-  scenario and seed from 1 to 50
+- **THEN** its event log, ignoring decision traces, is identical to that of
+  `naive.lua` on every starter scenario and seed from 1 to 50
 
 ### Requirement: Pipeline stages
 A declarative policy SHALL run the stages classify, target, plan and allocate
 at every stop, in that order, followed by execution of the resulting loads and
 unloads. `target` SHALL be required. When `classify` is omitted every site
 SHALL have the role `any`; when `plan` is omitted no cargo SHALL be reserved
-for other stations; when `allocate` is omitted allocation SHALL be by resource
-priority.
+for other stations; when `allocate` is omitted each site's load or unload SHALL
+be issued in the order the station lists its resources, as the naive baseline
+does, leaving the engine to clamp them. When an allocation block is given, all
+unloads SHALL be issued before loads.
 
 #### Scenario: Missing target
 - **WHEN** `ops.policy{}` is called without `target`
@@ -44,7 +46,7 @@ either one block for every site or a table of blocks keyed by role.
 
 ### Requirement: Target blocks
 The library SHALL provide these target blocks, each producing a target amount
-for a site that is then clamped to the site's capacity:
+for a site; the engine clamps the resulting transfers:
 
 - `balance{}`: the floor of the mean stock across stations that enable the
   resource.
@@ -69,7 +71,8 @@ for a site that is then clamped to the site's capacity:
 The library SHALL track, for every site, the amount reserved for it on trains
 heading towards it. Targets SHALL compare against inventory position, which is
 station stock plus inbound reservations. Reservations SHALL be released when the
-reserving train stops at the site, and SHALL be kept in persistent memory.
+reserving train stops at the site, and SHALL be kept in persistent memory under
+`ctx.memory.ops`.
 
 #### Scenario: No double dispatch
 - **WHEN** two trains stop at a supply station in succession and one demand

@@ -11,6 +11,7 @@
     "format": "biome check --write .",
     "typecheck": "tsc -p tests && pnpm -r --no-bail typecheck",
     "test": "vitest run",
+    "check": "biome ci . && pnpm typecheck && vitest run",
     "test:determinism": "vite build -c tests/determinism/vite.config.ts && playwright test tests/determinism",
     "golden": "pnpm --filter @regolith-rail/cli start golden"
   },

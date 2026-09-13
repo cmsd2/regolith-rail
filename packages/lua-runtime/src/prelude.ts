@@ -433,9 +433,23 @@ end
 
 __rr = {}
 
-function __rr.load(source)
+local function record_trace(block, station, resource, inputs, result)
+  current.traces[#current.traces + 1] = {
+    block = block, station = station, resource = resource, inputs = inputs, result = result,
+  }
+end
+
+--- Loads the ops library and then the policy, which sees the library as the global ops.
+function __rr.load(source, ops_source, level)
   current = new_outcome()
-  local chunk, err = load(source, "=policy", "t", make_env())
+  local ops_chunk = assert(load(ops_source, "=ops", "t", make_env()))
+  reset_budget()
+  local ops_ok, ops = pcall(ops_chunk, tick, record_trace, level)
+  if not ops_ok then error("the ops library failed to load: " .. tostring(ops)) end
+
+  local env = make_env()
+  rawset(env, "ops", ops)
+  local chunk, err = load(source, "=policy", "t", env)
   if not chunk then
     set_error("load", err)
     return encode(current)

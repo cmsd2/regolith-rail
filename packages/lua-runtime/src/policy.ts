@@ -8,6 +8,7 @@ import {
   type StopSnapshot,
   streamFor,
 } from "@regolith-rail/engine";
+import { OPS_LIBRARY } from "@regolith-rail/policy-api";
 import { LuaEngine, LuaFactory, type LuaWasm } from "wasmoon";
 import { checkPolicySource, instrumentPolicySource } from "./check.ts";
 import { toLuaLiteral } from "./literal.ts";
@@ -27,11 +28,18 @@ export interface LuaPolicyOptions {
 }
 
 interface Entry {
-  load(source: string): string;
+  load(source: string, ops: string, level: string): string;
   start(literal: string): string;
   stop(literal: string): string;
   save(): string;
   restore(text: string): void;
+}
+
+let instrumentedOps: string | undefined;
+/** The ops library, instrumented once so its loops count towards the budget. */
+function opsSource(): string {
+  instrumentedOps ??= instrumentPolicySource(OPS_LIBRARY.ops);
+  return instrumentedOps;
 }
 
 /** A loaded Lua WebAssembly module, from which policy states are created. */
@@ -74,6 +82,7 @@ export class LuaPolicy implements Policy {
   private rand: Random | undefined;
   private shuffle: Random | undefined;
   private reload: Random | undefined;
+  private level: RunContext["informationLevel"] = "line";
   private readonly module: LuaWasm;
   private readonly options: LuaPolicyOptions;
 
@@ -108,7 +117,7 @@ export class LuaPolicy implements Policy {
     state.doStringSync(PRELUDE);
     const table = state.global.get("__rr") as Record<keyof Entry, (...args: unknown[]) => unknown>;
     this.entry = {
-      load: (source) => table.load(source) as string,
+      load: (source, ops, level) => table.load(source, ops, level) as string,
       start: (literal) => table.start(literal) as string,
       stop: (literal) => table.stop(literal) as string,
       save: () => table.save() as string,
@@ -117,7 +126,7 @@ export class LuaPolicy implements Policy {
       },
     };
     this.state = state;
-    return parseOutcome(this.entry.load(this.instrumented as string));
+    return parseOutcome(this.entry.load(this.instrumented as string, opsSource(), this.level));
   }
 
   start(snapshot: StartSnapshot, run: RunContext): PolicyOutcome {
@@ -125,6 +134,7 @@ export class LuaPolicy implements Policy {
     this.rand = streamFor(run.seed, "policy:rand");
     this.shuffle = streamFor(run.seed, "policy:pairs");
     this.reload = streamFor(run.seed, "policy:reload");
+    this.level = run.informationLevel;
     const loaded = this.open();
     if (loaded.error) return loaded;
     return parseOutcome((this.entry as Entry).start(toLuaLiteral(snapshot)));

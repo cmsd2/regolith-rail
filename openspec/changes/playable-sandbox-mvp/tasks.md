@@ -61,15 +61,15 @@
 
 ## 8. `ops` library
 
-- [ ] 8.1 Implement `ops.policy` with stage defaults, the required target, parameter validation and information-level checks at load, and verify the missing-target and balance-at-local-level scenarios pass
-- [ ] 8.2 Implement `ops.roles.manual` and role-keyed targets, and verify the targets-by-role and role-without-target scenarios pass
-- [ ] 8.3 Implement the target blocks `balance`, `order_up_to`, `min_max`, `drain`, `fill` and `pass_through`, and verify the min-max scenarios pass and the one-line baseline matches `naive.lua` on every starter scenario for seeds 1 to 50
-- [ ] 8.4 Implement reservations and inventory position kept in memory, and verify the no-double-dispatch and reservations-survive-reload scenarios pass
-- [ ] 8.5 Implement `ops.lookahead`, and verify the cargo-kept-for-further-station scenario passes
-- [ ] 8.6 Implement `ops.priority` and `ops.proportional`, and verify the proportional split scenario passes
-- [ ] 8.7 Implement custom functions for every stage with stage-attributed errors, and verify the custom target scenario passes
-- [ ] 8.8 Implement decision traces for every block, and verify the order-up-to trace scenario passes
-- [ ] 8.9 Run the policy checker over the `ops` source in CI, and verify it reports no violations
+- [x] 8.1 Implement `ops.policy` with stage defaults, the required target, parameter validation and information-level checks at load, and verify the missing-target and balance-at-local-level scenarios pass
+- [x] 8.2 Implement `ops.roles.manual` and role-keyed targets, and verify the targets-by-role and role-without-target scenarios pass
+- [x] 8.3 Implement the target blocks `balance`, `order_up_to`, `min_max`, `drain`, `fill` and `pass_through`, and verify the min-max scenarios pass and the one-line baseline matches `naive.lua` on every starter scenario for seeds 1 to 50
+- [x] 8.4 Implement reservations and inventory position kept in memory, and verify the no-double-dispatch and reservations-survive-reload scenarios pass
+- [x] 8.5 Implement `ops.lookahead`, and verify the cargo-kept-for-further-station scenario passes
+- [x] 8.6 Implement `ops.priority` and `ops.proportional`, and verify the proportional split scenario passes
+- [x] 8.7 Implement custom functions for every stage with stage-attributed errors, and verify the custom target scenario passes
+- [x] 8.8 Implement decision traces for every block, and verify the order-up-to trace scenario passes
+- [x] 8.9 Run the policy checker over the `ops` source in CI, and verify it reports no violations
 - [ ] 8.10 Write an example supply-to-demand policy using roles, inventory position and lookahead, and verify it has lower mean unmet demand and oscillation count than the baseline on `two-trains` and `mixed-line` over 100 seeds
 
 ## 9. Application shell

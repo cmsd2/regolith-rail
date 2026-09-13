@@ -6,9 +6,12 @@ import { generatedFiles, LUA_SOURCE_DIRECTORIES } from "../src/generate.ts";
 import { readLuaSources } from "./lua-sources.ts";
 
 const root = new URL("../../../", import.meta.url);
-const policies = readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.policies}/`, root));
+const lua = {
+  policies: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.policies}/`, root)),
+  ops: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.ops}/`, root)),
+};
 const written: string[] = [];
-for (const [path, text] of Object.entries(generatedFiles(policies))) {
+for (const [path, text] of Object.entries(generatedFiles(lua))) {
   const target = new URL(path, root);
   mkdirSync(new URL(".", target), { recursive: true });
   writeFileSync(target, text);
