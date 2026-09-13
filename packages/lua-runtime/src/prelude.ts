@@ -241,7 +241,7 @@ end
 
 -- Memory ----------------------------------------------------------------------
 
-local memory = { global = {}, stations = {}, trains = {} }
+local memory = { global = {}, stations = {}, vehicles = {} }
 local function memory_for(group, id)
   local t = memory[group][id]
   if not t then t = {} memory[group][id] = t end
@@ -273,8 +273,8 @@ local function check_all_memory()
     err = check_memory(memory.stations[id], "station memory for " .. id, {})
     if err then return err end
   end
-  for _, id in ipairs(sorted_keys(memory.trains)) do
-    err = check_memory(memory.trains[id], "train memory for " .. id, {})
+  for _, id in ipairs(sorted_keys(memory.vehicles)) do
+    err = check_memory(memory.vehicles[id], "vehicle memory for " .. id, {})
     if err then return err end
   end
   return nil
@@ -318,67 +318,145 @@ local function set_error(kind, err)
 end
 
 -- Context ----------------------------------------------------------------------
+--
+-- The host sends the layout of the scenario once per Lua state, then only what
+-- changes with each call. Stations are built once as linked read-only tables;
+-- their stock, capacity, backorders and orders read from the current call.
 
 local policy
-local function station_lookup(line_raw)
-  local index = {}
-  for i, s in ipairs(line_raw.stations) do index[s.id] = i end
-  return index
-end
+local layout -- static scenario layout from __rr.layout
+local level
+local quantities = {} -- station id -> this call's quantities, when visible
+local wrapped_quantities = {} -- station id -> read-only proxy of those quantities
+local station_proxies = {} -- station id -> linked station table
+local station_keys = {} -- station id -> { hidden = keys without quantities, shown = keys with }
 
-local function line_functions(line_raw, default_speed)
-  local index = station_lookup(line_raw)
-  local function position(id, argument)
-    local i = type(id) == "string" and index[id]
-    if not i then error("unknown station " .. tostring(id) .. " (argument " .. argument .. ")", 3) end
-    return i
-  end
-  local function distance(from, to)
-    local a, b = position(from, 1), position(to, 2)
-    if a > b then a, b = b, a end
-    local d = 0
-    for i = a, b - 1 do d = d + line_raw.stations[i].distance_to_next end
-    return d
-  end
-  return {
-    distance = distance,
-    travel_time = function(from, to, speed)
-      speed = speed or default_speed
-      if type(speed) ~= "number" or speed <= 0 then error("travel_time needs a positive speed", 2) end
-      local d = distance(from, to)
-      return (d * 1000 + speed - 1) // speed
-    end,
-  }
-end
+local LEVEL_MESSAGES = {
+  stock = "reading another station's stock requires the line information level",
+  capacity = "reading another station's capacity requires the line information level",
+  backorders = "reading another station's backorders requires the line information level",
+  on_order = "reading another station's orders requires the line information level",
+}
 
-local function station_proxy(raw, level, current_id, with_memory)
-  local restricted
-  if raw.stock == nil and level == "local" and raw.id ~= current_id then
-    local message = "reading another station's stock requires the line information level"
-    restricted = {
-      stock = message,
-      capacity = sgsub(message, "stock", "capacity"),
-      backorders = sgsub(message, "stock", "backorders"),
-    }
-  end
-  return wrap(raw, restricted, with_memory and { memory = memory_for("stations", raw.id) } or nil)
-end
-
-local function line_proxy(line_raw, level, current_id, default_speed)
-  local stations = {}
-  for i, s in ipairs(line_raw.stations) do
-    stations[i] = station_proxy(s, level, current_id, s.id == current_id)
-  end
-  local list = setmetatable({}, {
-    __index = function(_, i) return stations[i] end,
+local function readonly(items, raw)
+  local proxy = setmetatable({}, {
+    __index = function(_, k) return items[k] end,
     __newindex = function() error(READ_ONLY, 2) end,
-    __len = function() return #stations end,
+    __len = function() return #items end,
     __metatable = false,
   })
-  raw_of[list] = stations
-  local extra = line_functions(line_raw, default_speed)
-  extra.stations = list
-  return wrap(line_raw, nil, extra)
+  raw_of[proxy] = raw or items
+  return proxy
+end
+
+local function build_stations()
+  station_proxies, station_keys = {}, {}
+  local neighbour_lists = {}
+  for _, raw in ipairs(layout.stations) do
+    local id = raw.id
+    local static = {
+      id = id, index = raw.index, resources = wrap(raw.resources), suppliers = wrap(raw.suppliers),
+    }
+    local hidden = { id = true, index = true, resources = true, neighbours = true, suppliers = true }
+    local shown = { stock = true, capacity = true, backorders = true, on_order = true }
+    for k in next, hidden do shown[k] = true end
+    station_keys[id] = { hidden = hidden, shown = shown }
+    local proxy = {}
+    setmetatable(proxy, {
+      __index = function(_, k)
+        local message = LEVEL_MESSAGES[k]
+        if message then
+          local q = wrapped_quantities[id]
+          if q then return q[k] end
+          if level == "local" then error(message, 2) end
+          return nil
+        end
+        if k == "neighbours" then return neighbour_lists[id] end
+        if k == "memory" then return memory_for("stations", id) end
+        return static[k]
+      end,
+      __newindex = function() error(READ_ONLY, 2) end,
+      __metatable = false,
+    })
+    raw_of[proxy] = hidden
+    station_proxies[id] = proxy
+  end
+  for _, raw in ipairs(layout.stations) do
+    local items = {}
+    for i, n in ipairs(raw.neighbours) do
+      items[i] = wrap(n, nil, { station = station_proxies[n.station] })
+    end
+    neighbour_lists[raw.id] = readonly(items)
+  end
+  layout.stations_proxy = readonly(station_proxies)
+end
+
+--- Takes this call's quantities; stations without an entry are hidden from the policy.
+local function set_quantities(q)
+  quantities, wrapped_quantities = q or {}, {}
+  for id, proxy in next, station_proxies do
+    local entry = quantities[id]
+    if entry then wrapped_quantities[id] = wrap(entry) end
+    raw_of[proxy] = entry and station_keys[id].shown or station_keys[id].hidden
+  end
+end
+
+local function station_position(id, argument)
+  if type(id) ~= "string" or not station_proxies[id] then
+    error("unknown station " .. tostring(id) .. " (argument " .. argument .. ")", 3)
+  end
+end
+
+-- Shortest paths over arcs, found once per source station.
+local paths = {}
+local function shortest_from(source)
+  local found = paths[source]
+  if found then return found end
+  local neighbours = {}
+  for _, s in ipairs(layout.stations) do neighbours[s.id] = s.neighbours end
+  local dist, prev, done = { [source] = 0 }, {}, {}
+  while true do
+    local best
+    for _, s in ipairs(layout.stations) do
+      local d = dist[s.id]
+      if d and not done[s.id] and (best == nil or d < dist[best]) then best = s.id end
+    end
+    if best == nil then break end
+    done[best] = true
+    for _, n in ipairs(neighbours[best]) do
+      local d = dist[best] + n.distance
+      if dist[n.station] == nil or d < dist[n.station] then
+        dist[n.station], prev[n.station] = d, { from = best, distance = n.distance }
+      end
+    end
+  end
+  found = { dist = dist, prev = prev }
+  paths[source] = found
+  return found
+end
+
+local default_speed
+local function distance(from, to)
+  station_position(from, 1)
+  station_position(to, 2)
+  return shortest_from(from).dist[to]
+end
+
+local function travel_time(from, to, speed)
+  station_position(from, 1)
+  station_position(to, 2)
+  speed = speed or default_speed
+  if type(speed) ~= "number" or speed <= 0 then error("travel_time needs a positive speed", 2) end
+  local found = shortest_from(from)
+  if found.dist[to] == nil then return nil end
+  -- Vehicles take whole milliseconds per arc, so sum the arcs as they would.
+  local total, at = 0, to
+  while at ~= from do
+    local step = found.prev[at]
+    total = total + (step.distance * 1000 + speed - 1) // speed
+    at = step.from
+  end
+  return total
 end
 
 local function check_transfer(name, resource, amount)
@@ -386,23 +464,10 @@ local function check_transfer(name, resource, amount)
   if type(amount) ~= "number" then error(name .. " expects an amount in milli-units as its second argument", 3) end
 end
 
-local function check_order(resource, amount)
-  if type(resource) ~= "string" then error("ctx.order expects a resource id as its first argument", 3) end
-  if type(amount) ~= "number" then error("ctx.order expects an amount in milli-units as its second argument", 3) end
-end
-
-local NETWORK_LEVEL = "reading the network requires the line information level"
-
-local hook_functions = {
+local shared_functions = {
   rand = function() return host_rand() end,
-  load = function(resource, amount)
-    check_transfer("ctx.load", resource, amount)
-    current.actions[#current.actions + 1] = { type = "load", resource = resource, amount = amount }
-  end,
-  unload = function(resource, amount)
-    check_transfer("ctx.unload", resource, amount)
-    current.actions[#current.actions + 1] = { type = "unload", resource = resource, amount = amount }
-  end,
+  distance = distance,
+  travel_time = travel_time,
   log = log,
   record = function(name, value)
     if type(name) ~= "string" then error("ctx.record expects a series name as its first argument", 2) end
@@ -411,31 +476,67 @@ local hook_functions = {
   end,
 }
 
-local function stop_context(snap)
-  local extra = { memory = memory.global, line = line_proxy(snap.line, snap.information_level, snap.station.id, snap.train.speed) }
-  for k, f in next, hook_functions do extra[k] = f end
-  extra.station = station_proxy(snap.station, snap.information_level, snap.station.id, true)
-  extra.train = wrap(snap.train, nil, { memory = memory_for("trains", snap.train.id) })
-  local restricted = snap.information_level == "local" and { network = NETWORK_LEVEL } or nil
-  return wrap(snap, restricted, extra)
-end
+local stop_functions = {
+  load = function(resource, amount)
+    check_transfer("ctx.load", resource, amount)
+    current.actions[#current.actions + 1] = { type = "load", resource = resource, amount = amount }
+  end,
+  unload = function(resource, amount)
+    check_transfer("ctx.unload", resource, amount)
+    current.actions[#current.actions + 1] = { type = "unload", resource = resource, amount = amount }
+  end,
+}
 
-local function review_context(snap)
-  local point = snap.stock_point
-  local extra = { memory = memory.global, line = line_proxy(snap.line, snap.information_level, point.id, nil) }
-  extra.rand, extra.log, extra.record = hook_functions.rand, hook_functions.log, hook_functions.record
-  extra.order = function(resource, amount)
-    check_order(resource, amount)
+local review_functions = {
+  order = function(resource, amount)
+    check_transfer("ctx.order", resource, amount)
     current.actions[#current.actions + 1] = { type = "order", resource = resource, amount = amount }
+  end,
+}
+
+--- The context for one call: shared members, then the hook's own.
+local function context(call, own_functions, own_members)
+  set_quantities(call.quantities)
+  local raw = { now = call.now, information_level = level }
+  local extra = {
+    stations = layout.stations_proxy,
+    station_order = layout.station_order_proxy,
+    resources = layout.resources_proxy,
+    resource_order = layout.resource_order_proxy,
+    memory = memory.global,
+  }
+  for k in next, extra do raw[k] = true end
+  for k, f in next, shared_functions do extra[k] = f end
+  for k, f in next, own_functions do extra[k] = f end
+  for k, v in next, own_members do
+    raw[k] = type(v) == "table" and true or v
+    if type(v) == "table" then extra[k] = v end
   end
-  extra.stock_point = wrap(point, nil, { memory = memory_for("stations", point.id) })
-  return wrap(snap, nil, extra)
+  return wrap(raw, nil, extra)
 end
 
-local function start_context(snap)
-  local extra = { memory = memory.global, line = line_proxy(snap.line, snap.information_level, nil, nil) }
-  extra.rand, extra.log, extra.record = hook_functions.rand, hook_functions.log, hook_functions.record
-  return wrap(snap, nil, extra)
+local function stop_context(call)
+  local v = call.vehicle
+  default_speed = v.speed
+  local ahead = {}
+  for i, stop in ipairs(v.route.ahead) do
+    ahead[i] = wrap(stop, nil, { station = station_proxies[stop.station] })
+  end
+  local route = wrap(v.route, nil, { ahead = readonly(ahead, v.route.ahead) })
+  local vehicle = wrap(v, nil, { route = route, memory = memory_for("vehicles", v.id) })
+  return context(call, stop_functions, {
+    stop = call.stop, here = station_proxies[call.here], vehicle = vehicle,
+  })
+end
+
+local function review_context(call)
+  default_speed = nil
+  return context(call, review_functions, { review = call.review, here = station_proxies[call.here] })
+end
+
+local function start_context(call)
+  default_speed = nil
+  return context(call, {}, { vehicles = layout.vehicles_proxy })
 end
 
 local function call_hook(fn, ctx)
@@ -464,8 +565,9 @@ local function record_trace(block, station, resource, inputs, result)
 end
 
 --- Loads the ops library and then the policy, which sees the library as the global ops.
-function __rr.load(source, ops_source, level, needs_stop, needs_review)
+function __rr.load(source, ops_source, information_level, needs_stop, needs_review)
   current = new_outcome()
+  level = information_level
   local ops_chunk = assert(load(ops_source, "=ops", "t", make_env()))
   reset_budget()
   local ops_ok, ops = pcall(ops_chunk, tick, record_trace, level)
@@ -500,10 +602,21 @@ function __rr.load(source, ops_source, level, needs_stop, needs_review)
   return encode(current)
 end
 
--- Snapshots arrive as Lua table constructors, which Lua's own parser loads far
+-- Data arrives as Lua table constructors, which Lua's own parser loads far
 -- faster than decoding JSON in Lua.
 local function snapshot(literal)
   return assert(load(literal, "=snapshot", "t", {}))()
+end
+
+--- Takes the scenario's layout, which does not change during a run.
+function __rr.layout(literal)
+  layout = snapshot(literal)
+  paths = {}
+  layout.station_order_proxy = wrap(layout.station_order)
+  layout.resource_order_proxy = wrap(layout.resource_order)
+  layout.resources_proxy = wrap(layout.resources)
+  layout.vehicles_proxy = wrap(layout.vehicles)
+  build_stations()
 end
 
 function __rr.start(literal)

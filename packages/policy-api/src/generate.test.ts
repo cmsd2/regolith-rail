@@ -53,9 +53,12 @@ describe("Policy API description", () => {
 
   it("gives the editor paths for nested members", () => {
     const paths = editorEntries().map((e) => e.path);
-    expect(paths).toContain("ctx.train.cargo");
-    expect(paths).toContain("ctx.line.stations[i].stock");
-    expect(paths).toContain("ctx.line.travel_time");
-    expect(paths).toContain("ctx.station.distance_to_next");
+    expect(paths).toContain("ctx.vehicle.cargo");
+    expect(paths).toContain("ctx.stations[i].stock");
+    expect(paths).toContain("ctx.here.neighbours[i].station");
+    expect(paths).toContain("ctx.vehicle.route.ahead[i].travel_time");
+    expect(paths).toContain("ctx.travel_time");
+    expect(paths).toContain("ctx.order");
+    expect(paths).toContain("ctx.vehicles[i].stops");
   });
 });

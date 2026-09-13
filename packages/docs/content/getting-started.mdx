@@ -40,20 +40,21 @@ station is a demand site, so trains leave everything they carry. Press **Run** a
 and compare the metrics.
 
 Policies can also be plain Lua. A policy is a table with an `on_stop` function, and
-optionally `on_start`:
+optionally `on_start`. Each receives a context, `ctx`, where `ctx.here` is the station
+the vehicle stopped at and `ctx.vehicle` is the vehicle:
 
 ```lua runnable
 local policy = {}
 
 function policy.on_start(ctx)
-  ctx.log("stations on the line:", #ctx.line.stations)
+  ctx.log("stations:", #ctx.station_order)
 end
 
 function policy.on_stop(ctx)
-  if ctx.station.id == "Mine" then
-    ctx.load("Metals", ctx.station.stock.Metals)
+  if ctx.here.id == "Mine" then
+    ctx.load("Metals", ctx.here.stock.Metals)
   else
-    ctx.unload("Metals", ctx.train.cargo.Metals)
+    ctx.unload("Metals", ctx.vehicle.cargo.Metals)
   end
 end
 
@@ -61,7 +62,7 @@ return policy
 ```
 
 ```text output
-stations on the line: 2
+stations: 2
 ```
 
 Amounts are in milli-units: 1 unit of metal is `1000`. Requests the train or station

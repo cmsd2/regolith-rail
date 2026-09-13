@@ -6,6 +6,7 @@ import {
   type ReviewSnapshot,
   type RunContext,
   type StartSnapshot,
+  type StationSnapshot,
   type StopSnapshot,
   streamFor,
 } from "@regolith-rail/engine";
@@ -36,6 +37,7 @@ interface Entry {
     needsStop: boolean,
     needsReview: boolean,
   ): string;
+  layout(literal: string): void;
   start(literal: string): string;
   stop(literal: string): string;
   review(literal: string): string;
@@ -81,6 +83,48 @@ function parseOutcome(json: string): PolicyOutcome {
   };
 }
 
+/**
+ * The parts of a context that do not change during a run. Stations refer to each other by id;
+ * the prelude links them back into shared tables.
+ */
+function layoutOf(snapshot: StartSnapshot) {
+  return {
+    information_level: snapshot.information_level,
+    station_order: snapshot.station_order,
+    resource_order: snapshot.resource_order,
+    resources: snapshot.resources,
+    vehicles: snapshot.vehicles,
+    stations: snapshot.station_order.map((id) => {
+      const station = snapshot.stations[id] as StationSnapshot;
+      return {
+        id,
+        index: station.index,
+        resources: station.resources,
+        suppliers: station.suppliers,
+        neighbours: station.neighbours.map((n) => ({
+          station: n.station.id,
+          distance: n.distance,
+        })),
+      };
+    }),
+  };
+}
+
+/** Quantities of the stations the policy can see in this call, by station id. */
+function quantitiesOf(stations: Record<string, StationSnapshot>) {
+  const out: Record<string, unknown> = {};
+  for (const [id, s] of Object.entries(stations)) {
+    if (s.stock === undefined) continue;
+    out[id] = {
+      stock: s.stock,
+      capacity: s.capacity,
+      backorders: s.backorders,
+      on_order: s.on_order,
+    };
+  }
+  return out;
+}
+
 /** A policy written in Lua, run in a fresh sandboxed Lua state for every run. */
 export class LuaPolicy implements Policy {
   private state: LuaEngine | undefined;
@@ -92,6 +136,7 @@ export class LuaPolicy implements Policy {
   private reload: Random | undefined;
   private level: RunContext["informationLevel"] = "line";
   private hooks: RunContext["hooks"] = { stop: true, review: false };
+  private layout = "";
   private readonly module: LuaWasm;
   private readonly options: LuaPolicyOptions;
 
@@ -128,6 +173,9 @@ export class LuaPolicy implements Policy {
     this.entry = {
       load: (source, ops, level, needsStop, needsReview) =>
         table.load(source, ops, level, needsStop, needsReview) as string,
+      layout: (literal) => {
+        table.layout(literal);
+      },
       start: (literal) => table.start(literal) as string,
       stop: (literal) => table.stop(literal) as string,
       review: (literal) => table.review(literal) as string,
@@ -137,7 +185,7 @@ export class LuaPolicy implements Policy {
       },
     };
     this.state = state;
-    return parseOutcome(
+    const loaded = parseOutcome(
       this.entry.load(
         this.instrumented as string,
         opsSource(),
@@ -146,6 +194,8 @@ export class LuaPolicy implements Policy {
         this.hooks.review,
       ),
     );
+    if (!loaded.error) this.entry.layout(this.layout);
+    return loaded;
   }
 
   start(snapshot: StartSnapshot, run: RunContext): PolicyOutcome {
@@ -155,9 +205,11 @@ export class LuaPolicy implements Policy {
     this.reload = streamFor(run.seed, "policy:reload");
     this.level = run.informationLevel;
     this.hooks = run.hooks;
+    this.layout = toLuaLiteral(layoutOf(snapshot));
     const loaded = this.open();
     if (loaded.error) return loaded;
-    return parseOutcome((this.entry as Entry).start(toLuaLiteral(snapshot)));
+    const call = { now: snapshot.now, quantities: quantitiesOf(snapshot.stations) };
+    return parseOutcome((this.entry as Entry).start(toLuaLiteral(call)));
   }
 
   stop(snapshot: StopSnapshot): PolicyOutcome {
@@ -169,13 +221,33 @@ export class LuaPolicy implements Policy {
       if (loaded.error) return loaded;
       (this.entry as Entry).restore(saved);
     }
-    return parseOutcome((this.entry as Entry).stop(toLuaLiteral(snapshot)));
+    const { vehicle } = snapshot;
+    const call = {
+      now: snapshot.now,
+      stop: snapshot.stop,
+      here: snapshot.here.id,
+      quantities: quantitiesOf(snapshot.stations),
+      vehicle: {
+        ...vehicle,
+        route: {
+          kind: vehicle.route.kind,
+          ahead: vehicle.route.ahead.map((a) => ({ ...a, station: a.station.id })),
+        },
+      },
+    };
+    return parseOutcome((this.entry as Entry).stop(toLuaLiteral(call)));
   }
 
   review(snapshot: ReviewSnapshot): PolicyOutcome {
     if (this.loadError) return { ...emptyOutcome(), error: this.loadError };
     if (!this.entry) throw new Error("review called before start");
-    return parseOutcome(this.entry.review(toLuaLiteral(snapshot)));
+    const call = {
+      now: snapshot.now,
+      review: snapshot.review,
+      here: snapshot.here.id,
+      quantities: quantitiesOf(snapshot.stations),
+    };
+    return parseOutcome(this.entry.review(toLuaLiteral(call)));
   }
 
   /** Releases the Lua state. The policy can be started again afterwards. */

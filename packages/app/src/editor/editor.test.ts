@@ -6,16 +6,21 @@ import { positionOf, toLintDiagnostics } from "./lua.ts";
 
 describe("API data for the editor", () => {
   it("normalises array indexes", () => {
-    expect(normalisePath("ctx.line.stations[2].stock")).toBe("ctx.line.stations[i].stock");
+    expect(normalisePath("ctx.vehicle.route.ahead[2].station")).toBe(
+      "ctx.vehicle.route.ahead[i].station",
+    );
+    expect(normalisePath('ctx.stations["Mine"].stock')).toBe("ctx.stations[i].stock");
+    expect(normalisePath("ctx.stations.Mine.stock")).toBe("ctx.stations[i].stock");
+    expect(normalisePath("ctx.stations.Mi")).toBe("ctx.stations[i]");
   });
 
   it("finds entries for hover", () => {
     expect(entryFor("ops.min_max")?.params?.map((p) => p.name)).toEqual(["min", "max"]);
-    expect(entryFor("ctx.line.stations[1].stock")?.level).toBe("line");
+    expect(entryFor("ctx.stations.Mine.stock")?.level).toBe("line");
   });
 
   it("completes members of a path", () => {
-    const names = completionsFor("ctx.train.ca").map((c) => c.entry.name);
+    const names = completionsFor("ctx.vehicle.ca").map((c) => c.entry.name);
     expect(names).toEqual(["capacity", "cargo"]);
     expect(completionsFor("ops.mi").map((c) => c.entry.name)).toEqual(["min_max"]);
   });

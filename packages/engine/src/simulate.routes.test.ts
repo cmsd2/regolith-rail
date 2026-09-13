@@ -126,7 +126,7 @@ describe("vehicle movement", () => {
     );
     let loaded = false;
     const policy = scriptedPolicy((snapshot) => {
-      if (loaded || snapshot.station.id !== "Depot") return [];
+      if (loaded || snapshot.here.id !== "Depot") return [];
       loaded = true;
       return [{ type: "load", resource: "Metals", amount: 1000 }];
     });
@@ -184,12 +184,12 @@ describe("oscillations on routes", () => {
 
   const unloadThenLoad = (loadAt: number) =>
     scriptedPolicy((snapshot) => {
-      const { id } = snapshot.train;
-      if (id === "V" && snapshot.station.id === "Depot" && snapshot.now === 0)
+      const { id } = snapshot.vehicle;
+      if (id === "V" && snapshot.here.id === "Depot" && snapshot.now === 0)
         return [{ type: "load", resource: "Metals", amount: 1000 }];
-      if (id === "V" && snapshot.station.id === "A" && snapshot.now === 20_000)
+      if (id === "V" && snapshot.here.id === "A" && snapshot.now === 20_000)
         return [{ type: "unload", resource: "Metals", amount: 1000 }];
-      if (id === "W" && snapshot.station.id === "A" && snapshot.now === loadAt)
+      if (id === "W" && snapshot.here.id === "A" && snapshot.now === loadAt)
         return [{ type: "load", resource: "Metals", amount: 1000 }];
       return [];
     });
@@ -223,14 +223,16 @@ describe("route in stop snapshots", () => {
     runSimulation(triangle({ kind: "loop", stops: ["Depot", "A", "B"] }), policy, {
       detail: "summary",
     });
-    const atA = seen.find((s) => s.station.id === "A");
-    expect(atA?.route).toEqual({
-      kind: "loop",
-      ahead: [
-        { id: "B", distance: 100, travel_time: 10_000 },
-        { id: "Depot", distance: 200, travel_time: 20_000 },
-      ],
-    });
+    const atA = seen.find((s) => s.here.id === "A");
+    expect(atA?.vehicle.route.kind).toBe("loop");
+    expect(
+      atA?.vehicle.route.ahead.map((stop) => [stop.station.id, stop.distance, stop.travel_time]),
+    ).toEqual([
+      ["B", 100, 10_000],
+      ["Depot", 200, 20_000],
+    ]);
+    // Stops ahead are the same station objects as the context's stations.
+    expect(atA?.vehicle.route.ahead[0]?.station).toBe(atA?.stations.B);
   });
 
   it("lists a shuttle's stops out to the end and back", () => {
@@ -238,21 +240,34 @@ describe("route in stop snapshots", () => {
     runSimulation(triangle({ kind: "shuttle", stops: ["Depot", "A", "B"] }), policy, {
       detail: "summary",
     });
-    expect(seen[1]?.station.id).toBe("A");
-    expect(seen[1]?.route.ahead.map((stop) => stop.id)).toEqual(["B", "A", "Depot", "A"]);
+    expect(seen[1]?.here.id).toBe("A");
+    expect(seen[1]?.vehicle.route.ahead.map((stop) => stop.station.id)).toEqual([
+      "B",
+      "A",
+      "Depot",
+      "A",
+    ]);
   });
 
-  it("gives the arcs at the line level and not at the local level", () => {
+  it("links neighbours at every level and shows other stations' stock only at the line level", () => {
     const line = capture();
     runSimulation(triangle({ kind: "loop", stops: ["Depot", "A", "B"] }), line.policy, {
       detail: "summary",
     });
-    expect(line.seen[0]?.network?.arcs).toHaveLength(3);
+    const first = line.seen[0];
+    expect(first?.here.neighbours.map((n) => [n.station.id, n.distance])).toHaveLength(2);
+    expect(first?.here.neighbours[0]?.station).toBe(
+      first?.stations[first.here.neighbours[0]?.station.id ?? ""],
+    );
+    expect(first?.stations.A?.stock).toBeDefined();
     const local = capture();
     const scenario = triangle({ kind: "loop", stops: ["Depot", "A", "B"] }, (s) => {
       s.informationLevel = "local";
     });
     runSimulation(scenario, local.policy, { detail: "summary" });
-    expect(local.seen[0]?.network).toBeUndefined();
+    const here = local.seen[0]?.here;
+    expect(here?.stock).toBeDefined();
+    expect(here?.neighbours).toHaveLength(2);
+    expect(here?.neighbours.every((n) => n.station.stock === undefined)).toBe(true);
   });
 });

@@ -477,7 +477,7 @@ describe("stops and actions", () => {
             }
           : [
               {
-                type: snap.station.id === "A" ? "load" : "unload",
+                type: snap.here.id === "A" ? "load" : "unload",
                 resource: "Metals",
                 amount: 1_000,
               },
@@ -545,7 +545,7 @@ describe("metrics", () => {
     const out = runSimulation(
       scenario,
       scriptedPolicy((snap) =>
-        snap.train.id === "T1"
+        snap.vehicle.id === "T1"
           ? [
               { type: "load", resource: "Metals", amount: 2_000 },
               { type: "unload", resource: "Metals", amount: 2_000 },

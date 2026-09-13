@@ -41,7 +41,7 @@ describe("unlimited capacity", () => {
       if (vehicle) vehicle.capacity = { shared: 30_000 };
     });
     const policy = scriptedPolicy((snapshot) =>
-      snapshot.station.id === "A"
+      snapshot.here.id === "A"
         ? [{ type: "load", resource: "Metals", amount: 30_000 }]
         : [{ type: "unload", resource: "Metals", amount: 30_000 }],
     );
@@ -74,7 +74,7 @@ describe("backorders", () => {
     });
   }
   const deliver = scriptedPolicy((snapshot) =>
-    snapshot.station.id === "A"
+    snapshot.here.id === "A"
       ? [{ type: "load", resource: "Metals", amount: 6000 }]
       : [{ type: "unload", resource: "Metals", amount: 6000 }],
   );

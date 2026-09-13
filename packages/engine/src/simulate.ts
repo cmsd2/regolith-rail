@@ -3,14 +3,18 @@ import { TICK_MS } from "./output.ts";
 import {
   type Action,
   type Direction,
+  type OrderSnapshot,
   POLICY_API_VERSION,
   type Policy,
   type PolicyOutcome,
   type Quantities,
+  type ResourceSnapshot,
   type ReviewSnapshot,
+  type RouteStopSnapshot,
   type StationSnapshot,
   type StopSnapshot,
-  type TrainCapacitySnapshot,
+  type SupplierSnapshot,
+  type VehicleCapacitySnapshot,
 } from "./policy.ts";
 import { EventOrder, EventQueue, type Scheduled } from "./queue.ts";
 import { type Random, streamFor } from "./random.ts";
@@ -161,7 +165,7 @@ interface TrainState {
   dwellPerUnitMs: number;
   shared: number | undefined;
   perResource: number[];
-  capacitySnapshot: TrainCapacitySnapshot;
+  capacitySnapshot: VehicleCapacitySnapshot;
   cargo: number[];
   direction: 1 | -1;
   station: number;
@@ -542,23 +546,60 @@ export function runSimulation(
     }
   };
 
-  // Snapshot pieces that never change during a run.
-  const staticStations: StationSnapshot[] = scenario.stations.map((station, i) => {
-    const next = stations[i + 1];
-    const distance = next === undefined ? undefined : arcDistance.get(`${station.id}:${next}`);
-    return {
-      id: station.id,
-      index: i + 1,
-      resources: station.resources.map((r) => r.id),
-      ...(distance === undefined ? {} : { distance_to_next: distance }),
-    };
-  });
-  const resourceSnapshots = scenario.resources.map((r) => ({ id: r.id, priority: r.priority }));
-
-  // Backorders appear in snapshots only for scenarios that have backordering consumers.
+  // --- Policy contexts -------------------------------------------------------------
+  const resourceTable: Record<string, ResourceSnapshot> = Object.fromEntries(
+    scenario.resources.map((r) => [r.id, { id: r.id, priority: r.priority }]),
+  );
+  const stationResources = scenario.stations.map((station) => station.resources.map((r) => r.id));
+  const adjacency: { to: number; distance: number }[][] = scenario.stations.map(() => []);
+  for (const arc of scenario.arcs) {
+    const a = stationIndex.get(arc.from) as number;
+    const b = stationIndex.get(arc.to) as number;
+    adjacency[a]?.push({ to: b, distance: arc.distance });
+    adjacency[b]?.push({ to: a, distance: arc.distance });
+  }
+  const supplierSnapshots: SupplierSnapshot[][] = scenario.stations.map((station) =>
+    station.suppliers.map((sup) => ({
+      resource: sup.resource,
+      from: sup.from,
+      lead_times:
+        sup.leadTime.kind === "fixed"
+          ? [{ value: sup.leadTime.value, weight: 1 }]
+          : sup.leadTime.values.map((v) => ({ value: v.value, weight: v.weight })),
+      ...(sup.minOrder === undefined ? {} : { min_order: sup.minOrder }),
+      ...(sup.maxOrder === undefined ? {} : { max_order: sup.maxOrder }),
+    })),
+  );
+  // Backorders and orders appear only for scenarios that use them, keeping snapshots small.
   const hasBackorders = scenario.stations.some((p) =>
     p.consumers.some((c) => c.unmet === "backorder"),
   );
+  const hasSuppliers = scenario.stations.some((p) => p.suppliers.length > 0);
+
+  const ordersAt = (s: number): OrderSnapshot[] =>
+    [
+      ...shipments
+        .filter((sh) => sh.point === s)
+        .map((sh) => ({
+          resource: resources[sh.resource] as string,
+          amount: sh.amount,
+          from: sh.from === undefined ? EXTERNAL_SUPPLIER : (stations[sh.from] as string),
+          placed_at: sh.placedAt,
+          arrives_at: sh.arrivesAt,
+        })),
+      ...backlogs.flatMap((waiting) =>
+        waiting
+          .filter((item) => item.point === s)
+          .map((item) => ({
+            resource: resources[item.resource] as string,
+            amount: item.amount,
+            from: stations[item.from] as string,
+            placed_at: item.placedAt,
+          })),
+      ),
+    ].sort((a, b) => a.placed_at - b.placed_at);
+
+  /** Stock, capacity and, where used, backorders and orders at a station now. */
   const stationQuantities = (s: number) => {
     const stockOut: Quantities = {};
     const capacityOut: Quantities = {};
@@ -567,21 +608,55 @@ export function runSimulation(
       stockOut[r.id] = stock[site] as number;
       capacityOut[r.id] = siteCapacity[site] as number;
     }
-    return hasBackorders
-      ? { stock: stockOut, capacity: capacityOut, backorders: backordersAt(s) }
-      : { stock: stockOut, capacity: capacityOut };
+    return {
+      stock: stockOut,
+      capacity: capacityOut,
+      ...(hasBackorders ? { backorders: backordersAt(s) } : {}),
+      ...(hasSuppliers ? { on_order: ordersAt(s) } : {}),
+    };
   };
 
-  const network = {
-    arcs: scenario.arcs.map((a) => ({ from: a.from, to: a.to, distance: a.distance })),
+  /**
+   * Every station as the policy sees it now, keyed by id and linked to its neighbours. Stations
+   * other than `here` carry quantities only at the line level.
+   */
+  const contextStations = (here: number | undefined) => {
+    const list: StationSnapshot[] = scenario.stations.map((station, i) => ({
+      id: station.id,
+      index: i + 1,
+      resources: stationResources[i] as string[],
+      neighbours: [],
+      suppliers: supplierSnapshots[i] as SupplierSnapshot[],
+      ...(level === "line" || i === here ? stationQuantities(i) : {}),
+    }));
+    list.forEach((station, i) => {
+      for (const link of adjacency[i] as { to: number; distance: number }[]) {
+        station.neighbours.push({
+          station: list[link.to] as StationSnapshot,
+          distance: link.distance,
+        });
+      }
+    });
+    const table: Record<string, StationSnapshot> = {};
+    for (const station of list) table[station.id] = station;
+    return { list, table };
   };
+
+  const sharedContext = (t: number, table: Record<string, StationSnapshot>) => ({
+    now: t,
+    information_level: level,
+    stations: table,
+    station_order: stations,
+    resources: resourceTable,
+    resource_order: resources,
+  });
 
   /**
    * The stops ahead of a vehicle in visiting order, with distance and travel time from where it
    * is: up to returning to this stop in the same direction, or to the end of a timetable trip.
    */
-  const routeAhead = (train: TrainState) => {
-    const ahead: { id: string; distance: number; travel_time: number }[] = [];
+  const routeAhead = (train: TrainState, list: StationSnapshot[]) => {
+    const ahead: RouteStopSnapshot[] = [];
     const n = train.path.length;
     let pos = train.pos;
     let direction = train.direction;
@@ -601,7 +676,7 @@ export function runSimulation(
       travel += travelMs(leg, train.speed);
       pos = next;
       ahead.push({
-        id: stations[train.path[pos] as number] as string,
+        station: list[train.path[pos] as number] as StationSnapshot,
         distance,
         travel_time: travel,
       });
@@ -785,32 +860,20 @@ export function runSimulation(
     const at = { stop, train: train.id, station: stations[s] as string };
     events.push({ t, kind: "arrival", ...at, direction: directionName(train.direction) });
 
-    const current = stationQuantities(s);
+    const { list, table } = contextStations(s);
     const snapshot: StopSnapshot = {
       stop,
-      now: t,
-      information_level: level,
-      train: {
+      here: list[s] as StationSnapshot,
+      vehicle: {
         id: train.id,
         direction: directionName(train.direction),
         speed: train.speed,
         capacity: train.capacitySnapshot,
         cargo: Object.fromEntries(resources.map((r, i) => [r, train.cargo[i] as number])),
         space: Object.fromEntries(resources.map((r, i) => [r, trainSpace(train, i)])),
+        route: { kind: train.kind, ahead: routeAhead(train, list) },
       },
-      station: { ...(staticStations[s] as StationSnapshot), ...current },
-      line: {
-        stations: staticStations.map((station, i) =>
-          i === s
-            ? { ...station, ...current }
-            : level === "line"
-              ? { ...station, ...stationQuantities(i) }
-              : station,
-        ),
-      },
-      route: { kind: train.kind, ahead: routeAhead(train) },
-      ...(level === "line" ? { network } : {}),
-      resources: resourceSnapshots,
+      ...sharedContext(t, table),
     };
 
     const outcome = policy.stop(snapshot);
@@ -1208,58 +1271,11 @@ export function runSimulation(
       });
     }
 
-    const current = stationQuantities(s);
-    const onOrder = [
-      ...shipments
-        .filter((sh) => sh.point === s)
-        .map((sh) => ({
-          resource: resources[sh.resource] as string,
-          amount: sh.amount,
-          from: sh.from === undefined ? EXTERNAL_SUPPLIER : (stations[sh.from] as string),
-          placed_at: sh.placedAt,
-          arrives_at: sh.arrivesAt,
-        })),
-      ...backlogs.flatMap((waiting) =>
-        waiting
-          .filter((item) => item.point === s)
-          .map((item) => ({
-            resource: resources[item.resource] as string,
-            amount: item.amount,
-            from: stations[item.from] as string,
-            placed_at: item.placedAt,
-          })),
-      ),
-    ].sort((a, b) => a.placed_at - b.placed_at);
+    const { list, table } = contextStations(s);
     const snapshot: ReviewSnapshot = {
       review,
-      now: t,
-      information_level: level,
-      stock_point: {
-        ...(staticStations[s] as StationSnapshot),
-        ...current,
-        backorders: backordersAt(s),
-        on_order: onOrder,
-        suppliers: (suppliers[s] as SupplierState[]).map((sup) => ({
-          resource: resources[sup.resource] as string,
-          from: sup.from === undefined ? EXTERNAL_SUPPLIER : (stations[sup.from] as string),
-          lead_times:
-            sup.def.leadTime.kind === "fixed"
-              ? [{ value: sup.def.leadTime.value, weight: 1 }]
-              : sup.def.leadTime.values.map((v) => ({ value: v.value, weight: v.weight })),
-          ...(sup.def.minOrder === undefined ? {} : { min_order: sup.def.minOrder }),
-          ...(sup.def.maxOrder === undefined ? {} : { max_order: sup.def.maxOrder }),
-        })),
-      },
-      line: {
-        stations: staticStations.map((other, i) =>
-          i === s
-            ? { ...other, ...current }
-            : level === "line"
-              ? { ...other, ...stationQuantities(i) }
-              : other,
-        ),
-      },
-      resources: resourceSnapshots,
+      here: list[s] as StationSnapshot,
+      ...sharedContext(t, table),
     };
     if (policy.review) {
       const outcome = policy.review(snapshot);
@@ -1421,15 +1437,19 @@ export function runSimulation(
   // --- Run ------------------------------------------------------------------
   const startOutcome = policy.start(
     {
-      now: 0,
-      information_level: level,
-      line: { stations: staticStations },
-      resources: resourceSnapshots,
-      trains: trains.map((train) => ({
-        id: train.id,
-        speed: train.speed,
-        capacity: train.capacitySnapshot,
-      })),
+      ...sharedContext(0, contextStations(undefined).table),
+      vehicles: Object.fromEntries(
+        trains.map((train) => [
+          train.id,
+          {
+            id: train.id,
+            speed: train.speed,
+            capacity: train.capacitySnapshot,
+            route_kind: train.kind,
+            stops: train.path.map((i) => stations[i] as string),
+          },
+        ]),
+      ),
     },
     {
       seed,

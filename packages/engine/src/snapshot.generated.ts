@@ -6,101 +6,137 @@ export const POLICY_API_VERSION = 2;
 /** Milli-units by resource id. */
 export type Quantities = Record<string, number>;
 
-/** Everything `on_stop` receives about the stop, the train, the station and the line. */
+/** What `on_start` receives once at the start of each run. */
+export interface StartSnapshot {
+  /** Game time in milliseconds since the run started; always 0 at the start. */
+  now: number;
+  /** How much of other stations this scenario lets the policy see. */
+  information_level: "local" | "line";
+  /** Every station, keyed by id. Every station a context refers to is one of these tables. */
+  stations: Record<string, StationSnapshot>;
+  /** Station ids in scenario order. */
+  station_order: string[];
+  /** Every resource, keyed by id. */
+  resources: Record<string, ResourceSnapshot>;
+  /** Resource ids in scenario order. */
+  resource_order: string[];
+  /** Every vehicle, keyed by id. */
+  vehicles: Record<string, VehicleInfoSnapshot>;
+}
+
+/** What `on_stop` receives when a vehicle stops at a station. */
 export interface StopSnapshot {
   /** Number of this stop within the run, starting at 1. */
   stop: number;
+  /** The station the vehicle has stopped at. */
+  here: StationSnapshot;
+  /** The vehicle that has stopped. */
+  vehicle: VehicleSnapshot;
   /** Game time in milliseconds since the run started. */
   now: number;
-  /** How much of the line this scenario lets the policy see. */
+  /** How much of other stations this scenario lets the policy see. */
   information_level: "local" | "line";
-  /** The train that has stopped. */
-  train: TrainSnapshot;
-  /** The station the train has stopped at. Its stock and capacity are always readable. */
-  station: CurrentStationSnapshot;
-  /** The stations on the line, in order. */
-  line: LineSnapshot;
-  /** The stopped vehicle's route and the stops ahead of it. */
-  route: RouteSnapshot;
-  /** The arcs joining stock points. Readable only at the `line` level; stock points are in `line.stations`. */
-  network?: NetworkSnapshot;
-  /** Every resource in the scenario, in scenario order. */
-  resources: ResourceSnapshot[];
+  /** Every station, keyed by id. Every station a context refers to is one of these tables. */
+  stations: Record<string, StationSnapshot>;
+  /** Station ids in scenario order. */
+  station_order: string[];
+  /** Every resource, keyed by id. */
+  resources: Record<string, ResourceSnapshot>;
+  /** Resource ids in scenario order. */
+  resource_order: string[];
 }
 
-/** What `on_start` receives once at the start of each run. */
-export interface StartSnapshot {
-  /** Game time in milliseconds; always 0 at the start of a run. */
+/** What `on_review` receives when a station reviews what to order from its suppliers. */
+export interface ReviewSnapshot {
+  /** Number of this review within the run, starting at 1. */
+  review: number;
+  /** The station being reviewed. */
+  here: StationSnapshot;
+  /** Game time in milliseconds since the run started. */
   now: number;
-  /** How much of the line this scenario lets the policy see. */
+  /** How much of other stations this scenario lets the policy see. */
   information_level: "local" | "line";
-  /** The stations on the line, without stock. */
-  line: LineSnapshot;
-  /** Every resource in the scenario. */
-  resources: ResourceSnapshot[];
-  /** Every train on the line. */
-  trains: TrainInfoSnapshot[];
+  /** Every station, keyed by id. Every station a context refers to is one of these tables. */
+  stations: Record<string, StationSnapshot>;
+  /** Station ids in scenario order. */
+  station_order: string[];
+  /** Every resource, keyed by id. */
+  resources: Record<string, ResourceSnapshot>;
+  /** Resource ids in scenario order. */
+  resource_order: string[];
 }
 
-/** A train stopped at a station. */
-export interface TrainSnapshot {
-  /** Train id, as written in the scenario. */
+/** A place that holds stock. Stock, backorders and orders of stations other than `ctx.here` are readable only at the `line` level. */
+export interface StationSnapshot {
+  /** Station id, as written in the scenario. */
   id: string;
-  /** Direction the train will leave in. `forward` runs towards the last station; trains reverse at either end. */
+  /** Position in the scenario's station order, starting at 1. */
+  index: number;
+  /** Ids of the resources this station stores, in scenario order. */
+  resources: string[];
+  /** Stations joined to this one by an arc. */
+  neighbours: NeighbourSnapshot[];
+  /** Milli-units stored, by resource id. */
+  stock?: Quantities;
+  /** Storage limit in milli-units, by resource id. */
+  capacity?: Quantities;
+  /** Demand waiting to be served, in milli-units, by resource id. */
+  backorders?: Quantities;
+  /** Where each resource can be ordered from. */
+  suppliers: SupplierSnapshot[];
+  /** Orders placed by this station that have not arrived, oldest first. */
+  on_order?: OrderSnapshot[];
+}
+
+/** A station joined to another by an arc. */
+export interface NeighbourSnapshot {
+  /** The neighbouring station. */
+  station: StationSnapshot;
+  /** Length of the arc between them. */
+  distance: number;
+}
+
+/** A vehicle stopped at a station. */
+export interface VehicleSnapshot {
+  /** Vehicle id, as written in the scenario. */
+  id: string;
+  /** Direction the vehicle will leave in along its route's stops. Shuttles reverse at either end; loops always go forward. */
   direction: "forward" | "backward";
   /** Distance travelled per second. */
   speed: number;
-  /** How much the train can carry. */
-  capacity: TrainCapacitySnapshot;
+  /** How much the vehicle can carry. */
+  capacity: VehicleCapacitySnapshot;
   /** Milli-units carried, by resource id. Every scenario resource is present. */
   cargo: Quantities;
-  /** Milli-units more the train could load, by resource id. */
+  /** Milli-units more the vehicle could load, by resource id. */
   space: Quantities;
+  /** The vehicle's route and the stops ahead of it. */
+  route: RouteSnapshot;
 }
 
 /** Either one capacity shared by all resources, or a capacity per resource. */
-export interface TrainCapacitySnapshot {
+export interface VehicleCapacitySnapshot {
   /** Total milli-units across all resources, when capacity is shared. */
   shared?: number;
   /** Milli-units per resource id, when capacity is per resource. */
   per_resource?: Quantities;
 }
 
-/** A train as described at the start of a run. */
-export interface TrainInfoSnapshot {
-  /** Train id, as written in the scenario. */
+/** A vehicle as described at the start of a run. */
+export interface VehicleInfoSnapshot {
+  /** Vehicle id, as written in the scenario. */
   id: string;
   /** Distance travelled per second. */
   speed: number;
-  /** How much the train can carry. */
-  capacity: TrainCapacitySnapshot;
+  /** How much the vehicle can carry. */
+  capacity: VehicleCapacitySnapshot;
+  /** The kind of route the vehicle follows. */
+  route_kind: "shuttle" | "loop" | "timetable";
+  /** Ids of the stations on its route, in order. */
+  stops: string[];
 }
 
-/** A station on the line. */
-export interface StationSnapshot {
-  /** Station id, as written in the scenario. */
-  id: string;
-  /** Position on the line, starting at 1. */
-  index: number;
-  /** Ids of the resources this station stores, in scenario order. */
-  resources: string[];
-  /** Distance to the next station; `nil` on the last station. */
-  distance_to_next?: number;
-  /** Milli-units stored, by resource id. Readable for other stations only at the `line` level. */
-  stock?: Quantities;
-  /** Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level. */
-  capacity?: Quantities;
-  /** Demand waiting to be served, in milli-units, by resource id. Readable for other stations only at the `line` level. */
-  backorders?: Quantities;
-}
-
-/** The line the train runs on. */
-export interface LineSnapshot {
-  /** Stations in line order. */
-  stations: StationSnapshot[];
-}
-
-/** The fixed route a vehicle follows. */
+/** The fixed route a stopped vehicle follows. */
 export interface RouteSnapshot {
   /** `shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times. */
   kind: "shuttle" | "loop" | "timetable";
@@ -110,77 +146,25 @@ export interface RouteSnapshot {
 
 /** A stop ahead on a vehicle's route. */
 export interface RouteStopSnapshot {
-  /** Stock point id. */
-  id: string;
-  /** Distance along the route from this stop. */
+  /** The station at that stop. */
+  station: StationSnapshot;
+  /** Distance along the route from `ctx.here`. */
   distance: number;
-  /** Milliseconds of travel from this stop, not counting stops on the way. */
+  /** Milliseconds of travel from `ctx.here`, not counting stops on the way. */
   travel_time: number;
 }
 
-/** How stock points are joined. */
-export interface NetworkSnapshot {
-  /** Every arc, in scenario order. */
-  arcs: ArcSnapshot[];
-}
-
-/** A connection between two stock points, usable in both directions. */
-export interface ArcSnapshot {
-  /** Stock point id at one end. */
-  from: string;
-  /** Stock point id at the other end. */
-  to: string;
-  /** Distance between the two stock points. */
-  distance: number;
-}
-
-/** Everything `on_review` receives when a stock point reviews what to order from its suppliers. */
-export interface ReviewSnapshot {
-  /** Number of this review within the run, starting at 1. */
-  review: number;
-  /** Game time in milliseconds since the run started. */
-  now: number;
-  /** How much of the scenario this policy may see. */
-  information_level: "local" | "line";
-  /** The stock point being reviewed, with its stock, orders and suppliers. */
-  stock_point: StockPointSnapshot;
-  /** Every stock point in the scenario, in order. Their stock is readable only at the `line` level. */
-  line: LineSnapshot;
-  /** Every resource in the scenario, in scenario order. */
-  resources: ResourceSnapshot[];
-}
-
-/** A stock point under review. */
-export interface StockPointSnapshot {
-  /** Stock point id, as written in the scenario. */
-  id: string;
-  /** Position in the scenario's list of stock points, starting at 1. */
-  index: number;
-  /** Ids of the resources this stock point stores, in scenario order. */
-  resources: string[];
-  /** Milli-units stored, by resource id, after any expiring stock was removed. */
-  stock: Quantities;
-  /** Storage limit in milli-units, by resource id. */
-  capacity: Quantities;
-  /** Demand waiting to be served here, in milli-units, by resource id. */
-  backorders: Quantities;
-  /** Orders placed by this stock point that have not arrived, oldest first. */
-  on_order: OrderSnapshot[];
-  /** Where each resource can be ordered from. */
-  suppliers: SupplierSnapshot[];
-}
-
-/** An order on its way to the stock point that placed it. */
+/** An order on its way to the station that placed it. */
 export interface OrderSnapshot {
   /** Resource id. */
   resource: string;
   /** Milli-units still to arrive. */
   amount: number;
-  /** `external`, or the id of the supplying stock point. */
+  /** `external`, or the id of the supplying station. */
   from: string;
   /** Game time the order was placed. */
   placed_at: number;
-  /** Game time the order arrives; `nil` while it waits for stock at a supplying stock point. */
+  /** Game time the order arrives; `nil` while it waits for stock at a supplying station. */
   arrives_at?: number;
 }
 
@@ -188,7 +172,7 @@ export interface OrderSnapshot {
 export interface SupplierSnapshot {
   /** Resource id. */
   resource: string;
-  /** `external`, or the id of the supplying stock point. */
+  /** `external`, or the id of the supplying station. */
   from: string;
   /** Possible lead times in milliseconds, with their weights. */
   lead_times: LeadTimeSnapshot[];
@@ -213,6 +197,3 @@ export interface ResourceSnapshot {
   /** Weight used when scoring unmet demand; higher is more important. */
   priority: number;
 }
-
-/** The stopped train's station, whose stock and capacity are always present. */
-export type CurrentStationSnapshot = StationSnapshot & { stock: Quantities; capacity: Quantities };

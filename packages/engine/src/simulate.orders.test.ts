@@ -78,14 +78,14 @@ describe("reviews and external orders", () => {
       return snapshot.review === 1 ? [{ type: "order", resource: "Beer", amount: 5000 }] : [];
     });
     runSimulation(shop(), policy, { detail: "summary" });
-    expect(seen[1]?.stock_point.on_order).toEqual([
+    expect(seen[1]?.here.on_order).toEqual([
       { resource: "Beer", amount: 5000, from: "external", placed_at: 0, arrives_at: 2 * DAY },
     ]);
-    expect(seen[1]?.stock_point.suppliers).toEqual([
+    expect(seen[1]?.here.suppliers).toEqual([
       { resource: "Beer", from: "external", lead_times: [{ value: 2 * DAY, weight: 1 }] },
     ]);
-    expect(seen[2]?.stock_point.on_order).toEqual([]);
-    expect(seen[2]?.stock_point.stock).toEqual({ Beer: 5000 });
+    expect(seen[2]?.here.on_order).toEqual([]);
+    expect(seen[2]?.here.stock).toEqual({ Beer: 5000 });
   });
 
   it("clamps orders to the supplier's limits with a warning", () => {
@@ -145,7 +145,7 @@ describe("reviews and external orders", () => {
     });
     const seen: number[] = [];
     const policy = reviewPolicy((snapshot) => {
-      seen.push(snapshot.stock_point.stock.Beer as number);
+      seen.push(snapshot.here.stock?.Beer as number);
       return snapshot.review === 1 ? [{ type: "order", resource: "Beer", amount: 5000 }] : [];
     });
     const out = runSimulation(scenario, policy, { detail: "summary" });
@@ -193,7 +193,7 @@ describe("station suppliers", () => {
 
   it("ships what the supplier holds and ships the rest when it receives stock", () => {
     const policy = reviewPolicy((snapshot) => {
-      if (snapshot.stock_point.id === "Wholesaler")
+      if (snapshot.here.id === "Wholesaler")
         return snapshot.review === 1 ? [{ type: "order", resource: "Beer", amount: 10_000 }] : [];
       return snapshot.review === 2 ? [{ type: "order", resource: "Beer", amount: 8000 }] : [];
     });
@@ -213,13 +213,13 @@ describe("station suppliers", () => {
   it("lists the unshipped part of an order without an arrival time", () => {
     let seen: ReviewSnapshot | undefined;
     const policy = reviewPolicy((snapshot) => {
-      if (snapshot.stock_point.id === "Retailer" && snapshot.review === 4) seen = snapshot;
-      return snapshot.stock_point.id === "Retailer" && snapshot.review === 2
+      if (snapshot.here.id === "Retailer" && snapshot.review === 4) seen = snapshot;
+      return snapshot.here.id === "Retailer" && snapshot.review === 2
         ? [{ type: "order", resource: "Beer", amount: 8000 }]
         : [];
     });
     runSimulation(chain(3000), policy, { detail: "summary" });
-    expect(seen?.stock_point.on_order).toEqual([
+    expect(seen?.here.on_order).toEqual([
       { resource: "Beer", amount: 5000, from: "Wholesaler", placed_at: 0 },
     ]);
   });
@@ -232,7 +232,7 @@ describe("expiring stock", () => {
     });
     const seen: number[] = [];
     const policy = reviewPolicy((snapshot) => {
-      seen.push(snapshot.stock_point.stock.Beer as number);
+      seen.push(snapshot.here.stock?.Beer as number);
       return [];
     });
     const out = runSimulation(scenario, policy, { detail: "summary" });

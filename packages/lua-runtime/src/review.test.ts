@@ -106,7 +106,7 @@ describe("review hook", () => {
     const out = run(
       `return {
         on_review = function(ctx)
-          local point = ctx.stock_point
+          local point = ctx.here
           if ctx.review == 1 then ctx.order("Beer", 5000) end
           if ctx.review == 2 then
             ctx.log(point.id, #point.on_order, point.on_order[1].arrives_at,
@@ -131,7 +131,7 @@ describe("review hook", () => {
     const out = run(
       `return {
         on_review = function(ctx)
-          local m = ctx.stock_point.memory
+          local m = ctx.here.memory
           m.count = (m.count or 0) + 1
           ctx.log(m.count)
         end,
@@ -176,15 +176,16 @@ describe("review hook", () => {
   });
 });
 
-describe("route context", () => {
+describe("linked context", () => {
   it("lists the stops ahead on a loop", () => {
     const out = run(
       `return {
         on_stop = function(ctx)
-          if ctx.station.id == "A" and ctx.stop == 2 then
-            local parts = { ctx.route.kind }
-            for _, stop in ipairs(ctx.route.ahead) do
-              parts[#parts + 1] = stop.id .. "@" .. stop.distance
+          if ctx.here.id == "A" and ctx.stop == 2 then
+            local route = ctx.vehicle.route
+            local parts = { route.kind }
+            for _, stop in ipairs(route.ahead) do
+              parts[#parts + 1] = stop.station.id .. "@" .. stop.distance .. "/" .. stop.travel_time
             end
             ctx.log(table.concat(parts, " "))
           end
@@ -192,24 +193,50 @@ describe("route context", () => {
       }`,
       loop("line"),
     );
-    expect(ofKind(out.events, "log").map((e) => e.message)).toEqual(["loop B@100 Depot@200"]);
+    expect(ofKind(out.events, "log").map((e) => e.message)).toEqual([
+      "loop B@100/10000 Depot@200/20000",
+    ]);
   });
 
-  it("gives the network's arcs at the line level", () => {
+  it("refers to every station through the same table", () => {
     const out = run(
-      `return { on_stop = function(ctx) if ctx.stop == 1 then ctx.log(#ctx.network.arcs) end end }`,
+      `return {
+        on_stop = function(ctx)
+          if ctx.stop == 1 then
+            local here = ctx.here
+            local ahead = ctx.vehicle.route.ahead[1].station
+            ctx.log(here == ctx.stations[here.id], ahead == ctx.stations.A,
+              ahead.neighbours[1].station == here, ctx.stations.B.stock ~= nil)
+          end
+        end,
+      }`,
       loop("line"),
     );
-    expect(ofKind(out.events, "log")[0]?.message).toBe("3");
+    expect(ofKind(out.events, "log")[0]?.message).toBe("true true true true");
   });
 
-  it("refuses the network at the local level", () => {
+  it("finds distances along the shortest path, not the route", () => {
     const out = run(
-      `return { on_stop = function(ctx) local n = ctx.network.arcs end }`,
+      `return { on_stop = function(ctx)
+        if ctx.stop == 1 then ctx.log(ctx.distance("Depot", "B"), ctx.travel_time("Depot", "B", 20)) end
+      end }`,
+      loop("line"),
+    );
+    expect(ofKind(out.events, "log")[0]?.message).toBe("100 5000");
+  });
+
+  it("links neighbours at the local level but hides their stock", () => {
+    const out = run(
+      `return { on_stop = function(ctx)
+        local n = ctx.here.neighbours[1]
+        ctx.log(n.station.id, n.distance)
+        local stock = n.station.stock
+      end }`,
       loop("local"),
     );
+    expect(ofKind(out.events, "log")[0]?.message).toBe("A 100");
     expect(ofKind(out.events, "error")[0]?.message).toContain(
-      "reading the network requires the line information level",
+      "reading another station's stock requires the line information level",
     );
   });
 });
