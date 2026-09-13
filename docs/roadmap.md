@@ -43,7 +43,7 @@ benchmark scenario.
 | No priorities | Critical resources are treated the same as bulk materials. |
 | Bullwhip | Small changes in demand grow into large swings in stock. |
 
-The exact vanilla rules are not yet confirmed; see §9.
+The exact vanilla rules are not yet confirmed; see §10.
 
 ## 3. Principles
 
@@ -279,6 +279,8 @@ Can start alongside M3; content grows with every later stage.
   widgets render deterministically, links resolve.
 - Initial encyclopedia covering the concepts used by `ops` v1 and the failure
   modes in §2.
+- Encyclopedia pages for the §8 techniques as their stages land, each citing its
+  sources and saying where the simulator departs from the textbook setting.
 
 **Done when** every public API symbol and block has a page, all documentation CI
 checks pass, and the failure modes in §2 each have an explanatory page linked
@@ -336,7 +338,8 @@ take a new player from nothing to a shared result, and the site is public.
   smoothing, PID control, line-wide transport planning.
 - Form-based policy builder that edits the same Lua text, with custom
   functions shown as code cells.
-- Encyclopedia pages for every new concept.
+- The §8 techniques marked M10, each with a block, metric or view and an
+  encyclopedia page.
 - Diverted traffic: while storms ground shuttles, freight they would have
   carried moves onto the rail line, raising supply and demand at the stations
   those shuttles served, with an optional backlog after the storm clears.
@@ -395,7 +398,298 @@ something players can read or use.
 - **Engine performance.** Revisit a native engine with browser and Python
   bindings if batch or training workloads need it.
 
-## 8. Out of scope
+## 8. Techniques to showcase
+
+Regolith Rail is meant to teach. Each technique below becomes something a player
+can use or watch: a building block, a metric, a scenario or a view. Each is paired
+with a documentation page that explains it, cites its sources in §12 and compares
+it with the baseline. The stage in brackets is where it is planned.
+
+The simulator often differs from the textbook setting, and those differences are
+part of the lesson. Unmet demand is lost rather than backordered. Trains limit how
+much can be delivered at once and cannot choose their route. The interval between
+visits depends on the policy, and a station that runs dry hides how much demand it
+missed. Every page says which assumptions hold and which do not.
+
+### 8.1 Inventory control at a station
+
+A site behaves like a single stocking point. A visit is a review, the time between
+visits is the review period, and the travel time for cargo is the lead time.
+
+- **Inventory position** [M4]. Decide from stock plus cargo already heading for a
+  site, not stock on hand, because what a station holds after the lead time is its
+  position now minus the demand in between. `plan` reservations compute it. Stock
+  and position are charted together, and removing the position shows over-delivery
+  and oscillation (Axsäter, 2015, pp. 39–40; Snyder and Shen, 2019, p. 50).
+- **Periodic review** [M10]. Stock must cover the review period plus the lead time,
+  so longer lines and fewer trains need fuller stations. A sweep of train count and
+  speed shows unmet demand growing with the protection interval (Axsäter, 2015,
+  pp. 40–41).
+- **Base-stock (order-up-to) policies** [M4]. At every review, raise the position
+  to a level made of cycle stock plus safety stock. This is the `order_up_to`
+  target, with its level drawn on the stock chart. Station and train capacity cap
+  the level in ways the textbook model does not (Axsäter, 2015, pp. 42–43, 113–115;
+  Snyder and Shen, 2019, pp. 105–113).
+- **Newsvendor critical ratio** [M10]. Choose the level at which the chance of
+  meeting demand equals the shortage cost divided by the sum of the shortage and
+  overage costs. Resource priority sets the shortage cost and stalled production is
+  the overage, so a slider traces the trade-off between them (Axsäter, 2015,
+  pp. 95–97; Snyder and Shen, 2019, pp. 90–101; Taha, 2017, pp. 618–620).
+- **Safety stock and service levels** [M10]. Safety stock grows quickly with the
+  service level demanded. The cycle service level, fill rate and ready rate can
+  differ widely, especially under bursty demand, so all three are reported side by
+  side (Axsäter, 2015, pp. 79–81, 86–87; Snyder and Shen, 2019, pp. 105–113).
+- **Min–max (s, S) policies and the economic order quantity** [M4]. Act only when
+  the position falls below a minimum, then restore it to a maximum. Fixed dwell per
+  stop plays the part of a fixed ordering cost. The flat cost curve of the economic
+  order quantity shows that batch size matters less than the reorder point. This is
+  the `min_max` target (Axsäter, 2015, pp. 45–48, 115–116; Eiselt and Sandblom,
+  2022, pp. 420–421; Simchi-Levi, Chen and Bramel, 2014, pp. 152–153; Taha, 2017,
+  pp. 507–510).
+- **Lost sales** [M8]. With lost sales and a lead time, base-stock policies are no
+  longer optimal and the optimal form is unknown. A sweep finds the best level
+  empirically and compares it with the textbook level, which motivates search and
+  learning (Axsäter, 2015, pp. 97–99; Snyder and Shen, 2019, pp. 136–138;
+  Simchi-Levi, Chen and Bramel, 2014, pp. 169–172).
+- **Random lead times** [M10]. Variable visit intervals add to the safety stock
+  needed even when demand is steady. The run log supplies the interval variance
+  (Axsäter, 2015, pp. 100–101; Snyder and Shen, 2019, pp. 166–167).
+
+### 8.2 Networks of stations and disruptions
+
+- **Echelon stock** [M10]. In a chain of stock points, decide from a station's own
+  stock plus everything downstream and in transit. In simple serial systems this is
+  optimal, and upstream stock is often best kept low. An `echelon_position` target
+  removes dead stock at relays (Snyder and Shen, 2019, pp. 191–197; Axsäter, 2015,
+  pp. 192–198).
+- **Local versus central control** [M8]. Rules that see only their own station react
+  to changes late, and the gap grows with lead time. Comparing the `local` and
+  `line` information levels across train speeds shows the value of information
+  (Axsäter, 2015, pp. 153–160, 167–168).
+- **Where to hold buffers** [M10]. Strategic safety stock placement keeps buffers at
+  a few stages and lets the rest pass goods through. A heatmap splits a fixed buffer
+  between relays and end stations (Snyder and Shen, 2019, pp. 203–222).
+- **Allocating scarce stock** [M4, M10]. When cargo cannot cover every station
+  ahead, an allocation rule decides who goes short. Priority, proportional and
+  balanced allocation are compared. A relay between two demand ends shows when
+  holding stock centrally pays (Snyder and Shen, 2019, pp. 202–203; Axsäter, 2015,
+  pp. 198–201).
+- **METRIC approximation** [M10]. Shortages upstream appear downstream as extra
+  waiting time. An estimator of travel plus waiting time feeds the target block
+  (Axsäter, 2015, pp. 201–205).
+- **Risk pooling** [M10]. Pooling independent demands cuts the stock needed, because
+  variances add but standard deviations do not. A storm that raises all demand at
+  once makes the benefit vanish (Snyder and Shen, 2019, pp. 230–237).
+- **Lateral transshipment** [M10]. Move stock sideways from surplus to shortage,
+  never between two surpluses. In the simulator transfers take time, so only
+  proactive rules help. A `transship` rule targets ping-pong (Snyder and Shen, 2019,
+  pp. 240–243; Axsäter, 2015, pp. 151–152).
+- **Flexibility and chaining** [Research]. A long chain of overlapping assignments
+  captures most of the benefit of full flexibility. Trains are assigned to
+  overlapping segments of a line and tested under storms (Snyder and Shen, 2019,
+  pp. 243–253; Simchi-Levi, Chen and Bramel, 2014, pp. 241–243).
+- **Supply disruptions** [M10]. Supply that switches between up and down follows a
+  two-state Markov process, like storms and bursts. With steady demand, the optimal
+  buffer covers outages up to a chosen length. A `disruption_buffer` target sizes it
+  from the storm process, and uniformly random production stands in for uncertain
+  yield (Snyder and Shen, 2019, pp. 355–372).
+- **Diversification and reliability** [M8]. Centralising stock under disruptions
+  keeps the mean cost the same but raises its variance. Components in series or in
+  parallel set overall reliability. Batches report the spread across seeds and the
+  worst shortfalls, not just means (Snyder and Shen, 2019, pp. 372–387; Eiselt and
+  Sandblom, 2022, pp. 440–445, 450–451).
+- **The bullwhip effect** [M8, M10]. Variability grows upstream through forecasting,
+  rationing and batching, and sharing demand information reduces it. The ratio of
+  cargo variance to consumption variance is reported per station. A moving-average
+  estimator shows how window length and lead time drive it (Snyder and Shen, 2019,
+  pp. 539–562; Axsäter, 2015, pp. 167–168).
+
+### 8.3 Optimisation, transport and bounds
+
+- **Time-expanded network flow** [M8]. A copy of each station for every period,
+  joined by storage and train arcs, turns a whole run into a minimum-cost flow
+  problem. This is the natural form of the perfect-foresight bound, and its minimum
+  cut marks the bottleneck on the line map. Resources sharing a train make it a
+  multicommodity problem (Eiselt and Sandblom, 2022, pp. 220–230; Simchi-Levi, Chen
+  and Bramel, 2014, pp. 264–266; Boyd and Vandenberghe, 2004, p. 193).
+- **Duality and shadow prices** [M8]. Each dual value prices one more unit of a
+  limited resource, and spare capacity is worth nothing. The bound reports what more
+  train capacity or storage would be worth (Taha, 2017, pp. 178–182; Boyd and
+  Vandenberghe, 2004, pp. 251–253).
+- **The transportation problem** [M7]. Ship from supply to demand at least cost,
+  with a dummy source standing for shortage. A one-trip teaching scenario sets the
+  dummy cost to resource priority (Taha, 2017, pp. 207–214; Eiselt and Sandblom,
+  2022, p. 183).
+- **Relaxations and optimality gaps** [M8]. Relaxing integrality gives a bound. The
+  gap between the best solution and the best bound measures how far there is to go.
+  The headline score is the share of the gap between baseline and bound that a
+  policy closes, and the app explains why no online policy can close all of it
+  (Eiselt and Sandblom, 2022, pp. 165–168; Simchi-Levi, Chen and Bramel, 2014,
+  pp. 9–10, 99; Snyder and Shen, 2019, pp. 442–452).
+- **Knapsack loading** [M10]. Filling by value per unit is exact for divisible
+  cargo, while greedy loading of indivisible items can reach only half the optimum.
+  A fractional knapsack allocation values cargo by priority and downstream shortfall
+  (Eiselt and Sandblom, 2022, pp. 170–172, 194–197; Taha, 2017, pp. 475–480).
+- **Dynamic lot sizing and rolling horizons** [M10]. With known but varying demand
+  and a fixed cost per delivery, deliver only when stock runs out, and re-plan as
+  forecasts change. This is the theory behind line-wide planning (Simchi-Levi, Chen
+  and Bramel, 2014, pp. 137–143; Eiselt and Sandblom, 2022, pp. 45–49).
+- **Inventory routing** [M8, M10]. Decide jointly when, how much and on which route
+  to deliver. Regolith Rail is inventory routing with a fixed route. A relief-style
+  variant scores the worst station's shortfall (Snyder and Shen, 2019, pp. 531–534,
+  632–635).
+- **Fairness** [M10]. Minimising the largest shortfall is a linear program with one
+  extra variable, and it should be balanced against efficiency. A metric toggle
+  compares total with worst-station unmet demand (Eiselt and Sandblom, 2022,
+  pp. 179–181; Boyd and Vandenberghe, 2004, pp. 150–151; Snyder and Shen, 2019,
+  pp. 309–314).
+- **Pareto frontiers** [M6]. With several objectives, compare the policies no other
+  policy beats on every objective. A batch scatter of unmet demand against empty
+  distance highlights them (Eiselt and Sandblom, 2022, pp. 125–133).
+- **Routing problems** [M7]. The travelling salesman, vehicle routing, backhaul and
+  pickup-and-delivery problems explain what a fixed shuttle gives up. Empty distance
+  measures missed backhauls (Snyder and Shen, 2019, pp. 404–406, 500–501).
+- **Facility location** [Research]. Decide which station should become a
+  large-storage relay by computing the bound for each candidate (Snyder and Shen,
+  2019, pp. 269–270; Eiselt and Sandblom, 2022, pp. 285–290).
+- **Metaheuristics** [M10, Research]. Local search stops at local optima; tabu
+  search, simulated annealing and genetic algorithms escape them. They drive
+  parameter tuning and genetic programming. Results are scored on held-out seeds,
+  because heuristics tuned to one test set can fail on the next (Taha, 2017,
+  pp. 397–415; Brémaud, 2020, pp. 408–420; Simchi-Levi, Chen and Bramel, 2014,
+  pp. 9–10).
+
+### 8.4 Randomness, simulation and statistics
+
+- **Geometric waits and Poisson processes** [M7]. A storm that starts with a small
+  chance at every check has geometric, nearly exponential waiting times, and is
+  never "due". A storm clock plots the gaps against both curves (Brémaud, 2020,
+  pp. 23–25, 423–428; Taha, 2017, pp. 656–660).
+- **Two-state Markov chains** [M7]. Bursty producers switch on and off with fixed
+  chances. The long-run share of time on, the mean run lengths and the slow approach
+  to equilibrium follow directly. Equal mean rates with different run lengths show
+  that burstiness, not the mean, drains buffers (Brémaud, 2020, pp. 86, 159; Taha,
+  2017, pp. 634–635).
+- **Random walks with replenishment** [M7]. Stock at one station under a min–max
+  rule is a random walk whose long-run distribution can be computed and compared
+  with the simulation (Brémaud, 2020, pp. 128–135; Taha, 2017, pp. 661–662).
+- **Queues and Little's law** [M7]. Birth–death queues show variability growing
+  sharply as supply approaches demand. Little's law turns average stock and
+  throughput into the average time goods spend at a station. Known queueing results
+  also validate the engine (Brémaud, 2020, pp. 500–502; Taha, 2017, pp. 667–668;
+  Eiselt and Sandblom, 2022, p. 475).
+- **Monte Carlo and the number of seeds** [M6]. Standard error falls with the square
+  root of the number of runs, so halving an interval takes four times the seeds. The
+  batch view recommends a seed count for a target precision (Brémaud, 2020, p. 369;
+  Wasserman, 2004, pp. 404–405; MacKay, 2003, pp. 357–358).
+- **Pseudo-random numbers** [M7]. Seeded generators give repeatable sequences, and
+  inverse transform sampling turns uniform draws into other distributions. A toy
+  generator with a short cycle contrasts with the engine's generator (Taha, 2017,
+  pp. 720–722; Eiselt and Sandblom, 2022, pp. 475–478; Brémaud, 2020, pp. 370–371).
+- **Common random numbers and paired comparison** [M6]. Running both policies on
+  the same randomness correlates their results, so the variance of the difference
+  drops. A paired versus independent toggle shows the interval shrink. Separate
+  random streams per source keep the two runs aligned (Wasserman, 2004, pp. 52,
+  154–155; Eiselt and Sandblom, 2022, pp. 483–485).
+- **Confidence intervals and practical significance** [M6]. A difference is
+  significant when its interval excludes zero, but it may still be too small to
+  matter, so players can set the smallest difference they care about (Wasserman,
+  2004, pp. 155, 170).
+- **Warm-up and regenerative cycles** [M6]. Early output is transient and should be
+  discarded. The renewal–reward theorem predicts long-run averages, such as the
+  share of time spent in storms, from cycle means (Taha, 2017, pp. 728–731;
+  Brémaud, 2020, pp. 135–136; Eiselt and Sandblom, 2022, p. 474).
+- **The bootstrap** [M6]. Resampling whole seeds gives intervals for medians and
+  tail percentiles, shown next to the t interval (Wasserman, 2004, pp. 107–111).
+- **Multiple comparisons** [M6]. Testing many metrics, stations and sweep cells
+  inflates false positives. Bonferroni and Benjamini–Hochberg corrections are
+  offered as a toggle (Wasserman, 2004, pp. 165–167).
+- **Overfitting and held-out seeds** [M10]. Tuned parameters score better on the
+  seeds they were tuned on than on new ones. The tuner shows both scores, and the
+  benchmark keeps a locked evaluation set (Deisenroth, Faisal and Ong, 2020,
+  pp. 262–264; Wasserman, 2004, p. 219).
+
+### 8.5 Forecasting and estimation
+
+- **Moving averages and exponential smoothing** [M4, M10]. Forecast consumption
+  between visits, with Holt's method adding a trend, and track forecast error. A
+  storm shows the trade-off between lag and responsiveness, and a demand ramp shows
+  why the trend term matters (Snyder and Shen, 2019, pp. 6–17).
+- **Forecast error and censored demand** [M10]. Safety stock should use forecast
+  error, which grows faster than the square root of the horizon when errors are
+  correlated. A station that runs dry records what was taken, not what was wanted,
+  so estimates drift low and cause more stockouts. A realistic mode hides true
+  demand from policies (Axsäter, 2015, pp. 28–29; Snyder and Shen, 2019,
+  pp. 90–101).
+- **Kalman filtering** [M10]. A predict-and-update filter estimates stock and
+  consumption rate from irregular visits. Its uncertainty band shows the balance
+  between process and measurement noise (Särkkä, 2013, pp. 34–37, 52, 56–59).
+- **Transients after retuning** [M10]. Raising reorder levels triggers a wave of
+  deliveries while lowering them acts slowly, so retuning during a storm can make
+  things worse (Axsäter, 2015, pp. 231–232).
+
+### 8.6 Feedback control
+
+- **Feedback and feed-forward** [M4]. Feedback corrects errors after they appear;
+  feed-forward acts on predicted disturbances and needs a model. Balancing is
+  feedback, and lookahead is feed-forward (Åström and Murray, 2008, pp. 22, 319–320;
+  Albertos and Mareels, 2010, pp. 59–64).
+- **Proportional control and steady-state error** [M4]. The game's balancing rule
+  behaves like a proportional controller whose gain is the share of the imbalance
+  moved per visit. A steady drain then settles below target, which is the operating
+  at the edge failure. Higher gain reduces the offset but causes oscillation (Åström
+  and Murray, 2008, pp. 23–24, 294–295; Dorf and Bishop, 2011, pp. 322–324).
+- **PID control** [M10]. Integral action removes steady-state error, learning a
+  station's net drain without being told the rate. Derivative action needs
+  filtering. A PID block keeps its integrator in memory (Åström and Murray, 2008,
+  pp. 295–297, 308, 311–312; Albertos and Mareels, 2010, pp. 193–194, 238).
+- **Saturation and integrator windup** [M10]. Train capacity, station capacity and
+  empty stations all saturate. During a long storm an integrator winds up and later
+  over-delivers. Anti-windup prevents it, and a chart of commanded against applied
+  loads shows the difference (Åström and Murray, 2008, pp. 306–308, 311–312).
+- **On–off control and hysteresis** [M4]. Min–max is a relay with hysteresis, and
+  its band sets the size and period of the resulting cycle. Relay experiments also
+  reveal the critical gain used by tuning rules (Åström and Murray, 2008, pp. 23–24,
+  292, 305–306; Albertos and Mareels, 2010, p. 237).
+- **Dead time and sampling** [M6, M10]. Stock integrates flow, and the visit interval
+  is both a delay and a sampling period. Proportional control of an integrator with
+  delay is unstable above a certain gain. A stability map over gain and train
+  spacing explains ping-pong. The fixes are lower gain, rate limits, smoothing and
+  gain scheduled on the observed interval (Albertos and Mareels, 2010, pp. 13, 192;
+  Åström and Murray, 2008, pp. 281, 292, 333; Dorf and Bishop, 2011, pp. 668–670,
+  999–1000).
+- **Step response and recovery time** [M8]. Settling time, overshoot and integrated
+  error after a disturbance define recovery after a storm. They are reported by
+  shock size, because capacity limits make recovery nonlinear (Åström and Murray,
+  2008, p. 151; Albertos and Mareels, 2010, pp. 63, 135–136).
+- **Partial information and observers** [M8]. Controllers see only part of the
+  state, and observers reconstruct the rest from a model. The information levels
+  make this concrete (Åström and Murray, 2008, pp. 201, 206; Albertos and Mareels,
+  2010, p. 273).
+- **Receding-horizon control** [M10]. Optimise over a horizon, apply the first step
+  and re-plan. Lookahead is a simple form, and the distance to the perfect-foresight
+  bound is the value of information (Albertos and Mareels, 2010, p. 272;
+  Hernández-Lerma et al., 2023, p. 5).
+
+### 8.7 Sequential decisions and learning
+
+- **Markov decision processes and dynamic programming** [Research]. The Bellman
+  equation defines optimal policies, which value or policy iteration finds, and the
+  state space explodes as variables are added. A tiny two-station scenario is solved
+  exactly in the browser, and its policy is shown beside balancing. The car rental
+  example in Sutton and Barto is a close analogue (Sutton and Barto, 2015, pp. 67,
+  75–76, 96–98; Hernández-Lerma et al., 2023, pp. 4, 50–51, 83–85; Taha, 2017,
+  p. 489).
+- **Reinforcement learning** [Research]. A constant step-size average is the same
+  update as exponential smoothing. Bandits capture the trade-off between exploring
+  and exploiting. Q-learning and Sarsa learn the value of actions, and function
+  approximation, including decision trees, generalises across states. Q-learning's
+  risky optimal path, against Sarsa's safer one, mirrors running stock close to
+  empty. Learning on a live line costs service, because exploring disturbs it
+  (Sutton and Barto, 2015, pp. 32–33, 38–39, 64–65, 154–158, 226, 257–261; Albertos
+  and Mareels, 2010, p. 274).
+
+## 9. Out of scope
 
 - Backend services, accounts and a shared leaderboard. Verify links provide
   trust without them; a leaderboard may be reconsidered after M9.
@@ -405,7 +699,7 @@ something players can read or use.
 - Game assets, art or copied game code.
 - Other games.
 
-## 9. Open questions
+## 10. Open questions
 
 | Question | Blocks | Resolved by |
 |---|---|---|
@@ -420,7 +714,7 @@ something players can read or use.
 | Which Lua VM: wasmoon or Fengari? | M3 | M1 findings plus a performance check |
 | What do Paradox's mod terms allow? | M12 | Before M12 |
 
-## 10. Risks
+## 11. Risks
 
 | Risk | Effect | Mitigation |
 |---|---|---|
@@ -432,3 +726,41 @@ something players can read or use.
 | Players find Lua unfamiliar. | Fewer people write policies. | `ops` blocks and the form builder cover most needs without code; thorough language guide. |
 | Trademark or IP complaints. | Takedown. | No game names in branding, no assets, no copied code, non-affiliation notices. |
 | Scope creep from research ideas. | Core product delayed. | Research track only after public alpha. |
+
+## 12. References
+
+- Albertos, P. and Mareels, I. (2010) *Feedback and control for everyone*. Berlin:
+  Springer.
+- Åström, K.J. and Murray, R.M. (2008) *Feedback systems: an introduction for
+  scientists and engineers*. Princeton, NJ: Princeton University Press.
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer (International
+  Series in Operations Research and Management Science, 225).
+- Boyd, S. and Vandenberghe, L. (2004) *Convex optimization*. Cambridge: Cambridge
+  University Press.
+- Brémaud, P. (2020) *Markov chains: Gibbs fields, Monte Carlo simulation and
+  queues*. 2nd edn. Cham: Springer (Texts in Applied Mathematics, 31).
+- Deisenroth, M.P., Faisal, A.A. and Ong, C.S. (2020) *Mathematics for machine
+  learning*. Cambridge: Cambridge University Press.
+- Dorf, R.C. and Bishop, R.H. (2011) *Modern control systems*. 12th edn. Upper
+  Saddle River, NJ: Prentice Hall.
+- Eiselt, H.A. and Sandblom, C.-L. (2022) *Operations research: a model-based
+  approach*. 3rd edn. Cham: Springer (Springer Texts in Business and Economics).
+- Hernández-Lerma, O., Laura-Guarachi, L.R., Mendoza-Palacios, S. and
+  González-Sánchez, D. (2023) *An introduction to optimal control theory: the
+  dynamic programming approach*. Cham: Springer (Texts in Applied Mathematics, 76).
+- MacKay, D.J.C. (2003) *Information theory, inference, and learning algorithms*.
+  Cambridge: Cambridge University Press.
+- Särkkä, S. (2013) *Bayesian filtering and smoothing*. Cambridge: Cambridge
+  University Press (Institute of Mathematical Statistics Textbooks, 3).
+- Simchi-Levi, D., Chen, X. and Bramel, J. (2014) *The logic of logistics: theory,
+  algorithms, and applications for logistics management*. 3rd edn. New York:
+  Springer (Springer Series in Operations Research and Financial Engineering).
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd
+  edn. Hoboken, NJ: John Wiley & Sons.
+- Sutton, R.S. and Barto, A.G. (2015) *Reinforcement learning: an introduction*.
+  2nd edn. Draft. Cambridge, MA: MIT Press. Page numbers refer to the draft, which
+  differs from the published edition.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Global edn.
+  Harlow: Pearson Education.
+- Wasserman, L. (2004) *All of statistics: a concise course in statistical
+  inference*. New York: Springer (Springer Texts in Statistics).
