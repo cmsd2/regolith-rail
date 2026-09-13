@@ -38,8 +38,8 @@ Format 2 is the only format the engine runs. Its core objects:
 
 | Object | Holds |
 |---|---|
-| Stock point | Resources with capacity or unlimited, expiring flag, flows, converters, suppliers, review schedule, optional map position |
-| Arc | Two stock points and a distance |
+| Station | Resources with capacity or unlimited, expiring flag, flows, converters, suppliers, review schedule, optional map position |
+| Arc | Two stations and a distance |
 | Vehicle | A route (`shuttle`, `loop` or `timetable`) and today's speed, dwell and capacity fields |
 | Events | As today |
 | Costs | Holding, ordering, transport, lost demand, backorder and stall costs |
@@ -71,11 +71,11 @@ Three rules keep results identical:
   still prove equivalence during the refactor: steps 1–4 keep the output shape and must reproduce the golden
   file exactly. When new metrics are added to every run's output, a test first shows that hashing the output
   without the new fields reproduces the old golden hashes. The golden file is then regenerated once, in the
-  same commit. The output keeps its `stations` and `trains` vocabulary for stock points and vehicles.
+  same commit. The output keeps its `stations` and `trains` vocabulary for stations and vehicles.
 
 ### D3. Routes are explicit paths
 
-A route lists stock points in visiting order, and each consecutive pair (and last to first for a loop) must
+A route lists stations in visiting order, and each consecutive pair (and last to first for a loop) must
 be joined by an arc. The engine never searches for paths.
 
 - **Shuttle:** reverses at path ends exactly as trains do now.
@@ -107,16 +107,16 @@ does not move results outside their confidence intervals.
 
 ### D5. Reviews, orders and shipments
 
-- **Scheduling.** Reviews are queue events per stock point. At a review the engine expires stock if flagged,
+- **Scheduling.** Reviews are queue events per station. At a review the engine expires stock if flagged,
   builds the review snapshot and calls `on_review`, then applies orders in the order issued.
 - **External orders.** Each order becomes a delivery event at now plus a lead time drawn from the supplier's
   own random stream.
-- **Stock point suppliers.**
+- **Station suppliers.**
   - An order becomes a demand on the supplier's stock.
   - What it holds ships at once as a delivery event after the lead time.
   - The rest joins that supplier's backlog of downstream orders, which is served before its own consumers
     whenever its stock rises (at the next tick).
-- **Pipeline.** Orders on the way are kept per stock point and resource, sorted by arrival, and exposed in the
+- **Pipeline.** Orders on the way are kept per station and resource, sorted by arrival, and exposed in the
   review snapshot and in `ops` inventory position.
 - **Overflow.** A delivery that exceeds capacity is recorded as overflow and is not stored.
 
@@ -206,7 +206,7 @@ short trace.
 ### D12. Map layout
 
 - **Lines:** a single shuttle line keeps today's straight layout, so the Mars experience is unchanged.
-- **Positions:** stock points with positions from scripts use them.
+- **Positions:** stations with positions from scripts use them.
 - **Automatic layout:**
   - a single loop is drawn on a circle;
   - a tree, such as a serial chain or distribution, is drawn in layers from its external suppliers;
@@ -224,11 +224,38 @@ blocks, and emits orders and traces.
 Mod-ready status is computed in the worker after loading. The policy's hook set comes from the loaded
 module, the scenario checks come from the evaluated document, and both are returned with check results.
 
+### D14a. Policy API shape
+
+Policy API version 2 is redesigned for writing policies rather than kept compatible with the line-shaped
+version 1. The terms are one set throughout the format, the API and the documentation: **station** for a
+place that holds stock, and **vehicle** for anything on a route. The scenario format's `stockPoints` become
+`stations`.
+
+- **Shared context.** Every hook receives the same shape, with `ctx.here` the station where the decision
+  is made. Hook-specific parts are added on top: `ctx.vehicle`, `load` and `unload` at stops, and
+  `ctx.review` and `order` at reviews.
+- **Keyed and linked.** Stations and resources are keyed by id, with `station_order` and
+  `resource_order` for scenario order. Neighbours, route stops and `here` refer to the same station
+  tables, so a policy follows links instead of searching by id.
+- **Topology on stations.** Each station lists its neighbours with arc distances. `ctx.distance` and
+  `ctx.travel_time` use the shortest path over arcs, which on a line is the distance along it.
+- **Small snapshots.** The runtime receives the static layout once, at the start of a run: station ids,
+  resources and neighbours, resources and vehicles. At each stop or review it receives only what changed
+  (quantities, orders, the vehicle and the route ahead) as ids, and links them to the cached tables in Lua.
+  This keeps the literal parsed per call about as small as version 1's.
+- **TypeScript policies** receive the same linked objects the engine builds, so the reference naive policy
+  and test policies read like Lua policies.
+- **Output vocabulary.** Run output keeps `stations`, `trains` and the events' `train` fields, because the
+  format 1 reference hashes cover them.
+
+*Alternative:* keeping version 1 and adding version 2 alongside it. It was rejected because nothing
+depends on version 1 yet, and two shapes would double the runtime, documentation and editor data.
+
 ### D14. Roadmap placement
 
 The roadmap gains a stage between M7 and M8, "M7a — General scenarios and packs". The benchmark is then built
 on format 2, and the classic pack can supply analytic checks for scoring. Free vehicle routing moves to the
-research track. §9 no longer excludes networks of stock points, but keeps Surviving Mars colonies to one line
+research track. §9 no longer excludes networks of stations, but keeps Surviving Mars colonies to one line
 at a time. `openspec/config.yaml` context is updated to describe the core model and packs.
 
 ## Risks / Trade-offs

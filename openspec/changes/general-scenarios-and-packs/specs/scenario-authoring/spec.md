@@ -44,12 +44,12 @@ call that produced the invalid part, together with the document path.
 
 ### Requirement: Construct library
 A core construct library SHALL be available to every script, covering every part of the scenario format:
-resources, stock points, arcs, lines, vehicles and routes, producers, consumers, converters, suppliers,
+resources, stations, arcs, lines, vehicles and routes, producers, consumers, converters, suppliers,
 demand processes, events and costs. Constructs SHALL take a table of named parameters, apply documented
 defaults, and return plain tables that a script can modify before returning the scenario.
 
 #### Scenario: Defaults applied
-- **WHEN** a script creates a stock point without a capacity
+- **WHEN** a script creates a station without a capacity
 - **THEN** the resulting document states the documented default capacity
 
 #### Scenario: Modifying a construct's result
@@ -73,7 +73,7 @@ nearest representable values.
 
 ### Requirement: Evaluation limits
 Script evaluation SHALL be limited by an instruction budget and by limits on document size, including the
-number of stock points, arcs, vehicles and events. Exceeding a limit SHALL fail evaluation with an error
+number of stations, arcs, vehicles and events. Exceeding a limit SHALL fail evaluation with an error
 naming the limit.
 
 #### Scenario: Runaway script

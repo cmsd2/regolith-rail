@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Review inspector
-Selecting a review on the timeline SHALL show the stock point's snapshot at that review, the orders requested
+Selecting a review on the timeline SHALL show the station's snapshot at that review, the orders requested
 and applied, orders on the way, backorders, warnings, decision traces, log messages and errors.
 
 #### Scenario: Inspect a review
@@ -29,7 +29,7 @@ errors shown in place, and choose the seed and run options.
 
 #### Scenario: Template parameters
 - **WHEN** the player picks `classic.serial_chain` and sets the number of stages to 3 in the parameter form
-- **THEN** the scenario is re-evaluated with three stages and the map shows three stock points in series
+- **THEN** the scenario is re-evaluated with three stages and the map shows three stations in series
 
 ## RENAMED Requirements
 
@@ -39,7 +39,7 @@ errors shown in place, and choose the seed and run options.
 ## MODIFIED Requirements
 
 ### Requirement: Map
-The map SHALL show the scenario's stock points and arcs, laid out as a straight line for a single line and as
+The map SHALL show the scenario's stations and arcs, laid out as a straight line for a single line and as
 a network otherwise, with stock, capacity and backorders for each stored resource, shipments in transit, and
 each vehicle's position, direction and cargo, for the selected time. Playback SHALL animate the map with
 play, pause and speed controls.

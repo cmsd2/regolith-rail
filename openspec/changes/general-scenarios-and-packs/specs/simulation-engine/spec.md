@@ -1,15 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: Vehicle movement
-Vehicles SHALL follow their routes, stopping at every stock point on them. Shuttle vehicles SHALL reverse at
-each end of their path, loop vehicles SHALL continue from the last stock point of their loop to the first,
-and timetable vehicles SHALL depart from the first stock point of their path at each listed time and return
+Vehicles SHALL follow their routes, stopping at every station on them. Shuttle vehicles SHALL reverse at
+each end of their path, loop vehicles SHALL continue from the last station of their loop to the first,
+and timetable vehicles SHALL depart from the first station of their path at each listed time and return
 to wait there. Travel time SHALL follow from arc distance and speed. Dwell time at a stop SHALL be the fixed
 dwell plus the per-unit dwell multiplied by the amount transferred. Vehicles SHALL NOT block one another.
 
 #### Scenario: Reversal at the end
-- **WHEN** a shuttle vehicle heading towards the last stock point of its path arrives there
-- **THEN** after its stop it departs towards the first stock point of its path
+- **WHEN** a shuttle vehicle heading towards the last station of its path arrives there
+- **THEN** after its stop it departs towards the first station of its path
 
 #### Scenario: Loop continues
 - **WHEN** a loop vehicle on Depot–A–B–Depot finishes its stop at B
@@ -21,23 +21,23 @@ dwell plus the per-unit dwell multiplied by the amount transferred. Vehicles SHA
 - **THEN** the vehicle departs 22 s after arriving
 
 ### Requirement: Converters in operation
-A converter SHALL run a batch only when its stock point holds all of the batch's inputs and has room for all
+A converter SHALL run a batch only when its station holds all of the batch's inputs and has room for all
 of its outputs. It SHALL record time starved of inputs and time blocked by full outputs.
 
 #### Scenario: Starved converter
-- **WHEN** a converter needs 2000 Metals per batch and its stock point holds 1000
+- **WHEN** a converter needs 2000 Metals per batch and its station holds 1000
 - **THEN** no batch runs, Metals stock is unchanged and starved time increases
 
 ### Requirement: Reviews and orders
-At each review of a stock point the engine SHALL call the policy's review hook and apply the orders it
+At each review of a station the engine SHALL call the policy's review hook and apply the orders it
 returns. An order to an external supplier SHALL arrive after the supplier's lead time. An order to a stock
-point supplier SHALL ship from that stock point's stock, as much as it holds, with the rest backordered
+point supplier SHALL ship from that station's stock, as much as it holds, with the rest backordered
 there and shipped as stock arrives, and each shipment SHALL arrive after the lead time. Orders outside a
 supplier's minimum or maximum size SHALL be clamped with a warning. Deliveries that do not fit SHALL be
 recorded as overflow.
 
 #### Scenario: Delivery after lead time
-- **WHEN** a stock point orders 5000 Beer from an external supplier with a lead time of two days at hour 0
+- **WHEN** a station orders 5000 Beer from an external supplier with a lead time of two days at hour 0
 - **THEN** 5000 Beer is added to its stock at hour 48
 
 #### Scenario: Upstream shortage
@@ -46,11 +46,11 @@ recorded as overflow.
   upstream stage receives stock
 
 ### Requirement: Expiring stock
-At each review of a stock point whose stock expires, the stock of the expiring resources SHALL be removed
+At each review of a station whose stock expires, the stock of the expiring resources SHALL be removed
 before the review hook is called and recorded as expired.
 
 #### Scenario: Unsold stock expires
-- **WHEN** a newsvendor stock point holds 3000 at its review
+- **WHEN** a newsvendor station holds 3000 at its review
 - **THEN** expired stock increases by 3000 and the review hook sees zero stock
 
 ### Requirement: Cost accounting
@@ -58,7 +58,7 @@ When a scenario states costs, a run SHALL accumulate them exactly as integers an
 component: holding, ordering, transport, lost demand, backorders and stalled production.
 
 #### Scenario: Holding cost
-- **WHEN** a stock point holds 2000 milli-units for one sol with a holding cost of 3 per unit per sol
+- **WHEN** a station holds 2000 milli-units for one sol with a holding cost of 3 per unit per sol
 - **THEN** holding cost increases by 6
 
 ### Requirement: Format 1 results unchanged
@@ -74,7 +74,7 @@ file MAY be regenerated once they are, provided the fields that existed before a
 ## MODIFIED Requirements
 
 ### Requirement: Production and consumption
-Producers SHALL add to their stock point's stock and consumers SHALL draw from it according to their
+Producers SHALL add to their station's stock and consumers SHALL draw from it according to their
 processes, multiplied by the effects of every active event that applies to the flow. Rate-based production
 and consumption SHALL be applied once per game minute; arrival and per-period processes SHALL be applied at
 their arrival and period times. Production that does not fit SHALL be recorded as stalled production.
@@ -92,21 +92,21 @@ vehicle movement or dwell.
 - **THEN** vehicle arrival and departure times are the same as in the same run without the storm
 
 #### Scenario: Full station
-- **WHEN** a stock point's stock of a resource is at capacity and its producer is active
+- **WHEN** a station's stock of a resource is at capacity and its producer is active
 - **THEN** stock stays at capacity and stalled production increases by the amount that could not be stored
 
 #### Scenario: Empty station
-- **WHEN** a stock point's stock of a resource is zero and its losing consumer is active
+- **WHEN** a station's stock of a resource is zero and its losing consumer is active
 - **THEN** stock stays at zero and unmet demand increases by the amount that could not be consumed
 
 #### Scenario: Backorders served first
-- **WHEN** a backordering consumer has 4000 backordered and 6000 arrives at its stock point
+- **WHEN** a backordering consumer has 4000 backordered and 6000 arrives at its station
 - **THEN** the backorder is cleared first and 2000 remains for new demand
 
 ### Requirement: Conservation
 For every resource, the amount in the system SHALL equal the amounts produced, converted in, and delivered by
 external suppliers, minus the amounts consumed, converted out, expired and lost to overflow, counting stock
-at stock points, cargo on vehicles and shipments in transit, at every point in a run.
+at stations, cargo on vehicles and shipments in transit, at every point in a run.
 
 #### Scenario: Conservation holds for arbitrary scenarios
 - **WHEN** randomly generated valid format 2 scenarios are run with randomly behaving policies
@@ -123,13 +123,13 @@ A run SHALL report these metrics, each defined in the documentation:
 - Converter starved and blocked time.
 - Empty distance share: distance travelled with no cargo divided by total distance travelled.
 - Total dwell time.
-- Oscillation count: the number of times a resource is loaded at a stock point within one full round of the
+- Oscillation count: the number of times a resource is loaded at a station within one full round of the
   loading vehicle's route after the same resource was unloaded there.
 - Total cost and each cost component, when the scenario states costs.
 - Policy errors and budget overruns.
 
 #### Scenario: Oscillation counted
-- **WHEN** a vehicle unloads Metals at stock point B and a vehicle loads Metals at B before the first vehicle
+- **WHEN** a vehicle unloads Metals at station B and a vehicle loads Metals at B before the first vehicle
   completes its next round of its route
 - **THEN** the oscillation count increases by one
 

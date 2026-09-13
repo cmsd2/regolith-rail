@@ -28,7 +28,7 @@ It also teaches: every building block, concept and metric is documented inside
 the app.
 
 Surviving Mars is the flagship use case, but the simulator is not limited to it.
-Its core model describes networks of stock points, converters, suppliers with lead
+Its core model describes networks of stations, converters, suppliers with lead
 times, costs and vehicles on fixed routes, so well-known operations research
 problems can be expressed as well. Scenarios for either are written concisely with
 domain packs: one in the game's own vocabulary, and one of classic problems.
@@ -80,7 +80,7 @@ The exact vanilla rules are not yet confirmed; see §10.
 | Policy language | A sandboxed subset of Lua matching the Lua version the game embeds, chosen over a Python subset so policies can become mods. |
 | Policy model | A policy is a Lua module against a versioned Policy API. It is called when a train stops, receives a snapshot of the world, and issues load and unload actions. |
 | High-level constructs | An `ops` library, written in Lua and shipped to both simulator and mod, providing operations research building blocks arranged as a pipeline. Custom Lua is the escape hatch. |
-| Simulation | Discrete, integer-based simulation of networks of stock points joined by arcs, with vehicles on fixed shuttle, loop or timetable routes, converters, suppliers with lead times, reviews, backorders or lost sales, costs, and randomised production, consumption and shocks. A Surviving Mars line is one shuttle route. Monte Carlo over many seeds, with paired seeds for comparisons. |
+| Simulation | Discrete, integer-based simulation of networks of stations joined by arcs, with vehicles on fixed shuttle, loop or timetable routes, converters, suppliers with lead times, reviews, backorders or lost sales, costs, and randomised production, consumption and shocks. A Surviving Mars line is one shuttle route. Monte Carlo over many seeds, with paired seeds for comparisons. |
 | Scenario authoring | Scenario scripts in the same sandboxed Lua as policies, built from a constructs library and evaluated to a validated JSON document. Packs: `mars` for the game, `classic` for well-known operations research problems. |
 | Scale | Scenarios use game units: rates per sol (24 game hours) and game time, with values typical of the game rather than arbitrary ones. |
 | World events | Events are states of the world that hold for a time window, like the game's disasters, not one-off impulses. While active, an event's effects scale production (supply shocks) or consumption (demand shocks) of chosen resources at chosen stations. A storm is one kind of event. |
@@ -111,10 +111,10 @@ The exact vanilla rules are not yet confirmed; see §10.
 
 | Term | Meaning |
 |---|---|
-| Scenario | A complete world definition: stock points, arcs, vehicles and routes, flows, suppliers, reviews, costs, randomness, events, duration, information level. |
-| Stock point | A place that holds stock of one or more resources. A Surviving Mars station is a stock point. |
-| Route | The fixed path a vehicle follows: a shuttle, a loop or a timetable. A Surviving Mars train runs a shuttle route. |
-| Review | A scheduled moment when a policy decides what a stock point orders from its suppliers. |
+| Scenario | A complete world definition: stations, arcs, vehicles and routes, flows, suppliers, reviews, costs, randomness, events, duration, information level. |
+| Station | A place that holds stock of one or more resources: a Surviving Mars rail station, a warehouse, a shop or a stage in a supply chain. |
+| Vehicle | Anything that carries stock along a fixed route: a shuttle, a loop or a timetable. A Surviving Mars train is a vehicle on a shuttle route. |
+| Review | A scheduled moment when a policy decides what a station orders from its suppliers. |
 | Scenario script | Lua source that builds a scenario from constructs. |
 | Pack | A construct library for one domain, such as the game or classic problems. |
 | Template | A pack construct that returns a whole scenario from a few parameters. |
@@ -333,7 +333,7 @@ Comes after M7 and before M8, so the benchmark is built on the general format an
 classic problems can check the engine against known results.
 
 **Deliverables**
-- Scenario format 2: stock points and arcs, vehicles on shuttle, loop and
+- Scenario format 2: stations and arcs, vehicles on shuttle, loop and
   timetable routes, converters, suppliers with lead times, reviews, expiring
   stock, backorders or lost sales, costs, and Poisson, per-period, trace and
   profile demand. Format 1 scenarios are upgraded on load.
@@ -538,7 +538,7 @@ visits is the review period, and the travel time for cargo is the lead time.
 
 ### 8.2 Networks of stations and disruptions
 
-- **Echelon stock** [M10; template `classic.serial_chain`]. In a chain of stock points, decide from a station's own
+- **Echelon stock** [M10; template `classic.serial_chain`]. In a chain of stations, decide from a station's own
   stock plus everything downstream and in transit. In simple serial systems this is
   optimal, and upstream stock is often best kept low. An `echelon_position` target
   removes dead stock at relays (Snyder and Shen, 2019, pp. 191–197; Axsäter, 2015,

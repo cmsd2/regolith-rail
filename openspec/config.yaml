@@ -14,8 +14,8 @@ context: |
   docs/roadmap.md is the source of truth for scope, stage order (M0-M12, with
   M7a between M7 and M8) and open questions; cite the stage a change belongs to.
 
-  Domain model: a scenario (format 2) is a network of stock points joined by
-  arcs. Stock points hold resources with capacities, and have producers and
+  Domain model: a scenario (format 2) is a network of stations joined by
+  arcs. Stations hold resources with capacities, and have producers and
   consumers (rates with variability, Poisson, per-period, traces, profiles),
   converters, suppliers with lead times, review schedules, expiring stock, and
   lost or backordered demand. Vehicles follow fixed shuttle, loop or timetable
@@ -25,7 +25,7 @@ context: |
   load and must give identical results. A Surviving Mars line is one shuttle
   route; its stations hold 30 or 60 units per enabled resource. Policies have
   on_start, on_stop (a vehicle stops: load, unload, log, record) and on_review
-  (a stock point orders from its suppliers) hooks, with snapshots limited by the
+  (a station orders from its suppliers) hooks, with snapshots limited by the
   scenario's information level (local, line; line+history and colony reserved).
   Only on_start and on_stop on a single shuttle line are mod-ready.
 

@@ -9,22 +9,22 @@ explore the techniques the documentation teaches and the engine can be checked a
 A `classic` construct library SHALL be available to scenario scripts with templates that each return a
 complete scenario from named parameters with documented defaults:
 
-- `newsvendor`: one stock point whose unsold stock expires at each review, facing random demand per period.
-- `reorder`: one stock point replenished from an external supplier after a lead time, facing deterministic
+- `newsvendor`: one station whose unsold stock expires at each review, facing random demand per period.
+- `reorder`: one station replenished from an external supplier after a lead time, facing deterministic
   or random demand, with holding, ordering and shortage costs, suited to economic order quantity, (s, S) and
   base-stock policies.
-- `serial_chain`: stock points in series, each ordering from the one upstream with a shipping lead time, with
+- `serial_chain`: stations in series, each ordering from the one upstream with a shipping lead time, with
   customer demand at the last, in the style of the beer game.
 - `fixed_route_delivery`: a depot supplied externally and customers visited by vehicles on a fixed loop.
 
 #### Scenario: Template with defaults
 - **WHEN** a script returns `classic.newsvendor {}`
-- **THEN** the evaluated document is valid and describes one stock point with expiring stock, a demand
+- **THEN** the evaluated document is valid and describes one station with expiring stock, a demand
   distribution per period and a daily review
 
 #### Scenario: Template with parameters
 - **WHEN** a script returns `classic.serial_chain { stages = 4, lead_time = weeks(2) }`
-- **THEN** the evaluated document has four stock points in series, each supplied by the previous one with a
+- **THEN** the evaluated document has four stations in series, each supplied by the previous one with a
   two-week lead time
 
 ### Requirement: Reference results

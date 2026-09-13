@@ -1,19 +1,20 @@
 ## 1. Planning documents
 
-- [x] 1.1 Update `docs/roadmap.md`: add the principle of a general core with domain packs and Surviving Mars as the flagship, add stage M7a for this change before M8, allow networks of stock points in §9 while keeping Surviving Mars colonies to one line, move free vehicle routing to the research track, and point §8 techniques at their classic templates; verify every stage reference in the document still resolves
+- [x] 1.1 Update `docs/roadmap.md`: add the principle of a general core with domain packs and Surviving Mars as the flagship, add stage M7a for this change before M8, allow networks of stations in §9 while keeping Surviving Mars colonies to one line, move free vehicle routing to the research track, and point §8 techniques at their classic templates; verify every stage reference in the document still resolves
 - [x] 1.2 Update the project context in `openspec/config.yaml` to describe the core model, packs and scenario scripts, and verify `openspec validate --specs --strict` still passes
 
 ## 2. Format 2 schema and upgrade
 
-- [x] 2.1 Define the format 2 schema: stock points, arcs, vehicles with shuttle, loop and timetable routes, costs, and the existing events and information level; verify the minimal valid format 2 scenario, default capacity, unlimited capacity, disconnected route and timetable overlap tests pass
+- [x] 2.1 Define the format 2 schema: stations, arcs, vehicles with shuttle, loop and timetable routes, costs, and the existing events and information level; verify the minimal valid format 2 scenario, default capacity, unlimited capacity, disconnected route and timetable overlap tests pass
 - [x] 2.2 Add converters, suppliers with fixed and discrete lead times and order limits, review schedules, expiring stock and per-consumer lost or backordered demand to the schema; verify the converter, external supplier, supplier cycle, weekly review and backorder validation tests pass
 - [x] 2.3 Add the Poisson, discrete per-period, trace and profile processes to the schema; verify validation tests for each process, including an out-of-range profile error with its document path
 - [x] 2.4 Implement the format 1 to format 2 upgrade at validation time, keeping station ids, flow order and train ids; verify all five starter scenarios upgrade and validate, and a property test shows that any valid format 1 document upgrades to a valid format 2 document
 - [x] 2.5 Regenerate the published JSON Schema for format 2 with format 1 still accepted; verify every test scenario that passes validation also validates against the published schema
+- [ ] 2.6 Rename `stockPoints` to `stations` in scenario format 2 and throughout the engine, tests, app and documentation; verify the full check and golden tests pass
 
 ## 3. Engine on format 2 with unchanged format 1 results
 
-- [x] 3.1 Switch the engine to run only format 2 documents, with stations and trains renamed to stock points and vehicles internally; verify the golden matrix passes unchanged in Node
+- [x] 3.1 Switch the engine to run only format 2 documents, with stations and trains renamed to stations and vehicles internally; verify the golden matrix passes unchanged in Node
 - [x] 3.2 Generalise train movement to shuttle routes over arcs, then add loop and timetable routes; verify the golden matrix passes unchanged, plus the reversal, loop continuation, timetable departure and dwell tests
 - [x] 3.3 Generalise the oscillation metric to one full round of the loading vehicle's route; verify the golden matrix passes unchanged and a loop oscillation test passes
 - [x] 3.4 Implement unlimited capacities and backordering consumers with backlogs served first; verify the backorders-served-first and unchanged lost-sales tests pass and backorder metrics are reported
@@ -25,7 +26,7 @@
 
 - [x] 4.1 Add delivery and review events with the ordering eventCheck < delivery < review < tick < departure < arrival; verify the golden matrix passes unchanged
 - [x] 4.2 Implement external orders with lead times drawn from supplier streams, order size clamping with warnings, and overflow; verify the delivery-after-lead-time and clamped order tests pass
-- [x] 4.3 Implement stock point suppliers that ship what they hold and backlog the rest; verify the upstream shortage test passes
+- [x] 4.3 Implement station suppliers that ship what they hold and backlog the rest; verify the upstream shortage test passes
 - [x] 4.4 Implement expiring stock at reviews; verify the unsold stock expires test passes
 - [x] 4.5 Implement BigInt cost accounting for every cost component, skipped when no costs are stated; verify the holding cost test, a test for each other component, and that a 100-seed `two-station` batch takes no longer than before
 - [x] 4.6 Add backorder, expiry, overflow, converter and cost metrics to every run's output and to the metric definitions; verify metric tests, that hashing output without the new fields reproduces the recorded golden file, then regenerate the golden file and verify batch distributions include the new metrics
@@ -34,9 +35,12 @@
 
 - [x] 5.1 Add Policy API v2 to the single API description: `on_review`, the review context, `ctx.order`, `ctx.route`, `ctx.network` and backorders in station snapshots; verify generated types, annotations and editor data are regenerated and the staleness tests pass
 - [x] 5.2 Implement the review hook, order action and route context in the Lua runtime, with hook requirements checked at load; verify the order at review, missing review hook, missing stop hook and route-ahead-on-a-loop tests pass
-- [x] 5.3 Verify Policy API v1 compatibility by running `naive.lua` unchanged against the golden matrix in Node and in the browser determinism test
-- [ ] 5.4 Add the `review` specification to `ops.policy` with inventory position from stock, orders on the way and backorders, and decision traces; verify the base-stock order and (s, S) hold-off tests pass
-- [ ] 5.5 Compute mod-ready status from the loaded policy's hooks and the evaluated scenario in the worker; verify tests for a mod-ready Mars pairing and for pairings blocked by a review hook, converters and suppliers
+- [x] 5.3 Verify Policy API v1 compatibility by running `naive.lua` unchanged against the golden matrix in Node and in the browser determinism test (superseded by 5.6, which drops version 1 compatibility)
+- [ ] 5.4 Redesign Policy API version 2 in the single API description around the shared context: `ctx.here`, keyed `ctx.stations` with neighbours, orders and suppliers, keyed `ctx.resources`, `ctx.vehicle` with its route ahead linking station tables, `ctx.distance` and `ctx.travel_time`; verify generated types, annotations and editor data are regenerated and the reference completeness check passes
+- [ ] 5.5 Build the shared context in the engine for start, stop and review, port the reference naive policy and TypeScript test policies, and send the Lua runtime a static layout once and changes per call that it links into the same station tables; verify the context, same-station-tables, route-ahead, information-level and read-only tests pass
+- [ ] 5.6 Port `ops.lua`, `naive.lua`, `supply-to-demand.lua` and the documentation pages and examples to the new context; verify `naive.lua` matches the reference on every starter scenario for seeds 1 to 50, the ops and example tests pass, the golden and format 1 reference hashes pass, and the documentation check passes
+- [ ] 5.7 Add the `review` specification to `ops.policy` with inventory position from stock, orders on the way and backorders, and decision traces; verify the base-stock order and (s, S) hold-off tests pass
+- [ ] 5.8 Compute mod-ready status from the loaded policy's hooks and the evaluated scenario in the worker; verify tests for a mod-ready Mars pairing and for pairings blocked by a review hook, converters and suppliers
 
 ## 6. Scenario scripts
 

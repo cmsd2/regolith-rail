@@ -10,7 +10,7 @@ while making the model general and scenarios short to write.
 ## What Changes
 
 - **Scenario format 2.** A general core model:
-  - a network of stock points joined by arcs, with a line as a special case;
+  - a network of stations joined by arcs, with a line as a special case;
   - converters that turn inputs into outputs at a capacity;
   - external suppliers that fill orders after a lead time;
   - a per-site choice of lost sales or backorders;
@@ -21,10 +21,17 @@ while making the model general and scenarios short to write.
   Format 1 documents are still accepted and upgraded on load.
 - **Engine.** The engine simulates format 2. Format 1 scenarios, once upgraded, give the same results
   as today: golden result hashes do not change.
-- **Policy API version 2.** Adds an `on_review(ctx)` hook, called on a fixed period at a stock point,
-  with a `ctx.order(resource, amount)` action for replenishment decisions. It also gives vehicles
-  route-aware context. Policy API v1 policies keep working unchanged. A policy that uses only
-  `on_start` and `on_stop` on a shuttle line is marked mod-ready.
+- **Policy API version 2, redesigned.** **BREAKING** for policies written against version 1, which
+  no one depends on yet. Every hook sees the same linked picture of the world:
+  - `ctx.here` is the station where the decision is made.
+  - `ctx.stations` is keyed by id, and each station lists its neighbours with distances.
+  - `ctx.vehicle` carries the stopped vehicle's route, whose stops point at station tables rather than
+    ids.
+  - `ctx.distance` and `ctx.travel_time` follow the arcs.
+
+  An `on_review(ctx)` hook, called on a fixed period at a station, adds `ctx.order(resource, amount)`
+  for replenishment decisions. The built-in policies, `ops` and the documentation move to the new
+  shape. A policy that uses only `on_start` and `on_stop` on a shuttle line is marked mod-ready.
 - **`ops` for ordering.** `ops.policy` pipelines can drive review decisions, so classic ordering
   policies such as base-stock and (s, S) are one-liners.
 - **Scenario scripts.** Scenarios can be written as sandboxed Lua scripts that call a constructs
@@ -45,7 +52,7 @@ while making the model general and scenarios short to write.
 - **Documentation.** A generated reference for scenario constructs. A page per classic problem linked
   to the §8 techniques. A guide to writing scenario scripts.
 - **Roadmap.** Records a general core model with domain packs, adds a stage for this work before the
-  benchmark (M8), moves networks of stock points into scope, and moves free vehicle routing to the
+  benchmark (M8), moves networks of stations into scope, and moves free vehicle routing to the
   research track.
 - **Not in this change:** vehicles that choose their own destinations (free routing), catchments with
   drones and depots, and multi-line Surviving Mars colonies.
@@ -73,8 +80,8 @@ while making the model general and scenarios short to write.
   - converters, orders and lead times, and backorders;
   - review hooks, and cost metrics;
   - unchanged results for upgraded format 1 scenarios.
-- `policy-runtime`: Policy API v2 adds the review hook and order action and route-aware context,
-  keeps v1 compatibility, and marks policies mod-ready.
+- `policy-runtime`: Policy API v2 replaces the line-shaped context with a shared, linked context for
+  every hook, adds the review hook and order action, and marks policies mod-ready.
 - `ops-library`: pipelines can make ordering decisions at reviews.
 - `run-explorer`: the map shows networks and loops. Scenario selection covers packs, templates,
   parameters and scripts.
