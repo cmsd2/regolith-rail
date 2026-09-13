@@ -20,6 +20,9 @@ const api: SimulationWorkerApi = {
   async check(source) {
     return (await tasks).check(source);
   },
+  async modReady(policy, scenario) {
+    return (await tasks).modReady(policy, scenario);
+  },
 };
 
 Comlink.expose(api);

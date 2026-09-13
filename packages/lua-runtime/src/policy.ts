@@ -29,6 +29,14 @@ export interface LuaPolicyOptions {
   saveReloadTest?: boolean;
 }
 
+export type PolicyHook = "on_start" | "on_stop" | "on_review";
+
+/** The hooks a policy's module defines, or why it does not load. */
+export interface PolicyHooks {
+  hooks: PolicyHook[];
+  error?: PolicyOutcome["error"];
+}
+
 interface Entry {
   load(
     source: string,
@@ -41,6 +49,7 @@ interface Entry {
   start(literal: string): string;
   stop(literal: string): string;
   review(literal: string): string;
+  hooks(): string;
   save(): string;
   restore(text: string): void;
 }
@@ -68,6 +77,11 @@ export class LuaRuntime {
 
   createPolicy(source: string, options: LuaPolicyOptions = {}): LuaPolicy {
     return new LuaPolicy(this.module, source, options);
+  }
+
+  /** Loads a policy without running any hook and lists the hooks it defines. */
+  hooksOf(source: string): PolicyHooks {
+    return this.createPolicy(source).inspect();
   }
 }
 
@@ -179,6 +193,7 @@ export class LuaPolicy implements Policy {
       start: (literal) => table.start(literal) as string,
       stop: (literal) => table.stop(literal) as string,
       review: (literal) => table.review(literal) as string,
+      hooks: () => table.hooks() as string,
       save: () => table.save() as string,
       restore: (text) => {
         table.restore(text);
@@ -194,7 +209,7 @@ export class LuaPolicy implements Policy {
         this.hooks.review,
       ),
     );
-    if (!loaded.error) this.entry.layout(this.layout);
+    if (!loaded.error && this.layout) this.entry.layout(this.layout);
     return loaded;
   }
 
@@ -248,6 +263,23 @@ export class LuaPolicy implements Policy {
       quantities: quantitiesOf(snapshot.stations),
     };
     return parseOutcome(this.entry.review(toLuaLiteral(call)));
+  }
+
+  /** Loads the policy without running any hook and lists the hooks its module defines. */
+  inspect(): PolicyHooks {
+    if (this.loadError) return { hooks: [], error: this.loadError };
+    this.rand = streamFor(0, "policy:rand");
+    this.shuffle = streamFor(0, "policy:pairs");
+    this.level = "line";
+    this.hooks = { stop: false, review: false };
+    this.layout = "";
+    try {
+      const loaded = this.open();
+      if (loaded.error) return { hooks: [], error: loaded.error };
+      return { hooks: JSON.parse((this.entry as Entry).hooks()) as PolicyHook[] };
+    } finally {
+      this.close();
+    }
   }
 
   /** Releases the Lua state. The policy can be started again afterwards. */

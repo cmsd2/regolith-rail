@@ -638,6 +638,17 @@ function __rr.review(literal)
   return encode(current)
 end
 
+--- Names of the hook functions the loaded policy defines.
+function __rr.hooks()
+  local names = {}
+  if policy then
+    for _, name in ipairs({ "on_start", "on_stop", "on_review" }) do
+      if type(rawget(policy, name)) == "function" then names[#names + 1] = name end
+    end
+  end
+  return encode(names)
+end
+
 function __rr.save()
   return "return " .. serialize(memory)
 end

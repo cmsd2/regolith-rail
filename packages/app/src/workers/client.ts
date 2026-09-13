@@ -1,5 +1,6 @@
-import type { RunOutput } from "@regolith-rail/engine";
+import type { RunOutput, Scenario } from "@regolith-rail/engine";
 import type { Diagnostic } from "@regolith-rail/lua-runtime";
+import type { ModReadiness } from "../lib/mod-ready.ts";
 import type { RunRequest, SeedResult, SeedsRequest } from "./protocol.ts";
 
 export class CancelledError extends Error {
@@ -15,6 +16,7 @@ export interface WorkerHandle {
     run(request: RunRequest, progress?: (fraction: number) => void): Promise<RunOutput>;
     runSeeds(request: SeedsRequest, progress?: (done: number) => void): Promise<SeedResult[]>;
     check(source: string): Promise<Diagnostic[]>;
+    modReady(policy: string, scenario: Scenario): Promise<ModReadiness>;
   };
   terminate(): void;
 }
@@ -53,6 +55,10 @@ export class SimulationClient {
 
   check(source: string): Promise<Diagnostic[]> {
     return this.track(this.worker().api.check(source));
+  }
+
+  modReady(policy: string, scenario: Scenario): Promise<ModReadiness> {
+    return this.track(this.worker().api.modReady(policy, scenario));
   }
 
   cancel(): void {

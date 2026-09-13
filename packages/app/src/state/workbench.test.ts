@@ -34,6 +34,7 @@ function inProcess(options: { hang?: boolean } = {}): WorkerHandle {
           ? never
           : tasks.runSeeds(request, progress && ((n) => later(() => progress(n)))),
       check: async (source) => tasks.check(source),
+      modReady: async (policy, scenario) => tasks.modReady(policy, scenario),
     },
     terminate: () => {
       terminated = true;
