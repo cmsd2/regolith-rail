@@ -1,6 +1,6 @@
 ---@meta
 -- Generated from packages/policy-api/src/spec.ts. Do not edit.
--- Regolith Rail Policy API version 1.
+-- Regolith Rail Policy API version 2.
 
 --- Everything `on_stop` receives about the stop, the train, the station and the line.
 ---@class StopContext
@@ -10,6 +10,8 @@
 ---@field train Train The train that has stopped.
 ---@field station Station The station the train has stopped at. Its stock and capacity are always readable.
 ---@field line Line The stations on the line, in order.
+---@field route Route The stopped vehicle's route and the stops ahead of it.
+---@field network? Network The arcs joining stock points. Readable only at the `line` level; stock points are in `line.stations`.
 ---@field resources Resource[] Every resource in the scenario, in scenario order.
 ---@field memory table Table kept between calls for the whole run. It may hold only booleans, numbers, strings and tables of those, without cycles.
 ---@field rand fun(): number A number from 0 up to but not including 1, repeatable for the same seed.
@@ -59,6 +61,7 @@
 ---@field distance_to_next? integer Distance to the next station; `nil` on the last station.
 ---@field stock? table<string, integer> Milli-units stored, by resource id. Readable for other stations only at the `line` level.
 ---@field capacity? table<string, integer> Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.
+---@field backorders? table<string, integer> Demand waiting to be served, in milli-units, by resource id. Readable for other stations only at the `line` level.
 ---@field memory? table Persistent table for this station, under the same rules as `ctx.memory`. Present on `ctx.station`.
 
 --- The line the train runs on.
@@ -66,6 +69,27 @@
 ---@field stations Station[] Stations in line order.
 ---@field distance fun(from: string, to: string): integer Distance along the line between two stations.
 ---@field travel_time fun(from: string, to: string, speed?: integer): integer Milliseconds a train takes between two stations, not counting stops. Uses the stopped train's speed when `speed` is omitted.
+
+--- The fixed route a vehicle follows.
+---@class Route
+---@field kind "shuttle"|"loop"|"timetable" `shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times.
+---@field ahead RouteStop[] The next stops in visiting order, up to returning to this stop, or to the end of a timetable trip.
+
+--- A stop ahead on a vehicle's route.
+---@class RouteStop
+---@field id string Stock point id.
+---@field distance integer Distance along the route from this stop.
+---@field travel_time integer Milliseconds of travel from this stop, not counting stops on the way.
+
+--- How stock points are joined.
+---@class Network
+---@field arcs Arc[] Every arc, in scenario order.
+
+--- A connection between two stock points, usable in both directions.
+---@class Arc
+---@field from string Stock point id at one end.
+---@field to string Stock point id at the other end.
+---@field distance integer Distance between the two stock points.
 
 --- Everything `on_review` receives when a stock point reviews what to order from its suppliers.
 ---@class ReviewContext

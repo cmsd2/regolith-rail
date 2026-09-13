@@ -105,6 +105,15 @@ export function editorEntries(): EditorEntry[] {
   };
   const stop = typeByName.get("StopContext");
   if (stop) visit(stop, "ctx", new Set([stop.name]));
+  // `ctx` in `on_review` has other members; offer them too, without repeating shared ones.
+  const review = typeByName.get("ReviewContext");
+  if (review) {
+    const known = new Set(entries.map((e) => e.path));
+    const before = entries.length;
+    visit(review, "ctx", new Set([review.name]));
+    const added = entries.splice(before).filter((e) => !known.has(e.path));
+    entries.push(...added);
+  }
   for (const block of opsBlocks) {
     const params = block.params
       .map((p) => `${p.name}${p.required ? "" : "?"}: ${p.lua}`)

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { decodeShare, encodeShare, lengthWarning, type ShareState } from "./share.ts";
 
 const state: ShareState = {
-  apiVersion: 1,
+  apiVersion: 2,
   appVersion: "0.0.0",
   view: "batch",
   policy: { name: "naive.lua", source: "return { on_stop = function(ctx) end } -- é ✓" },

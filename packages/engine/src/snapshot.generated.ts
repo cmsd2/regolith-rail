@@ -1,7 +1,7 @@
 // Generated from packages/policy-api/src/spec.ts. Do not edit.
 
 /** The Policy API version every run output and share link records. */
-export const POLICY_API_VERSION = 1;
+export const POLICY_API_VERSION = 2;
 
 /** Milli-units by resource id. */
 export type Quantities = Record<string, number>;
@@ -20,6 +20,10 @@ export interface StopSnapshot {
   station: CurrentStationSnapshot;
   /** The stations on the line, in order. */
   line: LineSnapshot;
+  /** The stopped vehicle's route and the stops ahead of it. */
+  route: RouteSnapshot;
+  /** The arcs joining stock points. Readable only at the `line` level; stock points are in `line.stations`. */
+  network?: NetworkSnapshot;
   /** Every resource in the scenario, in scenario order. */
   resources: ResourceSnapshot[];
 }
@@ -86,12 +90,48 @@ export interface StationSnapshot {
   stock?: Quantities;
   /** Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level. */
   capacity?: Quantities;
+  /** Demand waiting to be served, in milli-units, by resource id. Readable for other stations only at the `line` level. */
+  backorders?: Quantities;
 }
 
 /** The line the train runs on. */
 export interface LineSnapshot {
   /** Stations in line order. */
   stations: StationSnapshot[];
+}
+
+/** The fixed route a vehicle follows. */
+export interface RouteSnapshot {
+  /** `shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times. */
+  kind: "shuttle" | "loop" | "timetable";
+  /** The next stops in visiting order, up to returning to this stop, or to the end of a timetable trip. */
+  ahead: RouteStopSnapshot[];
+}
+
+/** A stop ahead on a vehicle's route. */
+export interface RouteStopSnapshot {
+  /** Stock point id. */
+  id: string;
+  /** Distance along the route from this stop. */
+  distance: number;
+  /** Milliseconds of travel from this stop, not counting stops on the way. */
+  travel_time: number;
+}
+
+/** How stock points are joined. */
+export interface NetworkSnapshot {
+  /** Every arc, in scenario order. */
+  arcs: ArcSnapshot[];
+}
+
+/** A connection between two stock points, usable in both directions. */
+export interface ArcSnapshot {
+  /** Stock point id at one end. */
+  from: string;
+  /** Stock point id at the other end. */
+  to: string;
+  /** Distance between the two stock points. */
+  distance: number;
 }
 
 /** Everything `on_review` receives when a stock point reviews what to order from its suppliers. */

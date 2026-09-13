@@ -48,7 +48,7 @@ describe("time model", () => {
   it("records the Policy API version", () => {
     const out = runSimulation(parse(minimalScenario()), idlePolicy);
     expect(out.apiVersion).toBe(POLICY_API_VERSION);
-    expect(out.apiVersion).toBe(1);
+    expect(out.apiVersion).toBe(2);
   });
 });
 

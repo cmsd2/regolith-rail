@@ -35,7 +35,7 @@ describe("command-line runner", () => {
     expect(output).toMatchObject({
       scenarioId: "two-station",
       seed: 7,
-      apiVersion: 1,
+      apiVersion: 2,
       aborted: false,
     });
     expect(output.metrics.stops).toBeGreaterThan(0);

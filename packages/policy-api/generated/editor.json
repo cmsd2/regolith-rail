@@ -1,5 +1,5 @@
 {
-  "apiVersion": 1,
+  "apiVersion": 2,
   "entries": [
     {
       "path": "ctx.stop",
@@ -182,6 +182,15 @@
       "kind": "field"
     },
     {
+      "path": "ctx.station.backorders",
+      "name": "backorders",
+      "type": "table<string, integer>",
+      "summary": "Demand waiting to be served, in milli-units, by resource id. Readable for other stations only at the `line` level.",
+      "level": "line",
+      "docs": "api/station#station-backorders",
+      "kind": "field"
+    },
+    {
       "path": "ctx.station.memory",
       "name": "memory",
       "type": "table",
@@ -263,6 +272,15 @@
       "kind": "field"
     },
     {
+      "path": "ctx.line.stations[i].backorders",
+      "name": "backorders",
+      "type": "table<string, integer>",
+      "summary": "Demand waiting to be served, in milli-units, by resource id. Readable for other stations only at the `line` level.",
+      "level": "line",
+      "docs": "api/station#station-backorders",
+      "kind": "field"
+    },
+    {
       "path": "ctx.line.stations[i].memory",
       "name": "memory",
       "type": "table",
@@ -325,6 +343,105 @@
         "lua": "integer",
         "summary": "Travel time in milliseconds."
       }
+    },
+    {
+      "path": "ctx.route",
+      "name": "route",
+      "type": "Route",
+      "summary": "The stopped vehicle's route and the stops ahead of it.",
+      "level": "local",
+      "docs": "api/context#stopcontext-route",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.route.kind",
+      "name": "kind",
+      "type": "\"shuttle\"|\"loop\"|\"timetable\"",
+      "summary": "`shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times.",
+      "level": "local",
+      "docs": "api/train#route-kind",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.route.ahead",
+      "name": "ahead",
+      "type": "RouteStop[]",
+      "summary": "The next stops in visiting order, up to returning to this stop, or to the end of a timetable trip.",
+      "level": "local",
+      "docs": "api/train#route-ahead",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.route.ahead[i].id",
+      "name": "id",
+      "type": "string",
+      "summary": "Stock point id.",
+      "level": "local",
+      "docs": "api/train#routestop-id",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.route.ahead[i].distance",
+      "name": "distance",
+      "type": "integer",
+      "summary": "Distance along the route from this stop.",
+      "level": "local",
+      "docs": "api/train#routestop-distance",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.route.ahead[i].travel_time",
+      "name": "travel_time",
+      "type": "integer",
+      "summary": "Milliseconds of travel from this stop, not counting stops on the way.",
+      "level": "local",
+      "docs": "api/train#routestop-travel-time",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.network",
+      "name": "network",
+      "type": "Network",
+      "summary": "The arcs joining stock points. Readable only at the `line` level; stock points are in `line.stations`.",
+      "level": "line",
+      "docs": "api/context#stopcontext-network",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.network.arcs",
+      "name": "arcs",
+      "type": "Arc[]",
+      "summary": "Every arc, in scenario order.",
+      "level": "line",
+      "docs": "api/line#network-arcs",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.network.arcs[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "Stock point id at one end.",
+      "level": "line",
+      "docs": "api/line#arc-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.network.arcs[i].to",
+      "name": "to",
+      "type": "string",
+      "summary": "Stock point id at the other end.",
+      "level": "line",
+      "docs": "api/line#arc-to",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.network.arcs[i].distance",
+      "name": "distance",
+      "type": "integer",
+      "summary": "Distance between the two stock points.",
+      "level": "line",
+      "docs": "api/line#arc-distance",
+      "kind": "field"
     },
     {
       "path": "ctx.resources",
@@ -451,6 +568,234 @@
           "name": "value",
           "lua": "number",
           "summary": "Finite number to record."
+        }
+      ]
+    },
+    {
+      "path": "ctx.review",
+      "name": "review",
+      "type": "integer",
+      "summary": "Number of this review within the run, starting at 1.",
+      "level": "local",
+      "docs": "api/review#reviewcontext-review",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point",
+      "name": "stock_point",
+      "type": "StockPoint",
+      "summary": "The stock point being reviewed, with its stock, orders and suppliers.",
+      "level": "local",
+      "docs": "api/review#reviewcontext-stock-point",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.id",
+      "name": "id",
+      "type": "string",
+      "summary": "Stock point id, as written in the scenario.",
+      "level": "local",
+      "docs": "api/review#stockpoint-id",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.index",
+      "name": "index",
+      "type": "integer",
+      "summary": "Position in the scenario's list of stock points, starting at 1.",
+      "level": "local",
+      "docs": "api/review#stockpoint-index",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.resources",
+      "name": "resources",
+      "type": "string[]",
+      "summary": "Ids of the resources this stock point stores, in scenario order.",
+      "level": "local",
+      "docs": "api/review#stockpoint-resources",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.stock",
+      "name": "stock",
+      "type": "table<string, integer>",
+      "summary": "Milli-units stored, by resource id, after any expiring stock was removed.",
+      "level": "local",
+      "docs": "api/review#stockpoint-stock",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.capacity",
+      "name": "capacity",
+      "type": "table<string, integer>",
+      "summary": "Storage limit in milli-units, by resource id.",
+      "level": "local",
+      "docs": "api/review#stockpoint-capacity",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.backorders",
+      "name": "backorders",
+      "type": "table<string, integer>",
+      "summary": "Demand waiting to be served here, in milli-units, by resource id.",
+      "level": "local",
+      "docs": "api/review#stockpoint-backorders",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.on_order",
+      "name": "on_order",
+      "type": "Order[]",
+      "summary": "Orders placed by this stock point that have not arrived, oldest first.",
+      "level": "local",
+      "docs": "api/review#stockpoint-on-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.on_order[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#order-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.on_order[i].amount",
+      "name": "amount",
+      "type": "integer",
+      "summary": "Milli-units still to arrive.",
+      "level": "local",
+      "docs": "api/review#order-amount",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.on_order[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying stock point.",
+      "level": "local",
+      "docs": "api/review#order-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.on_order[i].placed_at",
+      "name": "placed_at",
+      "type": "integer",
+      "summary": "Game time the order was placed.",
+      "level": "local",
+      "docs": "api/review#order-placed-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.on_order[i].arrives_at",
+      "name": "arrives_at",
+      "type": "integer",
+      "summary": "Game time the order arrives; `nil` while it waits for stock at a supplying stock point.",
+      "level": "local",
+      "docs": "api/review#order-arrives-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers",
+      "name": "suppliers",
+      "type": "Supplier[]",
+      "summary": "Where each resource can be ordered from.",
+      "level": "local",
+      "docs": "api/review#stockpoint-suppliers",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#supplier-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying stock point.",
+      "level": "local",
+      "docs": "api/review#supplier-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].lead_times",
+      "name": "lead_times",
+      "type": "LeadTime[]",
+      "summary": "Possible lead times in milliseconds, with their weights.",
+      "level": "local",
+      "docs": "api/review#supplier-lead-times",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].lead_times[i].value",
+      "name": "value",
+      "type": "integer",
+      "summary": "Lead time in milliseconds.",
+      "level": "local",
+      "docs": "api/review#leadtime-value",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].lead_times[i].weight",
+      "name": "weight",
+      "type": "integer",
+      "summary": "Relative weight; a fixed lead time has one value with weight 1.",
+      "level": "local",
+      "docs": "api/review#leadtime-weight",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].min_order",
+      "name": "min_order",
+      "type": "integer",
+      "summary": "Smallest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-min-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.suppliers[i].max_order",
+      "name": "max_order",
+      "type": "integer",
+      "summary": "Largest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-max-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stock_point.memory",
+      "name": "memory",
+      "type": "table",
+      "summary": "Persistent table for this stock point; the same table as `ctx.station.memory` at its stops.",
+      "level": "local",
+      "docs": "api/review#stockpoint-memory",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.order",
+      "name": "order",
+      "type": "fun(resource: string, amount: integer)",
+      "summary": "Order `amount` milli-units of `resource` from the stock point's supplier for it. Clamped to the supplier's minimum and maximum order.",
+      "level": "local",
+      "docs": "api/review#reviewcontext-order",
+      "kind": "function",
+      "params": [
+        {
+          "name": "resource",
+          "lua": "string",
+          "summary": "Resource id, such as `Beer`."
+        },
+        {
+          "name": "amount",
+          "lua": "integer",
+          "summary": "Milli-units to order; 1 unit is 1000."
         }
       ]
     },

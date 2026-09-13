@@ -342,6 +342,6 @@ describe("errors", () => {
 
 describe("run output", () => {
   it("records the Policy API version", () => {
-    expect(run("return { on_stop = function(ctx) end }").apiVersion).toBe(1);
+    expect(run("return { on_stop = function(ctx) end }").apiVersion).toBe(2);
   });
 });

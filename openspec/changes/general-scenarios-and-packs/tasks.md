@@ -32,7 +32,7 @@
 
 ## 5. Policy API v2 and ops reviews
 
-- [ ] 5.1 Add Policy API v2 to the single API description: `on_review`, the review context, `ctx.order`, `ctx.route`, `ctx.network` and backorders in station snapshots; verify generated types, annotations and editor data are regenerated and the staleness tests pass
+- [x] 5.1 Add Policy API v2 to the single API description: `on_review`, the review context, `ctx.order`, `ctx.route`, `ctx.network` and backorders in station snapshots; verify generated types, annotations and editor data are regenerated and the staleness tests pass
 - [ ] 5.2 Implement the review hook, order action and route context in the Lua runtime, with hook requirements checked at load; verify the order at review, missing review hook, missing stop hook and route-ahead-on-a-loop tests pass
 - [ ] 5.3 Verify Policy API v1 compatibility by running `naive.lua` unchanged against the golden matrix in Node and in the browser determinism test
 - [ ] 5.4 Add the `review` specification to `ops.policy` with inventory position from stock, orders on the way and backorders, and decision traces; verify the base-stock order and (s, S) hold-off tests pass

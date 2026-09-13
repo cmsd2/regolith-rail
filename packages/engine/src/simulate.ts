@@ -555,6 +555,10 @@ export function runSimulation(
   });
   const resourceSnapshots = scenario.resources.map((r) => ({ id: r.id, priority: r.priority }));
 
+  // Backorders appear in snapshots only for scenarios that have backordering consumers.
+  const hasBackorders = scenario.stockPoints.some((p) =>
+    p.consumers.some((c) => c.unmet === "backorder"),
+  );
   const stationQuantities = (s: number) => {
     const stockOut: Quantities = {};
     const capacityOut: Quantities = {};
@@ -563,7 +567,47 @@ export function runSimulation(
       stockOut[r.id] = stock[site] as number;
       capacityOut[r.id] = siteCapacity[site] as number;
     }
-    return { stock: stockOut, capacity: capacityOut };
+    return hasBackorders
+      ? { stock: stockOut, capacity: capacityOut, backorders: backordersAt(s) }
+      : { stock: stockOut, capacity: capacityOut };
+  };
+
+  const network = {
+    arcs: scenario.arcs.map((a) => ({ from: a.from, to: a.to, distance: a.distance })),
+  };
+
+  /**
+   * The stops ahead of a vehicle in visiting order, with distance and travel time from where it
+   * is: up to returning to this stop in the same direction, or to the end of a timetable trip.
+   */
+  const routeAhead = (train: TrainState) => {
+    const ahead: { id: string; distance: number; travel_time: number }[] = [];
+    const n = train.path.length;
+    let pos = train.pos;
+    let direction = train.direction;
+    let distance = 0;
+    let travel = 0;
+    const steps =
+      train.kind === "loop" ? n - 1 : 2 * (n - 1) - (train.kind === "timetable" ? pos : 0);
+    for (let k = 0; k < steps; k++) {
+      let next: number;
+      if (train.kind === "loop") next = (pos + 1) % n;
+      else {
+        if (pos + direction < 0 || pos + direction >= n) direction = direction === 1 ? -1 : 1;
+        next = pos + direction;
+      }
+      const leg = distanceBetween(train.path[pos] as number, train.path[next] as number);
+      distance += leg;
+      travel += travelMs(leg, train.speed);
+      pos = next;
+      ahead.push({
+        id: stations[train.path[pos] as number] as string,
+        distance,
+        travel_time: travel,
+      });
+      if (train.kind === "timetable" && pos === 0) break;
+    }
+    return ahead;
   };
 
   const running: FlowTotalsByResource = {
@@ -764,6 +808,8 @@ export function runSimulation(
               : station,
         ),
       },
+      route: { kind: train.kind, ahead: routeAhead(train) },
+      ...(level === "line" ? { network } : {}),
       resources: resourceSnapshots,
     };
 

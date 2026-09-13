@@ -5,7 +5,7 @@
  * from this description.
  */
 
-export const POLICY_API_VERSION = 1;
+export const POLICY_API_VERSION = 2;
 
 export type Level = "local" | "line";
 
@@ -93,6 +93,24 @@ export const apiTypes: ApiType[] = [
         level: "local",
         source: "snapshot",
         summary: "The stations on the line, in order.",
+      },
+      {
+        name: "route",
+        lua: "Route",
+        ts: "RouteSnapshot",
+        level: "local",
+        source: "snapshot",
+        summary: "The stopped vehicle's route and the stops ahead of it.",
+      },
+      {
+        name: "network",
+        lua: "Network",
+        ts: "NetworkSnapshot",
+        optional: true,
+        level: "line",
+        source: "snapshot",
+        summary:
+          "The arcs joining stock points. Readable only at the `line` level; stock points are in `line.stations`.",
       },
       {
         name: "resources",
@@ -428,6 +446,16 @@ export const apiTypes: ApiType[] = [
           "Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.",
       },
       {
+        name: "backorders",
+        lua: quantities,
+        ts: "Quantities",
+        optional: true,
+        level: "line",
+        source: "snapshot",
+        summary:
+          "Demand waiting to be served, in milli-units, by resource id. Readable for other stations only at the `line` level.",
+      },
+      {
         name: "memory",
         lua: "table",
         optional: true,
@@ -477,6 +505,112 @@ export const apiTypes: ApiType[] = [
           { name: "speed", lua: "integer?", summary: "Distance per second." },
         ],
         returns: { lua: "integer", summary: "Travel time in milliseconds." },
+      },
+    ],
+  },
+  {
+    name: "Route",
+    ts: "RouteSnapshot",
+    summary: "The fixed route a vehicle follows.",
+    docs: "api/train",
+    fields: [
+      {
+        name: "kind",
+        lua: '"shuttle"|"loop"|"timetable"',
+        ts: '"shuttle" | "loop" | "timetable"',
+        level: "local",
+        source: "snapshot",
+        summary:
+          "`shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times.",
+      },
+      {
+        name: "ahead",
+        lua: "RouteStop[]",
+        ts: "RouteStopSnapshot[]",
+        level: "local",
+        source: "snapshot",
+        summary:
+          "The next stops in visiting order, up to returning to this stop, or to the end of a timetable trip.",
+      },
+    ],
+  },
+  {
+    name: "RouteStop",
+    ts: "RouteStopSnapshot",
+    summary: "A stop ahead on a vehicle's route.",
+    docs: "api/train",
+    fields: [
+      {
+        name: "id",
+        lua: "string",
+        ts: "string",
+        level: "local",
+        source: "snapshot",
+        summary: "Stock point id.",
+      },
+      {
+        name: "distance",
+        lua: "integer",
+        ts: "number",
+        level: "local",
+        source: "snapshot",
+        summary: "Distance along the route from this stop.",
+      },
+      {
+        name: "travel_time",
+        lua: "integer",
+        ts: "number",
+        level: "local",
+        source: "snapshot",
+        summary: "Milliseconds of travel from this stop, not counting stops on the way.",
+      },
+    ],
+  },
+  {
+    name: "Network",
+    ts: "NetworkSnapshot",
+    summary: "How stock points are joined.",
+    docs: "api/line",
+    fields: [
+      {
+        name: "arcs",
+        lua: "Arc[]",
+        ts: "ArcSnapshot[]",
+        level: "line",
+        source: "snapshot",
+        summary: "Every arc, in scenario order.",
+      },
+    ],
+  },
+  {
+    name: "Arc",
+    ts: "ArcSnapshot",
+    summary: "A connection between two stock points, usable in both directions.",
+    docs: "api/line",
+    fields: [
+      {
+        name: "from",
+        lua: "string",
+        ts: "string",
+        level: "line",
+        source: "snapshot",
+        summary: "Stock point id at one end.",
+      },
+      {
+        name: "to",
+        lua: "string",
+        ts: "string",
+        level: "line",
+        source: "snapshot",
+        summary: "Stock point id at the other end.",
+      },
+      {
+        name: "distance",
+        lua: "integer",
+        ts: "number",
+        level: "line",
+        source: "snapshot",
+        summary: "Distance between the two stock points.",
       },
     ],
   },

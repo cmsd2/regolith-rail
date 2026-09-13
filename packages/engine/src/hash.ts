@@ -45,7 +45,8 @@ export const FORMAT1_METRICS = [
  */
 export function hashRunFormat1(output: RunOutput): string {
   const metrics = Object.fromEntries(FORMAT1_METRICS.map((key) => [key, output.metrics[key]]));
-  return hashWithMetrics(output, metrics);
+  // Results recorded then carried Policy API version 1.
+  return hashWithMetrics({ ...output, apiVersion: 1 }, metrics);
 }
 
 function hashWithMetrics(output: RunOutput, metrics: unknown): string {

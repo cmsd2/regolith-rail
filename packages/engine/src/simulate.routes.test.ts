@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type RunEvent, stateAt } from "./output.ts";
+import type { StopSnapshot } from "./policy.ts";
 import type { ScenarioV2Input } from "./scenario/format2.ts";
 import { runSimulation } from "./simulate.ts";
 import { minimalScenarioV2 } from "./testing/fixtures.ts";
@@ -204,5 +205,54 @@ describe("oscillations on routes", () => {
     const out = runSimulation(twoOnLoop("A"), unloadThenLoad(60_000), { detail: "summary" });
     expect(ofKind(out.events, "transfer")).toHaveLength(3);
     expect(out.metrics.oscillations).toBe(0);
+  });
+});
+
+describe("route in stop snapshots", () => {
+  const capture = () => {
+    const seen: StopSnapshot[] = [];
+    const policy = scriptedPolicy((snapshot) => {
+      seen.push(snapshot);
+      return [];
+    });
+    return { seen, policy };
+  };
+
+  it("lists the stops ahead on a loop with distances and travel times", () => {
+    const { seen, policy } = capture();
+    runSimulation(triangle({ kind: "loop", stops: ["Depot", "A", "B"] }), policy, {
+      detail: "summary",
+    });
+    const atA = seen.find((s) => s.station.id === "A");
+    expect(atA?.route).toEqual({
+      kind: "loop",
+      ahead: [
+        { id: "B", distance: 100, travel_time: 10_000 },
+        { id: "Depot", distance: 200, travel_time: 20_000 },
+      ],
+    });
+  });
+
+  it("lists a shuttle's stops out to the end and back", () => {
+    const { seen, policy } = capture();
+    runSimulation(triangle({ kind: "shuttle", stops: ["Depot", "A", "B"] }), policy, {
+      detail: "summary",
+    });
+    expect(seen[1]?.station.id).toBe("A");
+    expect(seen[1]?.route.ahead.map((stop) => stop.id)).toEqual(["B", "A", "Depot", "A"]);
+  });
+
+  it("gives the arcs at the line level and not at the local level", () => {
+    const line = capture();
+    runSimulation(triangle({ kind: "loop", stops: ["Depot", "A", "B"] }), line.policy, {
+      detail: "summary",
+    });
+    expect(line.seen[0]?.network?.arcs).toHaveLength(3);
+    const local = capture();
+    const scenario = triangle({ kind: "loop", stops: ["Depot", "A", "B"] }, (s) => {
+      s.informationLevel = "local";
+    });
+    runSimulation(scenario, local.policy, { detail: "summary" });
+    expect(local.seen[0]?.network).toBeUndefined();
   });
 });

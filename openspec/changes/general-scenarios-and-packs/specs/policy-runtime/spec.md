@@ -52,7 +52,8 @@ The `ctx` argument to `on_stop` SHALL provide:
   distances and travel times to each.
 - `line`: for shuttle routes, the ordered stock points of the path with their ids, positions, stored
   resources and distances, and functions giving distance and travel time between two stock points.
-- `network`: every stock point and arc, at the `line` information level.
+- `network`: the arcs joining stock points, at the `line` information level; the stock points
+  themselves are in `line.stations`.
 - `memory`, `station.memory` and `train.memory`: persistent tables.
 - `rand()`: a number in [0, 1) from the run's seeded policy stream.
 - `load(resource, amount)`, `unload(resource, amount)`: transfer actions.

@@ -11,7 +11,7 @@ function fragment(state: unknown): string {
 }
 
 const sharedState = {
-  apiVersion: 1,
+  apiVersion: 2,
   appVersion: "test",
   view: "run",
   policy: { name: "shared.lua", source: POLICY },
