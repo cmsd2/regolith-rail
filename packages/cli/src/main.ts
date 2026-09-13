@@ -5,17 +5,20 @@ import { writeGolden } from "./golden.ts";
 import {
   CliError,
   loadScenario,
+  loadScriptScenario,
   needsLua,
   POLICY_HELP,
   parseSeeds,
   resolvePolicy,
   runSeeds,
+  scenarioNeedsLua,
+  templateScript,
   toJson,
 } from "./run.ts";
 
 const USAGE = `Usage:
-  regolith-rail run --scenario <starter id | file.json> --policy <policy> [--seed N | --seeds A..B]
-                    [--detail full|summary] [--out file.json]
+  regolith-rail run (--scenario <starter id | file.json | script.lua> | --template <name> [--param name=value ...])
+                    --policy <policy> [--seed N | --seeds A..B] [--detail full|summary] [--out file.json]
   regolith-rail golden [--out file.json]
 
 Policies: ${POLICY_HELP}`;
@@ -27,6 +30,8 @@ async function main(argv: string[]): Promise<number> {
       args: rest,
       options: {
         scenario: { type: "string" },
+        template: { type: "string" },
+        param: { type: "string", multiple: true, default: [] },
         policy: { type: "string" },
         seed: { type: "string" },
         seeds: { type: "string" },
@@ -34,15 +39,23 @@ async function main(argv: string[]): Promise<number> {
         out: { type: "string" },
       },
     });
-    if (!values.scenario || !values.policy) {
-      throw new CliError(`--scenario and --policy are required\n\n${USAGE}`);
+    if (!values.policy || (values.scenario === undefined) === (values.template === undefined)) {
+      throw new CliError(`--policy and one of --scenario or --template are required\n\n${USAGE}`);
     }
     if (values.detail !== "full" && values.detail !== "summary") {
       throw new CliError("--detail must be full or summary");
     }
-    const scenario = loadScenario(values.scenario);
     const spec = values.policy;
-    const runtime = needsLua(spec) ? await LuaRuntime.load() : undefined;
+    const scriptNeeded = values.template !== undefined || scenarioNeedsLua(values.scenario ?? "");
+    const runtime = needsLua(spec) || scriptNeeded ? await LuaRuntime.load() : undefined;
+    const scenario =
+      values.template !== undefined
+        ? loadScriptScenario(
+            templateScript(values.template, values.param),
+            values.template,
+            runtime as LuaRuntime,
+          )
+        : loadScenario(values.scenario as string, runtime);
     const policy = resolvePolicy(spec, runtime);
     const seeds = values.seeds
       ? parseSeeds(values.seeds)

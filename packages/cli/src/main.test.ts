@@ -67,6 +67,42 @@ describe("command-line runner", () => {
     expect(result.stderr).toContain("title:");
   }, 60_000);
 
+  it("runs a scenario script", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
+    const file = join(dir, "shop.lua");
+    writeFileSync(
+      file,
+      [
+        'local a = station { id = "A", resources = { Metals = { initial = 10 } } }',
+        'local b = station { id = "B", resources = { "Metals" } }',
+        "return scenario {",
+        '  id = "script", duration = hours(2), parts = { line { stations = { a, b }, distances = 100 } },',
+        '  vehicles = { vehicle { id = "T1", route = shuttle { stops = { a, b } }, speed = 10, capacity = 10 } },',
+        "}",
+      ].join("\n"),
+    );
+    const result = await cli("run", "--scenario", file, "--policy", "lua:naive");
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ scenarioId: "script", aborted: false });
+  }, 60_000);
+
+  it("reports an invalid scenario script at its lines", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
+    const file = join(dir, "bad.lua");
+    writeFileSync(
+      file,
+      [
+        'local a = station { id = "A", resources = { "Metals" } }',
+        'return scenario { id = "bad", duration = hours(1), stations = { a },',
+        '  vehicles = { vehicle { id = "V", route = shuttle { stops = { "A", "Nowhere" } }, speed = 1, capacity = 1 } } }',
+      ].join("\n"),
+    );
+    const result = await cli("run", "--scenario", file, "--policy", "reference:naive");
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("is not a valid scenario");
+    expect(result.stderr).toContain(`${file}:3 vehicles[0].route.stops[1]:`);
+  }, 60_000);
+
   it("reports a Lua load error with its line before running", async () => {
     const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
     const file = join(dir, "policy.lua");
