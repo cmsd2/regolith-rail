@@ -65,6 +65,9 @@ interface FlowState {
   site: number;
   resource: number;
   def: ProducerDef;
+  /** Consumers only: unmet demand is carried in `backlog` instead of being lost. */
+  backorder: boolean;
+  backlog: number;
   rng: Random;
   accumulator: number;
   effective: number;
@@ -181,6 +184,8 @@ export function runSimulation(
           site: (siteOf[s] as number[])[ri] as number,
           resource: ri,
           def,
+          backorder: "unmet" in def && def.unmet === "backorder",
+          backlog: 0,
           rng: streamFor(seed, name),
           accumulator: 0,
           effective: def.rate ?? 0,
@@ -301,8 +306,12 @@ export function runSimulation(
     warnings: 0,
     policyErrors: 0,
     budgetOverruns: 0,
+    backorderAverage: 0,
+    backorderPeak: 0,
     byResource,
   };
+  let backorderTicks = 0;
+  let backorderSum = 0;
 
   const rows = Math.floor(duration / TICK_MS) + 1;
   const stockRows = detail === "full" ? new Int32Array(rows * sites.length) : undefined;
@@ -677,22 +686,29 @@ export function runSimulation(
       flow.accumulator += flow.effective * multiplier;
       const amount = Math.floor(flow.accumulator / RATE_DIVISOR);
       flow.accumulator -= amount * RATE_DIVISOR;
-      if (amount === 0) return;
+      if (amount === 0 && flow.backlog === 0) return;
       flowTotals[flow.name] = (flowTotals[flow.name] as number) + amount;
 
       const site = flow.site;
       const resource = resources[flow.resource] as string;
       const perResource = byResource[resource] as { unmet: number; stalled: number; met: number };
       if (flow.consumer) {
-        const taken = Math.min(amount, stock[site] as number);
-        stock[site] = (stock[site] as number) - taken;
+        // Backordered demand is served before this tick's demand.
+        const served = Math.min(flow.backlog, stock[site] as number);
+        flow.backlog -= served;
+        const taken = Math.min(amount, (stock[site] as number) - served);
+        stock[site] = (stock[site] as number) - served - taken;
         const unmet = amount - taken;
-        metrics.demandMet += taken;
-        (running.consumed[flow.resource] as number) += taken;
-        metrics.unmetDemand += unmet;
-        metrics.unmetDemandWeighted += unmet * (priority[flow.resource] as number);
-        perResource.met += taken;
-        perResource.unmet += unmet;
+        metrics.demandMet += served + taken;
+        (running.consumed[flow.resource] as number) += served + taken;
+        perResource.met += served + taken;
+        if (flow.backorder) {
+          flow.backlog += unmet;
+        } else {
+          metrics.unmetDemand += unmet;
+          metrics.unmetDemandWeighted += unmet * (priority[flow.resource] as number);
+          perResource.unmet += unmet;
+        }
       } else {
         const added = Math.min(amount, (siteCapacity[site] as number) - (stock[site] as number));
         stock[site] = (stock[site] as number) + added;
@@ -701,6 +717,11 @@ export function runSimulation(
         perResource.stalled += amount - added;
       }
     });
+    let backlog = 0;
+    for (const flow of flows) backlog += flow.backlog;
+    backorderSum += backlog;
+    backorderTicks++;
+    if (backlog > metrics.backorderPeak) metrics.backorderPeak = backlog;
     if (t + TICK_MS <= duration)
       queue.push({ kind: "tick", time: t + TICK_MS, order: EventOrder.tick, entity: 0 });
   };
@@ -817,6 +838,7 @@ export function runSimulation(
   writeRowsBefore(duration, true);
 
   metrics.emptyDistanceShare = metrics.distance > 0 ? metrics.emptyDistance / metrics.distance : 0;
+  metrics.backorderAverage = backorderTicks > 0 ? backorderSum / backorderTicks : 0;
 
   return {
     apiVersion: POLICY_API_VERSION,

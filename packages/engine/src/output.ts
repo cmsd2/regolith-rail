@@ -71,6 +71,10 @@ export interface Metrics {
   warnings: number;
   policyErrors: number;
   budgetOverruns: number;
+  /** Backordered demand averaged over every tick of the run, in milli-units. */
+  backorderAverage: number;
+  /** The largest total backorder at the end of any tick. */
+  backorderPeak: number;
   byResource: Record<string, ResourceMetrics>;
 }
 
