@@ -8,8 +8,8 @@
 - [x] 2.1 Define the format 2 schema: stock points, arcs, vehicles with shuttle, loop and timetable routes, costs, and the existing events and information level; verify the minimal valid format 2 scenario, default capacity, unlimited capacity, disconnected route and timetable overlap tests pass
 - [x] 2.2 Add converters, suppliers with fixed and discrete lead times and order limits, review schedules, expiring stock and per-consumer lost or backordered demand to the schema; verify the converter, external supplier, supplier cycle, weekly review and backorder validation tests pass
 - [x] 2.3 Add the Poisson, discrete per-period, trace and profile processes to the schema; verify validation tests for each process, including an out-of-range profile error with its document path
-- [ ] 2.4 Implement the format 1 to format 2 upgrade at validation time, keeping station ids, flow order and train ids; verify all five starter scenarios upgrade and validate, and a property test shows that any valid format 1 document upgrades to a valid format 2 document
-- [ ] 2.5 Regenerate the published JSON Schema for format 2 with format 1 still accepted; verify every test scenario that passes validation also validates against the published schema
+- [x] 2.4 Implement the format 1 to format 2 upgrade at validation time, keeping station ids, flow order and train ids; verify all five starter scenarios upgrade and validate, and a property test shows that any valid format 1 document upgrades to a valid format 2 document
+- [x] 2.5 Regenerate the published JSON Schema for format 2 with format 1 still accepted; verify every test scenario that passes validation also validates against the published schema
 
 ## 3. Engine on format 2 with unchanged format 1 results
 

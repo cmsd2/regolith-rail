@@ -63,3 +63,124 @@ export function minimalScenarioV2(): ScenarioV2Input {
     ],
   };
 }
+
+/** A format 2 scenario that uses every feature of the format at least once. */
+export function featureScenarioV2(): ScenarioV2Input {
+  const DAY = 86_400_000;
+  return {
+    format: 2,
+    id: "features",
+    title: "Every feature",
+    description: "A depot, a shop and a factory using every format 2 feature.",
+    durationMs: 10 * DAY,
+    seed: 3,
+    informationLevel: "local",
+    resources: [{ id: "Metals" }, { id: "Parts", priority: 2 }],
+    stockPoints: [
+      {
+        id: "Depot",
+        resources: [{ id: "Metals", capacity: "unlimited", initial: 100_000, holdingCost: 1 }],
+        suppliers: [
+          {
+            resource: "Metals",
+            from: "external",
+            leadTime: {
+              kind: "discrete",
+              values: [
+                { value: DAY, weight: 3 },
+                { value: 2 * DAY, weight: 1 },
+              ],
+            },
+            minOrder: 1000,
+            maxOrder: 50_000,
+            orderCost: 20,
+            unitCost: 2,
+          },
+        ],
+        review: { periodMs: DAY, offsetMs: 3_600_000 },
+        position: { x: 0, y: 0 },
+      },
+      {
+        id: "Factory",
+        resources: [{ id: "Metals" }, { id: "Parts", expires: true }],
+        converters: [
+          {
+            inputs: [{ resource: "Metals", amount: 2000 }],
+            outputs: [{ resource: "Parts", amount: 1000 }],
+            rate: 12_000,
+            variability: { kind: "uniform", rangePercent: 10, periodMs: 3_600_000 },
+          },
+        ],
+        producers: [
+          { resource: "Metals", trace: { periodMs: DAY, amounts: [0, 5000, 2000] }, stallCost: 1 },
+        ],
+        review: { periodMs: 7 * DAY },
+      },
+      {
+        id: "Shop",
+        resources: [{ id: "Parts" }],
+        consumers: [
+          {
+            resource: "Parts",
+            poisson: { arrivalsPerSol: 6000, size: { kind: "fixed", value: 1000 } },
+            unmet: "backorder",
+            backorderCost: 3,
+            profile: [
+              { atMs: 0, multiplierPermille: 1000 },
+              { atMs: 5 * DAY, multiplierPermille: 1500 },
+            ],
+          },
+          {
+            resource: "Parts",
+            perPeriod: {
+              periodMs: DAY,
+              amount: {
+                kind: "discrete",
+                values: [
+                  { value: 0, weight: 1 },
+                  { value: 2000, weight: 1 },
+                ],
+              },
+            },
+            lostCost: 10,
+          },
+        ],
+        suppliers: [
+          { resource: "Parts", from: "Factory", leadTime: { kind: "fixed", value: DAY } },
+        ],
+        review: { periodMs: DAY },
+      },
+    ],
+    arcs: [
+      { from: "Depot", to: "Factory", distance: 3000 },
+      { from: "Factory", to: "Shop", distance: 2000 },
+      { from: "Shop", to: "Depot", distance: 4000 },
+    ],
+    vehicles: [
+      {
+        id: "Loop",
+        route: { kind: "loop", stops: ["Depot", "Factory", "Shop"], start: "Factory" },
+        speed: 20,
+        capacity: { perResource: { Metals: 20_000, Parts: 10_000 } },
+        costPerDistance: 1,
+      },
+      {
+        id: "Van",
+        route: { kind: "timetable", stops: ["Depot", "Factory"], departuresMs: [0, DAY, 2 * DAY] },
+        speed: 30,
+        dwellMs: 60_000,
+        capacity: { shared: 15_000 },
+      },
+    ],
+    events: [
+      {
+        id: "strike",
+        label: "Strike",
+        schedule: { kind: "random", probabilityPpm: 50_000, checkIntervalMs: DAY, durationMs: DAY },
+        effects: [
+          { type: "supply", stations: ["Factory"], resources: "all", multiplierPermille: 0 },
+        ],
+      },
+    ],
+  };
+}

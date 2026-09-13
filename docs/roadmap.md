@@ -372,6 +372,8 @@ shared.
   case seed, confidence intervals, instructions per stop, lines of code.
 - Categories (Vanilla, Extended) with a Mod-ready indication.
 - Golden results for the baseline stored and checked in CI.
+- A versioned result format: each version declares the output fields its hash
+  covers, so later additions to run output do not change published hashes.
 - Simulator reference documentation for metrics, score and categories.
 
 **Done when** the suite, bounds and baseline results are frozen under a version
