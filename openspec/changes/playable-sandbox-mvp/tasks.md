@@ -12,17 +12,19 @@
 - [x] 2.2 Implement validation errors for unknown fields, duplicate ids, unknown references, invalid quantities, unsupported levels and format versions, all reported together with document paths, and verify each error case has a passing test
 - [x] 2.3 Generate and publish the JSON Schema from the scenario definition, and verify every test scenario that passes validation also validates against the published schema
 - [x] 2.4 Write the five starter scenarios with descriptions and documentation slugs, and verify they all pass validation
+- [ ] 2.5 Change rates to milli-units per sol and replace storm events with events that have supply and demand effects in the scenario schema, and verify the event validation scenarios pass and the published schema is regenerated
+- [ ] 2.6 Retune the starter scenarios to game-typical values (station sizes of 30 or 60 units, and rates, speeds and times recorded on the game mechanics page), with `storm-shock` as a storm followed by a maintenance surge, and verify the game-scale station size test passes and each scenario still shows its failure against the naive baseline
 
 ## 3. Simulation engine
 
 - [x] 3.1 Implement the xoshiro128** generator, stream seeding by name hash, integer uniform and burst distributions, and batch seed derivation, and verify output matches recorded reference values
-- [x] 3.2 Implement the event queue with deterministic tie-breaking and the one-second production and consumption tick with integer remainders, and verify rates below one milli-unit per tick are exact over a long run
+- [ ] 3.2 Implement the event queue with deterministic tie-breaking and the one-game-minute production and consumption tick with integer remainders, and verify rates below one milli-unit per tick are exact over a long run
 - [x] 3.3 Implement train movement, reversal at terminals, travel time and dwell time, with trains not blocking one another, and verify the reversal and dwell scenarios pass
 - [x] 3.4 Implement production, consumption, stalled production and unmet demand, and verify the full and empty station scenarios pass
-- [x] 3.5 Implement storm events, scheduled and random, and verify the scheduled storm scenario passes
+- [ ] 3.5 Implement world events with supply and demand effects, fixed and random schedules, effect offsets and multiplicative overlap, leaving trains unaffected, and verify the event scenarios in the scenarios and engine specs pass
 - [x] 3.6 Implement the policy interface, ordered action application, clamping with warnings, unknown-resource warnings and policy failure handling, and verify the stops, actions and failure scenarios pass
 - [x] 3.7 Implement the TypeScript reference naive policy, and verify it runs every starter scenario to completion
-- [x] 3.8 Implement columnar run output: event log, sampled time series, string table and checkpoints, and verify state at arbitrary times rebuilt from output equals state captured during the run
+- [x] 3.8 Implement run output: event log, sampled series, and stock and cargo at every tick, and verify state at arbitrary times rebuilt from output equals state captured during the run
 - [x] 3.9 Implement the metrics, and verify the oscillation and priority-weighting scenarios pass
 - [x] 3.10 Add property tests for conservation, stock and cargo bounds, repeatability and stream independence over generated scenarios and random policies, and verify they pass with at least 500 cases each
 

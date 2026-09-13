@@ -23,7 +23,8 @@ and labels the baseline as observed, not verified.
   dispatch.
 - A deterministic simulation engine for a single line: stations with
   per-resource capacity, one or more shuttling trains, producers and consumers
-  with seeded randomness, storm events, an event log and core metrics.
+  with seeded randomness, world events (such as storms) that cause supply and
+  demand shocks, game-scale units, an event log and core metrics.
 - A sandboxed Lua policy runtime with Policy API v1: stop hook, snapshot limited
   to the `local` or `line` information level, load, unload, log and record
   actions, persistent serialisable memory, instruction budget, and shuffled

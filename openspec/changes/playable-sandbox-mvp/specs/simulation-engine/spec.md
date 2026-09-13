@@ -49,9 +49,22 @@ SHALL NOT block one another.
 
 ### Requirement: Production and consumption
 Producers SHALL add to their station's stock and consumers SHALL draw from it
-at their effective rates. Production that does not fit in the station SHALL be
-recorded as stalled production. Consumption that cannot be met from stock SHALL
-be recorded as unmet demand.
+at their effective rates: the base rate with its variability, multiplied by the
+effects of every active event that applies to the flow. Production and
+consumption SHALL be applied once per game minute. Production that does not fit
+in the station SHALL be recorded as stalled production. Consumption that cannot
+be met from stock SHALL be recorded as unmet demand. Events SHALL NOT change
+train movement or dwell.
+
+#### Scenario: Demand shock during an event
+- **WHEN** a consumer of 24000 per sol is covered by an active demand effect with
+  multiplier 3000 for one game hour
+- **THEN** it asks for 3000 milli-units during that hour instead of 1000
+
+#### Scenario: Trains unaffected by events
+- **WHEN** a storm is active across the whole line
+- **THEN** train arrival and departure times are the same as in the same run
+  without the storm
 
 #### Scenario: Full station
 - **WHEN** a station's stock of a resource is at capacity and its producer is

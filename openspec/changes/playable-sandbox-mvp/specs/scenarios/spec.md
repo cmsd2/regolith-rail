@@ -13,7 +13,9 @@ producers and consumers, events, an information level and a base seed.
 
 Quantities SHALL be integers in milli-units (1 unit = 1000 milli-units), times
 SHALL be integers in milliseconds of game time, distances SHALL be integers,
-and rates SHALL be integers in milli-units per minute.
+and rates SHALL be integers in milli-units per sol, where one sol is 24 game
+hours (86,400,000 ms of game time), matching how the game states production
+and consumption.
 
 #### Scenario: Minimal valid scenario
 - **WHEN** a scenario defines two stations, one enabled resource, one train, one
@@ -60,22 +62,52 @@ resource, each with a base rate and a variability of fixed, uniform range, or
 on/off bursts.
 
 #### Scenario: Uniform variability
-- **WHEN** a consumer has a base rate of 600 and a uniform range of ±20%
-- **THEN** the effective rate in every period lies between 480 and 720
+- **WHEN** a consumer has a base rate of 8000 per sol and a uniform range of ±20%
+- **THEN** the effective rate in every period lies between 6400 and 9600 per sol
 
 #### Scenario: Producer on a resource the station does not enable
 - **WHEN** a producer is defined for a resource the station does not enable
 - **THEN** validation fails with an error naming the station and resource
 
 ### Requirement: Events
-A scenario SHALL be able to define storm events that multiply production rates
-at chosen stations for a time window, either at a fixed time or at random times
-with a stated probability.
+A scenario SHALL be able to define events: states of the world that are active
+for a time window, scheduled either at a fixed time or at random times with a
+stated probability. Each event SHALL have an id, a label and one or more
+effects. While an effect is active it SHALL multiply the production (a
+`supply` effect) or consumption (a `demand` effect) of the listed resources at
+the listed stations, or of all resources or all stations. Multipliers SHALL be
+stated in thousandths, from 0 upwards. An effect SHALL be active for its event's
+window unless it states its own start offset from the event start and its own
+duration. Where effects overlap on the same flow their multipliers SHALL
+combine by multiplication. A storm is an event with a label, not a separate
+kind. Events SHALL NOT change train speed, capacity or dwell time.
 
-#### Scenario: Scheduled storm
-- **WHEN** a storm with a production multiplier of 0 is scheduled from minute 60
-  to minute 90 for all stations
+#### Scenario: Storm stops production
+- **WHEN** a storm with a supply effect of multiplier 0 for all resources is
+  scheduled from hour 2 to hour 3 for all stations
 - **THEN** no production occurs anywhere on the line during that window
+
+#### Scenario: Maintenance surge
+- **WHEN** an event has a demand effect for Metals at station Dome with
+  multiplier 4000
+- **THEN** consumption of Metals at Dome is four times its rate while the event
+  is active and unchanged at other stations and for other resources
+
+#### Scenario: Effect starting after its event
+- **WHEN** a storm lasting one hour has a demand effect with a start offset of
+  30 minutes and a duration of two hours
+- **THEN** the demand effect is active from 30 minutes after the storm starts
+  until 2 hours 30 minutes after it starts
+
+#### Scenario: Overlapping effects
+- **WHEN** two active events apply supply multipliers of 500 and 500 to the same
+  producer
+- **THEN** that producer runs at a quarter of its rate
+
+#### Scenario: Unknown resource in an effect
+- **WHEN** an effect lists a resource the scenario does not define
+- **THEN** validation fails with an error naming the resource and the effect's
+  path
 
 ### Requirement: Information level
 A scenario SHALL declare the information level available to policies. This
@@ -117,11 +149,20 @@ failure it demonstrates and a link to the documentation page explaining it:
 - `relay`: dead stock at a station with no producers or consumers.
 - `two-trains`: double dispatch.
 - `mixed-line`: ping-pong and missing priorities across several resources.
-- `storm-shock`: recovery after production stops.
+- `storm-shock`: a storm that stops production, followed by a maintenance surge
+  in demand.
+
+Starter scenarios SHALL use values typical of the game: station capacities of
+30 or 60 units per resource, and rates, speeds and times within the ranges
+recorded on the game mechanics documentation page.
 
 #### Scenario: Starter scenarios are valid
 - **WHEN** the starter scenarios are validated
 - **THEN** every one passes validation
+
+#### Scenario: Game-scale station sizes
+- **WHEN** the starter scenarios' station capacities are listed
+- **THEN** every capacity is 30000 or 60000 milli-units
 
 #### Scenario: Starter scenario shows its failure
 - **WHEN** `two-station` is run with the naive baseline while consumption is
