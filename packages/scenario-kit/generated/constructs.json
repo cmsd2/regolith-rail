@@ -1,0 +1,1055 @@
+{
+  "header": "Generated from packages/scenario-kit. Do not edit.",
+  "constructs": [
+    {
+      "name": "scenario",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A complete scenario document. Resources default to every resource a station stores, in the order stations first store them.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Scenario id: a letter, then letters, digits, _ or -.",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "summary": "Title shown to players.",
+          "required": false,
+          "default": "the id"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "summary": "What the scenario shows.",
+          "required": false,
+          "default": "the title"
+        },
+        {
+          "name": "docs",
+          "type": "string",
+          "summary": "Documentation page explaining the scenario, such as failure-modes/relay.",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random processes.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "information",
+          "type": "\"local\"|\"line\"",
+          "summary": "How much of other stations policies can see.",
+          "required": false,
+          "default": "\"line\""
+        },
+        {
+          "name": "sample_interval",
+          "type": "integer",
+          "summary": "How often stock is sampled for charts.",
+          "required": false,
+          "default": "hours(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "resources",
+          "type": "(string|resource)[]|table<string, table>",
+          "summary": "Resources as ids, resource constructs, or parameters keyed by id.",
+          "required": false
+        },
+        {
+          "name": "stations",
+          "type": "station[]",
+          "summary": "Stations, in scenario order.",
+          "required": false
+        },
+        {
+          "name": "arcs",
+          "type": "arc[]",
+          "summary": "Arcs joining stations.",
+          "required": false
+        },
+        {
+          "name": "vehicles",
+          "type": "vehicle[]",
+          "summary": "Vehicles and their routes.",
+          "required": false
+        },
+        {
+          "name": "events",
+          "type": "event[]",
+          "summary": "Events such as storms.",
+          "required": false
+        },
+        {
+          "name": "parts",
+          "type": "table[]",
+          "summary": "Tables with stations, arcs, vehicles or events lists, such as the result of line, appended in order.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#scenario"
+    },
+    {
+      "name": "resource",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A resource and its priority.",
+      "returns": "resource",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Resource id, such as Metals.",
+          "required": true
+        },
+        {
+          "name": "priority",
+          "type": "integer",
+          "summary": "Higher numbers matter more to priority allocation.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#resource"
+    },
+    {
+      "name": "station",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A place that stores resources, with what produces, consumes, converts and supplies them.",
+      "returns": "station",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Station id.",
+          "required": true
+        },
+        {
+          "name": "resources",
+          "type": "(string|store)[]|table<string, table>",
+          "summary": "Resources stored: ids with default storage, store constructs, or store parameters keyed by resource id.",
+          "required": true
+        },
+        {
+          "name": "producers",
+          "type": "producer[]",
+          "summary": "What adds stock.",
+          "required": false
+        },
+        {
+          "name": "consumers",
+          "type": "consumer[]",
+          "summary": "What takes stock as demand.",
+          "required": false
+        },
+        {
+          "name": "converters",
+          "type": "converter[]",
+          "summary": "What turns some resources into others.",
+          "required": false
+        },
+        {
+          "name": "suppliers",
+          "type": "supplier[]",
+          "summary": "Where the station orders resources from.",
+          "required": false
+        },
+        {
+          "name": "review",
+          "type": "review",
+          "summary": "When the station reviews its orders.",
+          "required": false
+        },
+        {
+          "name": "position",
+          "type": "{ x: number, y: number }",
+          "summary": "Where to draw the station on the map.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#station"
+    },
+    {
+      "name": "store",
+      "library": "core",
+      "kind": "construct",
+      "summary": "How a station stores one resource.",
+      "returns": "station resource",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource id.",
+          "required": true
+        },
+        {
+          "name": "capacity",
+          "type": "number|\"unlimited\"",
+          "summary": "Most the station can hold.",
+          "required": false,
+          "default": "30",
+          "unit": "units"
+        },
+        {
+          "name": "initial",
+          "type": "number",
+          "summary": "Stock at the start of a run.",
+          "required": false,
+          "default": "0",
+          "unit": "units"
+        },
+        {
+          "name": "expires",
+          "type": "boolean",
+          "summary": "Whether stock is removed at each review.",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per sol.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#store"
+    },
+    {
+      "name": "producer",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Adds a resource to its station, by exactly one of rate, poisson, per_period or trace.",
+      "returns": "producer",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource id.",
+          "required": true
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Amount produced per sol, spread evenly over each minute.",
+          "required": false,
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "uniform|bursts",
+          "summary": "How the rate varies over time. Fixed when omitted.",
+          "required": false
+        },
+        {
+          "name": "poisson",
+          "type": "poisson",
+          "summary": "Arrivals at random times instead of a rate.",
+          "required": false
+        },
+        {
+          "name": "per_period",
+          "type": "per_period",
+          "summary": "An amount drawn at the start of each period instead of a rate.",
+          "required": false
+        },
+        {
+          "name": "trace",
+          "type": "trace",
+          "summary": "Recorded amounts per period instead of a rate.",
+          "required": false
+        },
+        {
+          "name": "profile",
+          "type": "profile",
+          "summary": "Multipliers over the run, for ramps and seasons.",
+          "required": false
+        },
+        {
+          "name": "stall_cost",
+          "type": "integer",
+          "summary": "Cost per unit of production that does not fit.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#producer"
+    },
+    {
+      "name": "consumer",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Takes a resource from its station as demand, by exactly one of rate, poisson, per_period or trace.",
+      "returns": "consumer",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource id.",
+          "required": true
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Amount demanded per sol, spread evenly over each minute.",
+          "required": false,
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "uniform|bursts",
+          "summary": "How the rate varies over time. Fixed when omitted.",
+          "required": false
+        },
+        {
+          "name": "poisson",
+          "type": "poisson",
+          "summary": "Arrivals at random times instead of a rate.",
+          "required": false
+        },
+        {
+          "name": "per_period",
+          "type": "per_period",
+          "summary": "An amount drawn at the start of each period instead of a rate.",
+          "required": false
+        },
+        {
+          "name": "trace",
+          "type": "trace",
+          "summary": "Recorded amounts per period instead of a rate.",
+          "required": false
+        },
+        {
+          "name": "profile",
+          "type": "profile",
+          "summary": "Multipliers over the run, for ramps and seasons.",
+          "required": false
+        },
+        {
+          "name": "unmet",
+          "type": "\"lost\"|\"backorder\"",
+          "summary": "Whether demand that cannot be met is lost or waits for stock.",
+          "required": false,
+          "default": "\"lost\""
+        },
+        {
+          "name": "lost_cost",
+          "type": "integer",
+          "summary": "Cost per unit of lost demand.",
+          "required": false
+        },
+        {
+          "name": "backorder_cost",
+          "type": "integer",
+          "summary": "Cost per unit backordered per sol.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#consumer"
+    },
+    {
+      "name": "uniform",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Varies a rate uniformly within a range, drawing a new rate each period.",
+      "returns": "variability",
+      "params": [
+        {
+          "name": "range",
+          "type": "integer",
+          "summary": "Largest change from the base rate, in percent.",
+          "required": true
+        },
+        {
+          "name": "period",
+          "type": "integer",
+          "summary": "How long each drawn rate lasts.",
+          "required": false,
+          "default": "hours(1)",
+          "unit": "ms"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#uniform"
+    },
+    {
+      "name": "bursts",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Switches a rate on and off at random.",
+      "returns": "variability",
+      "params": [
+        {
+          "name": "on_ppm",
+          "type": "integer",
+          "summary": "Chance per minute of switching on, in parts per million.",
+          "required": true
+        },
+        {
+          "name": "off_ppm",
+          "type": "integer",
+          "summary": "Chance per minute of switching off, in parts per million.",
+          "required": true
+        },
+        {
+          "name": "starts_on",
+          "type": "boolean",
+          "summary": "Whether the flow starts on.",
+          "required": false,
+          "default": "true"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#bursts"
+    },
+    {
+      "name": "poisson",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Arrivals at random times at an average rate, each of a fixed or random size.",
+      "returns": "poisson process",
+      "params": [
+        {
+          "name": "per_sol",
+          "type": "number",
+          "summary": "Average arrivals per sol.",
+          "required": true
+        },
+        {
+          "name": "size",
+          "type": "number|discrete",
+          "summary": "Size of each arrival.",
+          "required": false,
+          "default": "1",
+          "unit": "units"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#poisson"
+    },
+    {
+      "name": "per_period",
+      "library": "core",
+      "kind": "construct",
+      "summary": "An amount drawn at the start of each period and spread evenly over it.",
+      "returns": "per-period process",
+      "params": [
+        {
+          "name": "period",
+          "type": "integer",
+          "summary": "Length of each period.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "amount",
+          "type": "number|discrete",
+          "summary": "Amount for each period.",
+          "required": true,
+          "unit": "units"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#per_period"
+    },
+    {
+      "name": "trace",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Recorded amounts, one per period, repeated from the start when they run out.",
+      "returns": "trace process",
+      "params": [
+        {
+          "name": "period",
+          "type": "integer",
+          "summary": "Length of each period.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "amounts",
+          "type": "number[]",
+          "summary": "Amount for each period.",
+          "required": true,
+          "unit": "units"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#trace"
+    },
+    {
+      "name": "converter",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Turns input resources into output resources at its station, in batches.",
+      "returns": "converter",
+      "params": [
+        {
+          "name": "inputs",
+          "type": "table<string, number>",
+          "summary": "Amount of each resource each batch takes.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "outputs",
+          "type": "table<string, number>",
+          "summary": "Amount of each resource each batch makes.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Batches per sol.",
+          "required": true
+        },
+        {
+          "name": "variability",
+          "type": "uniform|bursts",
+          "summary": "How the rate varies over time. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#converter"
+    },
+    {
+      "name": "supplier",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Where a station orders one resource from, and how long orders take to arrive.",
+      "returns": "supplier",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource id.",
+          "required": true
+        },
+        {
+          "name": "from",
+          "type": "string",
+          "summary": "external, or the id of the station that ships from its own stock.",
+          "required": false,
+          "default": "\"external\""
+        },
+        {
+          "name": "lead_time",
+          "type": "integer|discrete",
+          "summary": "Time from order to arrival.",
+          "required": false,
+          "default": "0",
+          "unit": "ms"
+        },
+        {
+          "name": "min_order",
+          "type": "number",
+          "summary": "Smallest order.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "max_order",
+          "type": "number",
+          "summary": "Largest order.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "order_cost",
+          "type": "integer",
+          "summary": "Fixed cost per order.",
+          "required": false
+        },
+        {
+          "name": "unit_cost",
+          "type": "integer",
+          "summary": "Cost per unit ordered.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#supplier"
+    },
+    {
+      "name": "review",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A schedule of reviews, when the policy decides what the station orders.",
+      "returns": "review schedule",
+      "params": [
+        {
+          "name": "period",
+          "type": "integer",
+          "summary": "Time between reviews.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "offset",
+          "type": "integer",
+          "summary": "Time of the first review.",
+          "required": false,
+          "default": "0",
+          "unit": "ms"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#review"
+    },
+    {
+      "name": "arc",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Joins two stations, in both directions.",
+      "returns": "arc",
+      "params": [
+        {
+          "name": "from",
+          "type": "string",
+          "summary": "Station id at one end.",
+          "required": true
+        },
+        {
+          "name": "to",
+          "type": "string",
+          "summary": "Station id at the other end.",
+          "required": true
+        },
+        {
+          "name": "distance",
+          "type": "integer",
+          "summary": "Length of the arc.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#arc"
+    },
+    {
+      "name": "line",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Stations joined in order by arcs. Pass the result to scenario's parts.",
+      "returns": "{ stations, arcs }",
+      "params": [
+        {
+          "name": "stations",
+          "type": "station[]",
+          "summary": "Stations from one end of the line to the other.",
+          "required": true
+        },
+        {
+          "name": "distances",
+          "type": "integer|integer[]",
+          "summary": "Distance between neighbours, or one per gap.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#line"
+    },
+    {
+      "name": "shuttle",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A route back and forth along its stops, reversing at each end.",
+      "returns": "route",
+      "params": [
+        {
+          "name": "stops",
+          "type": "(string|station)[]",
+          "summary": "Stations in order; neighbours must be joined by arcs.",
+          "required": true
+        },
+        {
+          "name": "start",
+          "type": "string",
+          "summary": "Stop the vehicle starts at.",
+          "required": false,
+          "default": "the first stop"
+        },
+        {
+          "name": "direction",
+          "type": "\"forward\"|\"backward\"",
+          "summary": "Direction the vehicle starts in.",
+          "required": false,
+          "default": "\"forward\""
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#shuttle"
+    },
+    {
+      "name": "loop",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A route around its stops and back to the first, repeatedly.",
+      "returns": "route",
+      "params": [
+        {
+          "name": "stops",
+          "type": "(string|station)[]",
+          "summary": "Stations in order; the last joins back to the first.",
+          "required": true
+        },
+        {
+          "name": "start",
+          "type": "string",
+          "summary": "Stop the vehicle starts at.",
+          "required": false,
+          "default": "the first stop"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#loop"
+    },
+    {
+      "name": "timetable",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Trips out along its stops and back, leaving the first stop at listed times.",
+      "returns": "route",
+      "params": [
+        {
+          "name": "stops",
+          "type": "(string|station)[]",
+          "summary": "Stations in order from the first stop.",
+          "required": true
+        },
+        {
+          "name": "departures",
+          "type": "integer[]",
+          "summary": "Departure times from the first stop.",
+          "required": true,
+          "unit": "ms"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#timetable"
+    },
+    {
+      "name": "vehicle",
+      "library": "core",
+      "kind": "construct",
+      "summary": "A vehicle on a fixed route.",
+      "returns": "vehicle",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Vehicle id.",
+          "required": true
+        },
+        {
+          "name": "route",
+          "type": "shuttle|loop|timetable",
+          "summary": "The route it follows.",
+          "required": true
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "summary": "Distance per second.",
+          "required": true
+        },
+        {
+          "name": "dwell",
+          "type": "integer",
+          "summary": "Time at every stop.",
+          "required": false,
+          "default": "10000",
+          "unit": "ms"
+        },
+        {
+          "name": "dwell_per_unit",
+          "type": "integer",
+          "summary": "Extra time per unit loaded or unloaded.",
+          "required": false,
+          "default": "1000",
+          "unit": "ms"
+        },
+        {
+          "name": "capacity",
+          "type": "number|table<string, number>",
+          "summary": "Units it can carry across all resources, or units by resource id.",
+          "required": true,
+          "unit": "units"
+        },
+        {
+          "name": "cost_per_distance",
+          "type": "integer",
+          "summary": "Cost per unit of distance travelled.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#vehicle"
+    },
+    {
+      "name": "effect",
+      "library": "core",
+      "kind": "construct",
+      "summary": "How an event changes production or demand while it is active.",
+      "returns": "effect",
+      "params": [
+        {
+          "name": "type",
+          "type": "\"supply\"|\"demand\"",
+          "summary": "supply scales production; demand scales consumption.",
+          "required": true
+        },
+        {
+          "name": "stations",
+          "type": "\"all\"|string|string[]",
+          "summary": "Stations affected.",
+          "required": false,
+          "default": "\"all\""
+        },
+        {
+          "name": "resources",
+          "type": "\"all\"|string|string[]",
+          "summary": "Resources affected.",
+          "required": false,
+          "default": "\"all\""
+        },
+        {
+          "name": "multiplier",
+          "type": "number",
+          "summary": "Rate multiplier: 0 stops the flow, 2.5 multiplies it by two and a half.",
+          "required": true
+        },
+        {
+          "name": "start_offset",
+          "type": "integer",
+          "summary": "When the effect starts after the event starts.",
+          "required": false,
+          "default": "0",
+          "unit": "ms"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "How long the effect lasts.",
+          "required": false,
+          "default": "the event's duration",
+          "unit": "ms"
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#effect"
+    },
+    {
+      "name": "event",
+      "library": "core",
+      "kind": "construct",
+      "summary": "Something that changes rates for a while, at a fixed time or at random.",
+      "returns": "event",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Event id.",
+          "required": true
+        },
+        {
+          "name": "label",
+          "type": "string",
+          "summary": "Name shown to players.",
+          "required": false,
+          "default": "the id"
+        },
+        {
+          "name": "start",
+          "type": "integer",
+          "summary": "Start time of a fixed event.",
+          "required": false,
+          "unit": "ms"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "How long the event lasts.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "chance_ppm",
+          "type": "integer",
+          "summary": "Chance at each check of a random event starting, in parts per million.",
+          "required": false
+        },
+        {
+          "name": "check_every",
+          "type": "integer",
+          "summary": "Time between checks of a random event.",
+          "required": false,
+          "unit": "ms"
+        },
+        {
+          "name": "effects",
+          "type": "effect[]",
+          "summary": "What the event changes.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#event"
+    },
+    {
+      "name": "discrete",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Weighted values, such as discrete { { 2, 1 }, { 3, 2 } }, drawn with chance proportional to weight. Values are converted by the parameter they are given to.",
+      "returns": "distribution",
+      "params": [
+        {
+          "name": "pairs",
+          "type": "{ number, integer }[]",
+          "summary": "Value and whole-number weight pairs.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#discrete"
+    },
+    {
+      "name": "profile",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Multipliers at times in the run, such as profile { { sols(0), 1 }, { sols(10), 2 } }, interpolated linearly between points.",
+      "returns": "profile",
+      "params": [
+        {
+          "name": "points",
+          "type": "{ integer, number }[]",
+          "summary": "Time and multiplier pairs.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#profile"
+    },
+    {
+      "name": "units",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Milli-units in a quantity of units, for changing a construct's result. Rejects values finer than 0.001 units.",
+      "returns": "integer",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "summary": "Quantity in units, such as 2.5.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#units"
+    },
+    {
+      "name": "minutes",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Milliseconds in a number of minutes, where one minute is 60000 ms. Rejects values that are not a whole number of milliseconds.",
+      "returns": "integer",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "summary": "Number of minutes, such as 1.5.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#minutes"
+    },
+    {
+      "name": "hours",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Milliseconds in a number of hours, where one hour is 60 minutes. Rejects values that are not a whole number of milliseconds.",
+      "returns": "integer",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "summary": "Number of hours, such as 1.5.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#hours"
+    },
+    {
+      "name": "sols",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Milliseconds in a number of sols, where one sol is 24 hours. Rejects values that are not a whole number of milliseconds.",
+      "returns": "integer",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "summary": "Number of sols, such as 1.5.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#sols"
+    },
+    {
+      "name": "days",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Milliseconds in a number of days, where one day is 24 hours, the same as a sol. Rejects values that are not a whole number of milliseconds.",
+      "returns": "integer",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "summary": "Number of days, such as 1.5.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#days"
+    },
+    {
+      "name": "weeks",
+      "library": "core",
+      "kind": "helper",
+      "summary": "Milliseconds in a number of weeks, where one week is 7 days. Rejects values that are not a whole number of milliseconds.",
+      "returns": "integer",
+      "params": [
+        {
+          "name": "value",
+          "type": "number",
+          "summary": "Number of weeks, such as 1.5.",
+          "required": true
+        }
+      ],
+      "docs": "scenarios/core",
+      "href": "scenarios/core#weeks"
+    }
+  ]
+}

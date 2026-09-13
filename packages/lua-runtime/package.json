@@ -19,6 +19,7 @@
   "dependencies": {
     "@regolith-rail/engine": "workspace:*",
     "@regolith-rail/policy-api": "workspace:*",
+    "@regolith-rail/scenario-kit": "workspace:*",
     "luaparse": "0.3.1",
     "wasmoon": "1.16.0"
   }

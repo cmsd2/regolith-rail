@@ -7,3 +7,12 @@ export {
   type PolicyHook,
   type PolicyHooks,
 } from "./policy.ts";
+export {
+  DOCUMENT_LIMITS,
+  EVALUATION_BUDGET,
+  type Evaluation,
+  lineForPath,
+  type ScriptError,
+  type ScriptScenario,
+  type SourceMap,
+} from "./scenario.ts";

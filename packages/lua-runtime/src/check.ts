@@ -148,19 +148,37 @@ function after(source: string, pos: number, token: string): number {
 
 const TICK = ` ${RESERVED_PREFIX}_tick();`;
 
+const CALLS = new Set(["CallExpression", "TableCallExpression", "StringCallExpression"]);
+
 /**
  * Inserts a budget check at the start of every loop body and function body,
  * without changing line numbers. The source must already pass
  * `checkPolicySource`. The result expects `__rr_tick` as the chunk's first
  * vararg.
+ *
+ * With `keepCallers`, a `return` of a single call is wrapped in parentheses so
+ * it is not a tail call, and the returning line stays on the stack for error
+ * and source map lines.
  */
-export function instrumentPolicySource(source: string): string {
+export function instrumentPolicySource(
+  source: string,
+  options: { keepCallers?: boolean } = {},
+): string {
   const chunk = luaparse.parse(source, { luaVersion: "5.1", ranges: true }) as unknown as AnyNode;
-  const points: number[] = [];
+  const inserts: { at: number; text: string }[] = [];
+  const points = { push: (at: number) => inserts.push({ at, text: TICK }) };
   const end = (node: unknown) => (node as AnyNode).range?.[1] ?? 0;
 
   walk(chunk, (node) => {
     switch (node.type) {
+      case "ReturnStatement": {
+        const args = node.arguments as AnyNode[];
+        const only = args[0];
+        if (options.keepCallers && args.length === 1 && only && CALLS.has(only.type)) {
+          inserts.push({ at: only.range?.[0] ?? 0, text: "(" }, { at: end(only), text: ")" });
+        }
+        break;
+      }
       case "WhileStatement":
         points.push(after(source, end(node.condition), "do"));
         break;
@@ -193,8 +211,8 @@ export function instrumentPolicySource(source: string): string {
   });
 
   let out = source;
-  for (const point of points.sort((a, b) => b - a)) {
-    out = out.slice(0, point) + TICK + out.slice(point);
+  for (const { at, text } of inserts.sort((a, b) => b.at - a.at)) {
+    out = out.slice(0, at) + text + out.slice(at);
   }
   return `local ${RESERVED_PREFIX}_tick = ...; ${out}`;
 }

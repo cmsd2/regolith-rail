@@ -15,6 +15,13 @@ import { LuaEngine, LuaFactory, type LuaWasm } from "wasmoon";
 import { checkPolicySource, instrumentPolicySource } from "./check.ts";
 import { toLuaLiteral } from "./literal.ts";
 import { PRELUDE } from "./prelude.ts";
+import {
+  type Evaluation,
+  evaluateScript,
+  libraryConstructs,
+  loadScript,
+  type ScriptScenario,
+} from "./scenario.ts";
 
 /** Loop iterations and function calls a single hook call may make. */
 export const DEFAULT_BUDGET = 200_000;
@@ -82,6 +89,21 @@ export class LuaRuntime {
   /** Loads a policy without running any hook and lists the hooks it defines. */
   hooksOf(source: string): PolicyHooks {
     return this.createPolicy(source).inspect();
+  }
+
+  /** Evaluates a scenario script to a document, without validating it. */
+  evaluateScript(source: string, budget?: number): Evaluation {
+    return evaluateScript(this.module, source, budget);
+  }
+
+  /** Evaluates a scenario script and validates it, with errors at script lines. */
+  loadScript(source: string, budget?: number): ScriptScenario {
+    return loadScript(this.module, source, budget);
+  }
+
+  /** Constructs and functions the scenario libraries define, for description checks. */
+  libraryConstructs() {
+    return libraryConstructs(this.module);
   }
 }
 
