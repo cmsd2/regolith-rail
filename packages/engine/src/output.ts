@@ -94,6 +94,8 @@ export interface RunOutput {
   stations: string[];
   resources: string[];
   trains: string[];
+  /** Stock point each vehicle is at before its first stop. */
+  trainStarts: string[];
   sites: Site[];
   /** Stock per site at every tick boundary, row-major (only with full detail). */
   stock?: Int32Array;
@@ -213,7 +215,11 @@ export function stateAt(output: RunOutput, t: number): LineState {
     t: time,
     stock: stockNow,
     cargo: cargoNow,
-    // Every train arrives at its start station at time 0, so a place is always found.
-    trains: places.map((place) => place ?? { state: "stopped", station: "", direction: "forward" }),
+    // Vehicles without an arrival yet, such as timetables before their first trip, wait at
+    // their start.
+    trains: places.map(
+      (place, i) =>
+        place ?? { state: "stopped", station: output.trainStarts[i] ?? "", direction: "forward" },
+    ),
   };
 }

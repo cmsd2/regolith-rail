@@ -45,7 +45,14 @@ export interface FlowTotalsByResource {
 type SimEvent = Scheduled &
   (
     | { kind: "tick" }
-    | { kind: "arrival"; train: number; station: number; pos: number }
+    | {
+        kind: "arrival";
+        train: number;
+        station: number;
+        pos: number;
+        /** A timetable vehicle starting a trip from its first stop. */
+        tripStart?: boolean;
+      }
     | { kind: "departure"; train: number }
     | { kind: "event-check"; world: number }
     | { kind: "event-end"; world: number }
@@ -72,6 +79,9 @@ interface TrainState {
   path: number[];
   /** Position in `path` of the stock point the vehicle is at or last left. */
   pos: number;
+  /** Timetable departure times, and the index of the next one not yet used. */
+  departures: number[];
+  nextDeparture: number;
   speed: number;
   dwellMs: number;
   dwellPerUnitMs: number;
@@ -217,6 +227,8 @@ export function runSimulation(
       kind: route.kind,
       path,
       pos,
+      departures: route.kind === "timetable" ? route.departuresMs : [],
+      nextDeparture: 0,
       speed: def.speed,
       dwellMs: def.dwellMs,
       dwellPerUnitMs: def.dwellPerUnitMs,
@@ -497,7 +509,9 @@ export function runSimulation(
     train.station = s;
     train.pos = event.pos;
     moving[event.train] = undefined;
-    if (train.kind === "shuttle") {
+    if (event.tripStart) train.direction = 1;
+    const tripEnds = train.kind === "timetable" && train.pos === 0 && !event.tripStart;
+    if (train.kind !== "loop") {
       if (train.pos === train.path.length - 1 && train.direction === 1) train.direction = -1;
       if (train.pos === 0 && train.direction === -1) train.direction = 1;
     }
@@ -542,6 +556,11 @@ export function runSimulation(
     metrics.transferred += transferred;
     const dwell = train.dwellMs + Math.floor((transferred * train.dwellPerUnitMs) / 1000);
     metrics.dwellMs += dwell;
+    if (tripEnds) {
+      // A timetable vehicle waits at its first stop until its next listed departure.
+      scheduleTrip(event.train, t + dwell);
+      return;
+    }
     queue.push({
       kind: "departure",
       time: t + dwell,
@@ -550,6 +569,35 @@ export function runSimulation(
       train: event.train,
     });
     pendingDwell[event.train] = { stop, dwell };
+  };
+
+  /** Starts a timetable vehicle's next trip at its listed time, or as soon as it is free. */
+  const scheduleTrip = (index: number, freeAt: number) => {
+    const train = trains[index] as TrainState;
+    const listed = train.departures[train.nextDeparture];
+    if (listed === undefined) return;
+    train.nextDeparture++;
+    if (listed < freeAt) {
+      metrics.warnings++;
+      events.push({
+        t: freeAt,
+        kind: "warning",
+        stop: stopCount,
+        train: train.id,
+        station: stations[train.path[0] as number] as string,
+        message: `departure listed at ${listed} ms left late, when the previous trip finished`,
+      });
+    }
+    queue.push({
+      kind: "arrival",
+      time: Math.max(listed, freeAt),
+      order: EventOrder.arrival,
+      entity: index,
+      train: index,
+      station: train.path[0] as number,
+      pos: 0,
+      tripStart: true,
+    });
   };
 
   const handleDeparture = (event: Extract<SimEvent, { kind: "departure" }>) => {
@@ -719,6 +767,10 @@ export function runSimulation(
     if (duration >= TICK_MS)
       queue.push({ kind: "tick", time: TICK_MS, order: EventOrder.tick, entity: 0 });
     trains.forEach((train, i) => {
+      if (train.kind === "timetable") {
+        scheduleTrip(i, 0);
+        return;
+      }
       queue.push({
         kind: "arrival",
         time: 0,
@@ -775,6 +827,7 @@ export function runSimulation(
     stations,
     resources,
     trains: trains.map((train) => train.id),
+    trainStarts: trains.map((train) => stations[train.station] as string),
     sites,
     ...(stockRows ? { stock: stockRows } : {}),
     ...(cargoRows ? { cargo: cargoRows } : {}),
