@@ -171,6 +171,11 @@ export interface RunOutput {
   stock?: Int32Array;
   /** Cargo per train and resource at every tick boundary (only with full detail). */
   cargo?: Int32Array;
+  /**
+   * Backordered demand per site at every tick boundary, only with full detail and when the
+   * scenario backorders demand. Derived from the same state as stock, so not hashed.
+   */
+  backorders?: Int32Array;
   samples: {
     intervalMs: number;
     t: number[];
@@ -206,6 +211,8 @@ export interface LineState {
   stock: number[];
   /** Cargo per train, then per resource. */
   cargo: number[][];
+  /** Backordered demand per site, when the run records it. */
+  backorders?: number[];
   trains: TrainPlace[];
 }
 
@@ -281,10 +288,14 @@ export function stateAt(output: RunOutput, t: number): LineState {
     }
   }
 
+  const backorders = output.backorders
+    ? Array.from(output.backorders.subarray(row * siteCount, (row + 1) * siteCount))
+    : undefined;
   return {
     t: time,
     stock: stockNow,
     cargo: cargoNow,
+    ...(backorders ? { backorders } : {}),
     // Vehicles without an arrival yet, such as timetables before their first trip, wait at
     // their start.
     trains: places.map(

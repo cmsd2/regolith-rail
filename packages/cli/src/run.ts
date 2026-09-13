@@ -154,7 +154,7 @@ export const needsLua = (spec: string) => !(spec in REFERENCE_POLICIES);
 
 /** Run output as plain JSON: everything except the per-tick arrays, plus the result hash. */
 export function toJson(output: RunOutput) {
-  const { stock: _stock, cargo: _cargo, ...rest } = output;
+  const { stock: _stock, cargo: _cargo, backorders: _backorders, ...rest } = output;
   return { ...rest, hash: hashRun(output) };
 }
 

@@ -243,3 +243,24 @@ describe("expiring stock", () => {
     ]);
   });
 });
+
+describe("backorders over time", () => {
+  it("records backorders per site at every tick for replay", () => {
+    const scenario = shop((_input, point) => {
+      point.consumers = [{ resource: "Beer", rate: 24_000, unmet: "backorder" }];
+    });
+    const out = runSimulation(scenario, idlePolicy);
+    expect(out.backorders).toBeDefined();
+    const sites = out.sites.length;
+    const rows = (out.backorders?.length ?? 0) / sites;
+    let peak = 0;
+    for (let row = 0; row < rows; row++) {
+      let total = 0;
+      for (let site = 0; site < sites; site++) total += out.backorders?.[row * sites + site] ?? 0;
+      peak = Math.max(peak, total);
+    }
+    expect(peak).toBe(out.metrics.backorderPeak);
+    expect(stateAt(out, out.durationMs).backorders?.[0]).toBeGreaterThan(0);
+    expect(runSimulation(scenario, idlePolicy, { detail: "summary" }).backorders).toBeUndefined();
+  });
+});

@@ -512,6 +512,12 @@ export function runSimulation(
   const stockRows = detail === "full" ? new Int32Array(rows * sites.length) : undefined;
   const cargoRows =
     detail === "full" ? new Int32Array(rows * trains.length * resources.length) : undefined;
+  // Backorders per site at every tick, for replay, only when some demand is backordered.
+  const backorderRows =
+    detail === "full" &&
+    scenario.stations.some((p) => p.consumers.some((c) => c.unmet === "backorder"))
+      ? new Int32Array(rows * sites.length)
+      : undefined;
   const samples: RunOutput["samples"] = {
     intervalMs: scenario.sampleIntervalMs,
     t: [],
@@ -525,6 +531,12 @@ export function runSimulation(
     while (inclusive ? nextRowTime <= time : nextRowTime < time) {
       const row = nextRowTime / TICK_MS;
       if (stockRows) stockRows.set(stock, row * sites.length);
+      if (backorderRows) {
+        for (const flow of flows) {
+          const at = row * sites.length + flow.site;
+          backorderRows[at] = (backorderRows[at] as number) + flow.backlog;
+        }
+      }
       if (cargoRows) {
         trains.forEach((train, i) => {
           cargoRows.set(train.cargo, (row * trains.length + i) * resources.length);
@@ -1578,6 +1590,7 @@ export function runSimulation(
     sites,
     ...(stockRows ? { stock: stockRows } : {}),
     ...(cargoRows ? { cargo: cargoRows } : {}),
+    ...(backorderRows ? { backorders: backorderRows } : {}),
     samples,
     events,
     records,
