@@ -2,7 +2,7 @@ import { batchSeeds } from "@regolith-rail/engine";
 import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatAmount, PALETTE } from "../lib/format.ts";
-import { METRICS, type MetricDefinition } from "../lib/metrics.ts";
+import { type MetricDefinition, metricsFor } from "../lib/metrics.ts";
 import { type PairedDifference, pairedDifference, type Summary, summarise } from "../lib/stats.ts";
 import { useWorkbench, workbench } from "../state/instance.ts";
 import type { SeedResult } from "../workers/protocol.ts";
@@ -111,7 +111,7 @@ function BatchConfig() {
 }
 
 const valuesOf = (results: SeedResult[], metric: MetricDefinition) =>
-  results.map((r) => r.metrics[metric.key]);
+  results.map((r) => metric.value(r.metrics));
 
 function Interval({ summary, format }: { summary: Summary; format(v: number): string }) {
   return (
@@ -130,6 +130,7 @@ function verdictClass(diff: PairedDifference): string | undefined {
 }
 
 function MetricTable({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined }) {
+  const scenario = useWorkbench((s) => s.scenario.scenario);
   const signed = (format: (v: number) => string) => (v: number) =>
     `${v > 0 ? "+" : v < 0 ? "−" : ""}${format(Math.abs(v))}`;
   return (
@@ -145,7 +146,7 @@ function MetricTable({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined })
         </tr>
       </thead>
       <tbody>
-        {METRICS.map((metric) => {
+        {metricsFor(scenario).map((metric) => {
           const sa = summarise(valuesOf(a, metric));
           const sb = b ? summarise(valuesOf(b, metric)) : null;
           const diff = b
@@ -182,6 +183,7 @@ function MetricTable({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined })
 }
 
 function BoxPlots({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined }) {
+  const scenario = useWorkbench((s) => s.scenario.scenario);
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const element = host.current;
@@ -190,10 +192,12 @@ function BoxPlots({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined }) {
     void import("@observablehq/plot").then((Plot) => {
       if (disposed) return;
       element.replaceChildren();
-      for (const metric of METRICS.filter((m) => m.lowerIsBetter || m.key === "demandMet")) {
+      for (const metric of metricsFor(scenario).filter(
+        (m) => m.lowerIsBetter || m.key === "demandMet",
+      )) {
         const rows = [
-          ...a.map((r) => ({ policy: "A", value: r.metrics[metric.key] })),
-          ...(b ?? []).map((r) => ({ policy: "B", value: r.metrics[metric.key] })),
+          ...a.map((r) => ({ policy: "A", value: metric.value(r.metrics) })),
+          ...(b ?? []).map((r) => ({ policy: "B", value: metric.value(r.metrics) })),
         ];
         const figure = Plot.plot({
           title: metric.label,
@@ -211,7 +215,7 @@ function BoxPlots({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined }) {
     return () => {
       disposed = true;
     };
-  }, [a, b]);
+  }, [a, b, scenario]);
   return <div ref={host} className={styles.plots} data-testid="batch-distributions" />;
 }
 
