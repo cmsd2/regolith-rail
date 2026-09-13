@@ -4,7 +4,7 @@ import {
   type RunOutput,
   runSimulation,
   type Scenario,
-  type ScenarioInput,
+  type ScenarioV1Input as ScenarioInput,
   starterScenarios,
   validateScenario,
 } from "@regolith-rail/engine";

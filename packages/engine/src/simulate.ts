@@ -14,12 +14,12 @@ import {
 import { EventOrder, EventQueue, type Scheduled } from "./queue.ts";
 import { type Random, streamFor } from "./random.ts";
 import {
-  type FlowDef,
-  type InformationLevel,
-  type Scenario,
-  SOL_MS,
-  type WorldEventDef,
-} from "./scenario/schema.ts";
+  type ProducerDef,
+  type ScenarioV2 as Scenario,
+  travelMs,
+  UNLIMITED_CAPACITY,
+} from "./scenario/format2.ts";
+import { type InformationLevel, SOL_MS, type WorldEventDef } from "./scenario/schema.ts";
 
 export type Detail = "full" | "summary";
 
@@ -45,7 +45,7 @@ export interface FlowTotalsByResource {
 type SimEvent = Scheduled &
   (
     | { kind: "tick" }
-    | { kind: "arrival"; train: number; station: number }
+    | { kind: "arrival"; train: number; station: number; pos: number }
     | { kind: "departure"; train: number }
     | { kind: "event-check"; world: number }
     | { kind: "event-end"; world: number }
@@ -57,7 +57,7 @@ interface FlowState {
   station: number;
   site: number;
   resource: number;
-  def: FlowDef;
+  def: ProducerDef;
   rng: Random;
   accumulator: number;
   effective: number;
@@ -67,6 +67,11 @@ interface FlowState {
 
 interface TrainState {
   id: string;
+  kind: "shuttle" | "loop" | "timetable";
+  /** Stock point indices the route visits, in order. */
+  path: number[];
+  /** Position in `path` of the stock point the vehicle is at or last left. */
+  pos: number;
   speed: number;
   dwellMs: number;
   dwellPerUnitMs: number;
@@ -121,31 +126,36 @@ export function runSimulation(
   const resources = scenario.resources.map((r) => r.id);
   const priority = scenario.resources.map((r) => r.priority);
   const resourceIndex = new Map(resources.map((id, i) => [id, i]));
-  const stations = scenario.stations.map((s) => s.id);
+  const stations = scenario.stockPoints.map((s) => s.id);
   const stationIndex = new Map(stations.map((id, i) => [id, i]));
-  const last = stations.length - 1;
 
   const sites: Site[] = [];
-  const siteOf: number[][] = scenario.stations.map(() => resources.map(() => -1));
+  const siteOf: number[][] = scenario.stockPoints.map(() => resources.map(() => -1));
   const stock: number[] = [];
   const siteCapacity: number[] = [];
-  scenario.stations.forEach((station, s) => {
+  scenario.stockPoints.forEach((station, s) => {
     for (const r of station.resources) {
       const ri = resourceIndex.get(r.id) as number;
+      const capacity = r.capacity === "unlimited" ? UNLIMITED_CAPACITY : r.capacity;
       (siteOf[s] as number[])[ri] = sites.length;
-      sites.push({ station: station.id, resource: r.id, capacity: r.capacity });
+      sites.push({ station: station.id, resource: r.id, capacity });
       stock.push(r.initial);
-      siteCapacity.push(r.capacity);
+      siteCapacity.push(capacity);
     }
   });
 
-  const segment = scenario.stations.map((s) => s.distanceToNext ?? 0);
-  const travelMs = (distance: number, speed: number) =>
-    Math.floor((distance * 1000 + speed - 1) / speed);
+  // Arc distances between stock points, in both directions.
+  const arcDistance = new Map<string, number>();
+  for (const arc of scenario.arcs) {
+    arcDistance.set(`${arc.from}:${arc.to}`, arc.distance);
+    arcDistance.set(`${arc.to}:${arc.from}`, arc.distance);
+  }
+  const distanceBetween = (a: number, b: number) =>
+    arcDistance.get(`${stations[a]}:${stations[b]}`) as number;
 
   // --- Flows ----------------------------------------------------------------
   const flows: FlowState[] = [];
-  scenario.stations.forEach((station, s) => {
+  scenario.stockPoints.forEach((station, s) => {
     for (const consumer of [false, true]) {
       const defs = consumer ? station.consumers : station.producers;
       const seen = new Map<string, number>();
@@ -163,29 +173,50 @@ export function runSimulation(
           def,
           rng: streamFor(seed, name),
           accumulator: 0,
-          effective: def.rate,
+          effective: def.rate ?? 0,
           periodEnd: 0,
-          on: def.variability.kind === "bursts" ? def.variability.startsOn : true,
+          on: def.variability?.kind === "bursts" ? def.variability.startsOn : true,
         });
       }
     }
   });
   const flowTotals: Record<string, number> = Object.fromEntries(flows.map((f) => [f.name, 0]));
 
-  // --- Trains ---------------------------------------------------------------
-  const fullTrip = (speed: number) =>
-    2 * segment.reduce((sum, distance) => sum + (distance > 0 ? travelMs(distance, speed) : 0), 0);
-  const trains: TrainState[] = scenario.trains.map((def) => {
-    const start = stationIndex.get(def.start) as number;
-    let direction: 1 | -1 = def.direction === "forward" ? 1 : -1;
-    if (start === last && direction === 1) direction = -1;
-    if (start === 0 && direction === -1) direction = 1;
+  // --- Vehicles -------------------------------------------------------------
+  const legTime = (path: number[], speed: number, closed: boolean) => {
+    let total = 0;
+    const legs = closed ? path.length : path.length - 1;
+    for (let k = 0; k < legs; k++) {
+      total += travelMs(
+        distanceBetween(path[k] as number, path[(k + 1) % path.length] as number),
+        speed,
+      );
+    }
+    return total;
+  };
+  const trains: TrainState[] = scenario.vehicles.map((def) => {
+    const route = def.route;
+    const path = route.stops.map((id) => stationIndex.get(id) as number);
+    const startId = route.kind === "timetable" ? route.stops[0] : (route.start ?? route.stops[0]);
+    const pos = Math.max(0, route.stops.indexOf(startId as string));
+    const start = path[pos] as number;
+    let direction: 1 | -1 = route.kind === "shuttle" && route.direction === "backward" ? -1 : 1;
+    if (route.kind === "shuttle") {
+      if (pos === path.length - 1 && direction === 1) direction = -1;
+      if (pos === 0 && direction === -1) direction = 1;
+    }
+    // One full round of the route: out and back for a shuttle or timetable, one circuit for a loop.
+    const roundTripMs =
+      route.kind === "loop" ? legTime(path, def.speed, true) : 2 * legTime(path, def.speed, false);
     const shared = "shared" in def.capacity ? def.capacity.shared : undefined;
     const perResource = resources.map((r) =>
       "perResource" in def.capacity ? (def.capacity.perResource[r] ?? 0) : 0,
     );
     return {
       id: def.id,
+      kind: route.kind,
+      path,
+      pos,
       speed: def.speed,
       dwellMs: def.dwellMs,
       dwellPerUnitMs: def.dwellPerUnitMs,
@@ -198,7 +229,7 @@ export function runSimulation(
       cargo: resources.map(() => 0),
       direction,
       station: start,
-      roundTripMs: fullTrip(def.speed),
+      roundTripMs,
     };
   });
 
@@ -300,18 +331,22 @@ export function runSimulation(
   };
 
   // Snapshot pieces that never change during a run.
-  const staticStations: StationSnapshot[] = scenario.stations.map((station, i) => ({
-    id: station.id,
-    index: i + 1,
-    resources: station.resources.map((r) => r.id),
-    ...(station.distanceToNext === undefined ? {} : { distance_to_next: station.distanceToNext }),
-  }));
+  const staticStations: StationSnapshot[] = scenario.stockPoints.map((station, i) => {
+    const next = stations[i + 1];
+    const distance = next === undefined ? undefined : arcDistance.get(`${station.id}:${next}`);
+    return {
+      id: station.id,
+      index: i + 1,
+      resources: station.resources.map((r) => r.id),
+      ...(distance === undefined ? {} : { distance_to_next: distance }),
+    };
+  });
   const resourceSnapshots = scenario.resources.map((r) => ({ id: r.id, priority: r.priority }));
 
   const stationQuantities = (s: number) => {
     const stockOut: Quantities = {};
     const capacityOut: Quantities = {};
-    for (const r of scenario.stations[s]?.resources ?? []) {
+    for (const r of scenario.stockPoints[s]?.resources ?? []) {
       const site = (siteOf[s] as number[])[resourceIndex.get(r.id) as number] as number;
       stockOut[r.id] = stock[site] as number;
       capacityOut[r.id] = siteCapacity[site] as number;
@@ -460,9 +495,12 @@ export function runSimulation(
     const train = trains[event.train] as TrainState;
     const s = event.station;
     train.station = s;
+    train.pos = event.pos;
     moving[event.train] = undefined;
-    if (s === last && train.direction === 1) train.direction = -1;
-    if (s === 0 && train.direction === -1) train.direction = 1;
+    if (train.kind === "shuttle") {
+      if (train.pos === train.path.length - 1 && train.direction === 1) train.direction = -1;
+      if (train.pos === 0 && train.direction === -1) train.direction = 1;
+    }
 
     const stop = ++stopCount;
     metrics.stops++;
@@ -518,8 +556,10 @@ export function runSimulation(
     const t = event.time;
     const train = trains[event.train] as TrainState;
     const from = train.station;
-    const to = from + train.direction;
-    const distance = train.direction === 1 ? (segment[from] as number) : (segment[to] as number);
+    const nextPos =
+      train.kind === "loop" ? (train.pos + 1) % train.path.length : train.pos + train.direction;
+    const to = train.path[nextPos] as number;
+    const distance = distanceBetween(from, to);
     const arriveAt = t + travelMs(distance, train.speed);
     metrics.distance += distance;
     if (train.cargo.every((c) => c === 0)) metrics.emptyDistance += distance;
@@ -549,6 +589,7 @@ export function runSimulation(
       entity: event.train,
       train: event.train,
       station: to,
+      pos: nextPos,
     });
   };
 
@@ -556,11 +597,12 @@ export function runSimulation(
     const t = event.time;
     const tickStart = t - TICK_MS;
     flows.forEach((flow, f) => {
-      const variability = flow.def.variability;
+      const variability = flow.def.variability ?? { kind: "fixed" };
+      const rate = flow.def.rate ?? 0;
       if (variability.kind === "uniform") {
         if (tickStart >= flow.periodEnd) {
-          const bound = Math.floor((flow.def.rate * variability.rangePercent) / 100);
-          flow.effective = flow.def.rate - bound + flow.rng.int(0, 2 * bound);
+          const bound = Math.floor((rate * variability.rangePercent) / 100);
+          flow.effective = rate - bound + flow.rng.int(0, 2 * bound);
           flow.periodEnd = tickStart - (tickStart % variability.periodMs) + variability.periodMs;
         }
       } else if (variability.kind === "bursts") {
@@ -569,7 +611,7 @@ export function runSimulation(
         ) {
           flow.on = !flow.on;
         }
-        flow.effective = flow.on ? flow.def.rate : 0;
+        flow.effective = flow.on ? rate : 0;
       }
 
       let multiplier = 1000;
@@ -684,6 +726,7 @@ export function runSimulation(
         entity: i,
         train: i,
         station: train.station,
+        pos: train.pos,
       });
     });
 

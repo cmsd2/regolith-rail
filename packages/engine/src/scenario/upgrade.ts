@@ -1,5 +1,5 @@
 import type { ScenarioV2Input } from "./format2.ts";
-import type { Scenario as ScenarioV1 } from "./schema.ts";
+import type { ScenarioV1 } from "./schema.ts";
 
 /**
  * Converts a validated format 1 scenario into an equivalent format 2 document.

@@ -2,7 +2,7 @@ import {
   type RunEvent,
   runSimulation,
   type Scenario,
-  type ScenarioInput,
+  type ScenarioV1Input as ScenarioInput,
   validateScenario,
 } from "@regolith-rail/engine";
 import { beforeAll, describe, expect, it } from "vitest";

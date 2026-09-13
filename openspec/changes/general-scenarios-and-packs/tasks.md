@@ -13,7 +13,7 @@
 
 ## 3. Engine on format 2 with unchanged format 1 results
 
-- [ ] 3.1 Switch the engine to run only format 2 documents, with stations and trains renamed to stock points and vehicles internally; verify the golden matrix passes unchanged in Node
+- [x] 3.1 Switch the engine to run only format 2 documents, with stations and trains renamed to stock points and vehicles internally; verify the golden matrix passes unchanged in Node
 - [ ] 3.2 Generalise train movement to shuttle routes over arcs, then add loop and timetable routes; verify the golden matrix passes unchanged, plus the reversal, loop continuation, timetable departure and dwell tests
 - [ ] 3.3 Generalise the oscillation metric to one full round of the loading vehicle's route; verify the golden matrix passes unchanged and a loop oscillation test passes
 - [ ] 3.4 Implement unlimited capacities and backordering consumers with backlogs served first; verify the backorders-served-first and unchanged lost-sales tests pass and backorder metrics are reported

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { minimalScenario } from "../testing/fixtures.ts";
 import { DEFAULT_CAPACITY } from "./schema.ts";
-import { validateScenario } from "./validate.ts";
+import { validateScenarioV1 as validateScenario } from "./validate.ts";
 
 function errorsOf(input: unknown) {
   const result = validateScenario(input);
@@ -113,10 +113,10 @@ describe("validation errors", () => {
 
   it("names the supported versions for an unknown format", () => {
     const input = minimalScenario();
-    input.format = 2;
+    input.format = 3;
     expect(errorsOf(input)).toContainEqual({
       path: "format",
-      message: "format 2 is not supported; supported versions: 1",
+      message: "format 3 is not supported; supported versions: 1, 2",
     });
   });
 

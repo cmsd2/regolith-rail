@@ -3,7 +3,7 @@ import { hashRun } from "./hash.ts";
 import { type LineState, type RunEvent, stateAt } from "./output.ts";
 import { emptyOutcome, POLICY_API_VERSION } from "./policy.ts";
 import { naiveReferencePolicy } from "./reference/naive.ts";
-import type { ScenarioInput } from "./scenario/schema.ts";
+import type { ScenarioV1Input as ScenarioInput } from "./scenario/schema.ts";
 import { starterScenarios } from "./scenario/starters.ts";
 import { validateScenario } from "./scenario/validate.ts";
 import { runSimulation } from "./simulate.ts";

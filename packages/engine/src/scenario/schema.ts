@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Scenario format versions this build can read. */
-export const SUPPORTED_FORMATS = [1] as const;
+export const SUPPORTED_FORMATS = [1, 2] as const;
 
 /** One unit of a resource, in the milli-units every quantity is stored in. */
 export const UNIT = 1000;
@@ -134,7 +134,8 @@ export const Resource = z.strictObject({
 export const INFORMATION_LEVELS = ["local", "line", "line+history", "colony"] as const;
 export const SUPPORTED_INFORMATION_LEVELS = ["local", "line"] as const;
 
-export const Scenario = z
+/** Format 1: one line of stations and shuttling trains. Upgraded to format 2 on load. */
+export const ScenarioV1 = z
   .strictObject({
     format: z.int(),
     id,
@@ -155,7 +156,7 @@ export const Scenario = z
     const issue = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: "custom", path, message });
 
-    if (!(SUPPORTED_FORMATS as readonly number[]).includes(scenario.format)) {
+    if (scenario.format !== 1) {
       issue(
         ["format"],
         `format ${scenario.format} is not supported; supported versions: ${SUPPORTED_FORMATS.join(", ")}`,
@@ -267,8 +268,8 @@ export const Scenario = z
     });
   });
 
-export type ScenarioInput = z.input<typeof Scenario>;
-export type Scenario = z.output<typeof Scenario>;
+export type ScenarioV1Input = z.input<typeof ScenarioV1>;
+export type ScenarioV1 = z.output<typeof ScenarioV1>;
 export type StationDef = z.output<typeof Station>;
 export type TrainDef = z.output<typeof Train>;
 export type FlowDef = z.output<typeof Flow>;

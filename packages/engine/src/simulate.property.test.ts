@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { hashRun } from "./hash.ts";
+import { UNLIMITED_CAPACITY } from "./scenario/format2.ts";
 import { runSimulation } from "./simulate.ts";
 import { arbitraryScenario, chaoticPolicy } from "./testing/arbitrary.ts";
 import { parse } from "./testing/policies.ts";
@@ -18,17 +19,17 @@ describe("engine properties", () => {
           const resources = scenario.resources.map((r) => r.id);
           const initial = resources.map(() => 0);
           const capacity: number[] = [];
-          for (const station of scenario.stations) {
+          for (const station of scenario.stockPoints) {
             for (const r of station.resources) {
               const k = resources.indexOf(r.id);
               initial[k] = (initial[k] as number) + r.initial;
-              capacity.push(r.capacity);
+              capacity.push(r.capacity === "unlimited" ? UNLIMITED_CAPACITY : r.capacity);
             }
           }
-          const siteResource = scenario.stations.flatMap((s) =>
+          const siteResource = scenario.stockPoints.flatMap((s) =>
             s.resources.map((r) => resources.indexOf(r.id)),
           );
-          const trainLimit = scenario.trains.map(({ capacity: c }) =>
+          const trainLimit = scenario.vehicles.map(({ capacity: c }) =>
             "shared" in c
               ? { shared: c.shared, per: undefined }
               : { shared: undefined, per: resources.map((r) => c.perResource[r] ?? 0) },

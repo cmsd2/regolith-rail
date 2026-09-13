@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { featureScenarioV2, minimalScenario, minimalScenarioV2 } from "../testing/fixtures.ts";
 import { scenarioJsonSchema } from "./json-schema.ts";
 import { starterScenarios } from "./starters.ts";
-import { validateAnyFormat } from "./validate.ts";
+import { validateScenario } from "./validate.ts";
 
 describe("published scenario schema", () => {
   it("is up to date with the scenario definition", () => {
@@ -29,7 +29,7 @@ describe("published scenario schema", () => {
       ...starterScenarios.map((s) => s.document),
     ];
     for (const document of documents) {
-      expect(validateAnyFormat(document).ok).toBe(true);
+      expect(validateScenario(document).ok).toBe(true);
       const valid = check(document);
       expect(check.errors ?? []).toEqual([]);
       expect(valid).toBe(true);

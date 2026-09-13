@@ -147,9 +147,14 @@ export function LineMap() {
   useEffect(() => {
     if (!output || !canvas.current) return;
     playhead.getState().setDuration(output.durationMs);
-    const distances = output.stations.map(
-      (id) => scenario?.stations.find((s) => s.id === id)?.distanceToNext ?? 0,
-    );
+    // Distance from each stock point to the next one in order, where an arc joins them.
+    const distances = output.stations.map((id, i) => {
+      const next = output.stations[i + 1];
+      const arc = scenario?.arcs.find(
+        (a) => (a.from === id && a.to === next) || (a.to === id && a.from === next),
+      );
+      return arc?.distance ?? 0;
+    });
     let frame = 0;
     let last = performance.now();
     let drawnAt = -1;

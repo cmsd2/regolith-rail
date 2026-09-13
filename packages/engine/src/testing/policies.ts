@@ -5,7 +5,8 @@ import {
   type PolicyOutcome,
   type StopSnapshot,
 } from "../policy.ts";
-import type { Scenario, ScenarioInput } from "../scenario/schema.ts";
+import type { Scenario, ScenarioV2Input } from "../scenario/format2.ts";
+import type { ScenarioV1Input } from "../scenario/schema.ts";
 import { validateScenario } from "../scenario/validate.ts";
 
 /** A policy that never moves anything. */
@@ -25,7 +26,7 @@ export function scriptedPolicy(
 }
 
 /** Validates a test scenario, failing loudly with its errors. */
-export function parse(input: ScenarioInput): Scenario {
+export function parse(input: ScenarioV1Input | ScenarioV2Input): Scenario {
   const result = validateScenario(input);
   if (!result.ok) {
     throw new Error(result.errors.map((e) => `${e.path}: ${e.message}`).join("\n"));

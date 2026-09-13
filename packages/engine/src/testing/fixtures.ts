@@ -1,8 +1,8 @@
 import type { ScenarioV2Input } from "../scenario/format2.ts";
-import type { ScenarioInput } from "../scenario/schema.ts";
+import type { ScenarioV1Input } from "../scenario/schema.ts";
 
 /** A small valid scenario for tests to modify. */
-export function minimalScenario(): ScenarioInput {
+export function minimalScenario(): ScenarioV1Input {
   return {
     format: 1,
     id: "minimal",

@@ -448,6 +448,8 @@ export const ScenarioV2 = z
 
 export type ScenarioV2Input = z.input<typeof ScenarioV2>;
 export type ScenarioV2 = z.output<typeof ScenarioV2>;
+/** A validated scenario: always format 2. */
+export type Scenario = ScenarioV2;
 export type StockPointDef = z.output<typeof StockPoint>;
 export type StockResourceDef = z.output<typeof StockResource>;
 export type ProducerDef = z.output<typeof Producer>;
