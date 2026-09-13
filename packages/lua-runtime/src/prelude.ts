@@ -355,7 +355,11 @@ local function station_proxy(raw, level, current_id, with_memory)
   local restricted
   if raw.stock == nil and level == "local" and raw.id ~= current_id then
     local message = "reading another station's stock requires the line information level"
-    restricted = { stock = message, capacity = sgsub(message, "stock", "capacity") }
+    restricted = {
+      stock = message,
+      capacity = sgsub(message, "stock", "capacity"),
+      backorders = sgsub(message, "stock", "backorders"),
+    }
   end
   return wrap(raw, restricted, with_memory and { memory = memory_for("stations", raw.id) } or nil)
 end
@@ -382,6 +386,13 @@ local function check_transfer(name, resource, amount)
   if type(amount) ~= "number" then error(name .. " expects an amount in milli-units as its second argument", 3) end
 end
 
+local function check_order(resource, amount)
+  if type(resource) ~= "string" then error("ctx.order expects a resource id as its first argument", 3) end
+  if type(amount) ~= "number" then error("ctx.order expects an amount in milli-units as its second argument", 3) end
+end
+
+local NETWORK_LEVEL = "reading the network requires the line information level"
+
 local hook_functions = {
   rand = function() return host_rand() end,
   load = function(resource, amount)
@@ -405,6 +416,19 @@ local function stop_context(snap)
   for k, f in next, hook_functions do extra[k] = f end
   extra.station = station_proxy(snap.station, snap.information_level, snap.station.id, true)
   extra.train = wrap(snap.train, nil, { memory = memory_for("trains", snap.train.id) })
+  local restricted = snap.information_level == "local" and { network = NETWORK_LEVEL } or nil
+  return wrap(snap, restricted, extra)
+end
+
+local function review_context(snap)
+  local point = snap.stock_point
+  local extra = { memory = memory.global, line = line_proxy(snap.line, snap.information_level, point.id, nil) }
+  extra.rand, extra.log, extra.record = hook_functions.rand, hook_functions.log, hook_functions.record
+  extra.order = function(resource, amount)
+    check_order(resource, amount)
+    current.actions[#current.actions + 1] = { type = "order", resource = resource, amount = amount }
+  end
+  extra.stock_point = wrap(point, nil, { memory = memory_for("stations", point.id) })
   return wrap(snap, nil, extra)
 end
 
@@ -440,7 +464,7 @@ local function record_trace(block, station, resource, inputs, result)
 end
 
 --- Loads the ops library and then the policy, which sees the library as the global ops.
-function __rr.load(source, ops_source, level)
+function __rr.load(source, ops_source, level, needs_stop, needs_review)
   current = new_outcome()
   local ops_chunk = assert(load(ops_source, "=ops", "t", make_env()))
   reset_budget()
@@ -461,9 +485,15 @@ function __rr.load(source, ops_source, level)
   elseif not ok then
     set_error("load", result)
   elseif type(result) ~= "table" then
-    current.error = { kind = "load", message = "the policy must return a table with an on_stop function" }
-  elseif type(rawget(result, "on_stop")) ~= "function" then
+    current.error = { kind = "load", message = "the policy must return a table of hook functions, such as on_stop" }
+  elseif needs_stop and type(rawget(result, "on_stop")) ~= "function" then
     current.error = { kind = "load", message = "the policy's table has no on_stop function; on_stop is required" }
+  elseif needs_review and type(rawget(result, "on_review")) ~= "function" then
+    current.error = { kind = "load", message = "the policy's table has no on_review function; on_review is required" }
+  elseif type(rawget(result, "on_stop")) ~= "function"
+    and type(rawget(result, "on_review")) ~= "function"
+    and type(rawget(result, "on_start")) ~= "function" then
+    current.error = { kind = "load", message = "the policy's table has no hook functions; define on_stop, on_review or on_start" }
   else
     policy = result
   end
@@ -486,6 +516,12 @@ end
 function __rr.stop(literal)
   current = new_outcome()
   call_hook(policy.on_stop, stop_context(snapshot(literal)))
+  return encode(current)
+end
+
+function __rr.review(literal)
+  current = new_outcome()
+  call_hook(policy.on_review, review_context(snapshot(literal)))
   return encode(current)
 end
 

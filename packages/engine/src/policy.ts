@@ -39,6 +39,8 @@ export interface PolicyOutcome {
 export interface RunContext {
   seed: number;
   informationLevel: InformationLevel;
+  /** Hooks the scenario calls: `stop` when it has vehicles, `review` when it has reviews. */
+  hooks: { stop: boolean; review: boolean };
 }
 
 /** Anything the engine can ask what to do at a stop or a review. */

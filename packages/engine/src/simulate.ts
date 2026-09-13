@@ -1431,7 +1431,14 @@ export function runSimulation(
         capacity: train.capacitySnapshot,
       })),
     },
-    { seed, informationLevel: level },
+    {
+      seed,
+      informationLevel: level,
+      hooks: {
+        stop: scenario.vehicles.length > 0,
+        review: scenario.stockPoints.some((p) => p.review !== undefined),
+      },
+    },
   );
   recordOutcome(startOutcome, 0, undefined);
   const aborted = startOutcome.error?.kind === "load";
