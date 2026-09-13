@@ -7,3 +7,6 @@ playwright-report/
 .react-router/
 *.log
 tests/determinism/dist/
+
+# React Router
+.react-router/
