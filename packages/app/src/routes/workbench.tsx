@@ -14,6 +14,8 @@ import { useWorkbench } from "../state/instance.ts";
 
 // The editors bring in CodeMirror, so they load separately from the rest of the page.
 const EditorPanel = lazy(() => import("../components/EditorPanel.tsx"));
+// Batch charts use Observable Plot, which only loads when the batch view opens.
+const BatchView = lazy(() => import("../components/BatchView.tsx"));
 
 export function meta() {
   return [{ title: "Regolith Rail" }];
@@ -67,17 +69,46 @@ function RunView() {
   );
 }
 
+function ViewSwitch() {
+  const view = useWorkbench((s) => s.view);
+  const setView = useWorkbench((s) => s.setView);
+  return (
+    <div className={styles.viewSwitch} role="tablist" aria-label="View">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={view === "run"}
+        onClick={() => setView("run")}
+        data-testid="view-run"
+      >
+        Single run
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={view === "batch"}
+        onClick={() => setView("batch")}
+        data-testid="view-batch"
+      >
+        Batch
+      </button>
+    </div>
+  );
+}
+
 export default function Workbench() {
   const [mounted, setMounted] = useState(false);
+  const view = useWorkbench((s) => s.view);
   useEffect(() => setMounted(true), []);
   return (
     <Page>
       <BrowserSupport>
         <div className={styles.layout}>
           <div className={styles.toolbar}>
+            <ViewSwitch />
             <ScenarioControls />
-            <RunControls />
-            <PlaybackControls />
+            {view === "run" && <RunControls />}
+            {view === "run" && <PlaybackControls />}
           </div>
           {mounted ? (
             <Suspense fallback={<div />}>
@@ -86,7 +117,14 @@ export default function Workbench() {
           ) : (
             <div />
           )}
-          <div className={styles.views}>{mounted && <RunView />}</div>
+          <div className={styles.views}>
+            {mounted && view === "run" && <RunView />}
+            {mounted && view === "batch" && (
+              <Suspense fallback={<p className={styles.muted}>Loading…</p>}>
+                <BatchView />
+              </Suspense>
+            )}
+          </div>
         </div>
       </BrowserSupport>
     </Page>

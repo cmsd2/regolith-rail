@@ -13,7 +13,7 @@ export class CancelledError extends Error {
 export interface WorkerHandle {
   api: {
     run(request: RunRequest, progress?: (fraction: number) => void): Promise<RunOutput>;
-    runSeeds(request: SeedsRequest, onResult: (result: SeedResult) => void): Promise<void>;
+    runSeeds(request: SeedsRequest, progress?: (done: number) => void): Promise<SeedResult[]>;
     check(source: string): Promise<Diagnostic[]>;
   };
   terminate(): void;
@@ -93,27 +93,34 @@ export class BatchPool {
     progress?: (done: number, total: number) => void,
   ): Promise<SeedResult[]> {
     this.cancel();
-    const results = new Map<number, SeedResult>();
     const chunks = chunk(seeds, this.size);
+    const done = chunks.map(() => 0);
     this.handles = chunks.map(() => this.factory());
+    // Results come back with each chunk's return value. Progress callbacks travel on
+    // a separate channel and can arrive after the return, so they only drive the bar.
     const work = Promise.all(
       chunks.map((part, i) =>
-        (this.handles[i] as WorkerHandle).api.runSeeds({ ...request, seeds: part }, (result) => {
-          results.set(result.seed, result);
-          progress?.(results.size, seeds.length);
+        (this.handles[i] as WorkerHandle).api.runSeeds({ ...request, seeds: part }, (count) => {
+          done[i] = Math.max(done[i] as number, count);
+          progress?.(
+            done.reduce((a, b) => a + b, 0),
+            seeds.length,
+          );
         }),
       ),
     );
     const cancelled = new Promise<never>((_, reject) => {
       this.rejectRun = reject;
     });
+    let parts: SeedResult[][];
     try {
-      await Promise.race([work, cancelled]);
+      parts = await Promise.race([work, cancelled]);
     } finally {
       this.rejectRun = undefined;
       for (const handle of this.handles) handle.terminate();
       this.handles = [];
     }
+    const results = new Map(parts.flat().map((result) => [result.seed, result]));
     return seeds.map((seed) => {
       const result = results.get(seed);
       if (!result) throw new Error(`no result for seed ${seed}`);

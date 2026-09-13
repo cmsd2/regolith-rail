@@ -277,3 +277,24 @@
     height: auto;
   }
 }
+
+.viewSwitch {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.viewSwitch button {
+  border: none;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+}
+
+.viewSwitch button[aria-selected="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-weight: 600;
+}

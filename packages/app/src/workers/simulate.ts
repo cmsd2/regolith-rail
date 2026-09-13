@@ -58,14 +58,22 @@ export function simulationTasks(runtime: LuaRuntime) {
       }
     },
 
-    runSeeds(request: SeedsRequest, onResult: (result: SeedResult) => void): void {
+    /**
+     * Runs every seed and returns all results together. `progress` is only a
+     * hint: across a worker boundary its calls may arrive after the return value.
+     */
+    runSeeds(request: SeedsRequest, progress?: (done: number) => void): SeedResult[] {
       const policy = runtime.createPolicy(request.policy, {
         saveReloadTest: request.saveReloadTest,
       });
       try {
-        for (const seed of request.seeds) {
-          onResult(summarise(runSimulation(request.scenario, policy, { seed, detail: "summary" })));
-        }
+        return request.seeds.map((seed, i) => {
+          const result = summarise(
+            runSimulation(request.scenario, policy, { seed, detail: "summary" }),
+          );
+          progress?.(i + 1);
+          return result;
+        });
       } finally {
         policy.close();
       }

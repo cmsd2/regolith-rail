@@ -10,7 +10,8 @@ export const browserWorkerFactory: WorkerFactory = () => {
     api: {
       run: (request, progress) =>
         remote.run(request, progress ? Comlink.proxy(progress) : undefined),
-      runSeeds: (request, onResult) => remote.runSeeds(request, Comlink.proxy(onResult)),
+      runSeeds: (request, progress) =>
+        remote.runSeeds(request, progress ? Comlink.proxy(progress) : undefined),
       check: (source) => remote.check(source),
     },
     terminate: () => {

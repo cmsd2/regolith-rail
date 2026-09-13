@@ -96,12 +96,12 @@
 
 ## 12. Batch comparison
 
-- [ ] 12.1 Build batch configuration with scenario, policies A and B, base seed and seed count, and verify the default batch scenario
-- [ ] 12.2 Run batches across the worker pool with downsampled series, and verify the same-seeds and different-core-counts scenarios
-- [ ] 12.3 Compute distribution statistics and paired-difference confidence intervals, and verify against a precomputed fixture and the identical-policies scenario
-- [ ] 12.4 Build lazy-loaded distribution and fan charts, and verify the metric summary scenario in Playwright
-- [ ] 12.5 Show failed runs per policy with links to open a seed in the run view, and verify the seed-with-errors and open-a-seed scenarios
-- [ ] 12.6 Verify the clear improvement scenario by comparing the example supply-to-demand policy with the baseline on `two-station` in an end-to-end test
+- [x] 12.1 Build batch configuration with scenario, policies A and B, base seed and seed count, and verify the default batch scenario
+- [x] 12.2 Run batches across the worker pool with downsampled series, and verify the same-seeds and different-core-counts scenarios
+- [x] 12.3 Compute distribution statistics and paired-difference confidence intervals, and verify against a precomputed fixture and the identical-policies scenario
+- [x] 12.4 Build lazy-loaded distribution and fan charts, and verify the metric summary scenario in Playwright
+- [x] 12.5 Show failed runs per policy with links to open a seed in the run view, and verify the seed-with-errors and open-a-seed scenarios
+- [x] 12.6 Verify the clear improvement scenario by comparing the example supply-to-demand policy with the baseline on `two-station` in an end-to-end test
 
 ## 13. Sharing and local saving
 

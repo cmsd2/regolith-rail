@@ -14,8 +14,8 @@ const api: SimulationWorkerApi = {
     );
     return Comlink.transfer(output, transfers);
   },
-  async runSeeds(request, onResult) {
-    (await tasks).runSeeds(request, onResult);
+  async runSeeds(request, progress) {
+    return (await tasks).runSeeds(request, progress);
   },
   async check(source) {
     return (await tasks).check(source);

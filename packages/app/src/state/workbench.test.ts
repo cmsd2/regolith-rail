@@ -16,20 +16,23 @@ beforeAll(async () => {
   runtime = await LuaRuntime.load();
 });
 
-/** A worker that runs in-process, optionally never finishing. */
+/**
+ * A worker that runs in-process, optionally never finishing. Like a real worker,
+ * its progress callbacks are delivered asynchronously, after the call returns.
+ */
 function inProcess(options: { hang?: boolean } = {}): WorkerHandle {
   const tasks = simulationTasks(runtime);
   let terminated = false;
   const never = new Promise<never>(() => {});
+  const later = (fn: () => void) => setTimeout(() => !terminated && fn(), 0);
   return {
     api: {
-      run: async (request, progress) => (options.hang ? never : tasks.run(request, progress)),
-      runSeeds: async (request, onResult) => {
-        if (options.hang) return never;
-        tasks.runSeeds(request, (result) => {
-          if (!terminated) onResult(result);
-        });
-      },
+      run: async (request, progress) =>
+        options.hang ? never : tasks.run(request, progress && ((f) => later(() => progress(f)))),
+      runSeeds: async (request, progress) =>
+        options.hang
+          ? never
+          : tasks.runSeeds(request, progress && ((n) => later(() => progress(n)))),
       check: async (source) => tasks.check(source),
     },
     terminate: () => {

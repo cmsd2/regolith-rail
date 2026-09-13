@@ -75,6 +75,11 @@ export interface WorkbenchState {
   setBatchOptions(options: Partial<Pick<BatchState, "seedCount" | "baseSeed" | "compare">>): void;
   startBatch(seeds: number[]): Promise<void>;
   cancelBatch(): void;
+  /**
+   * Opens one seed of a batch in the run view. Opening a seed of policy B swaps
+   * the two policies, so the editor shows the policy that ran.
+   */
+  openSeed(which: "a" | "b", seed: number): Promise<void>;
 }
 
 export interface WorkbenchDependencies {
@@ -203,6 +208,12 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
         if (error instanceof CancelledError) return;
         set((s) => ({ batch: { ...s.batch, status: "failed", error: (error as Error).message } }));
       }
+    },
+
+    async openSeed(which, seed) {
+      if (which === "b") set((s) => ({ policy: s.policyB, policyB: s.policy }));
+      set({ seed, view: "run" });
+      await get().startRun();
     },
 
     cancelBatch() {

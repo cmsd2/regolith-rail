@@ -28,7 +28,7 @@ export interface SeedResult {
 
 export interface SimulationWorkerApi {
   run(request: RunRequest, progress?: (fraction: number) => void): Promise<RunOutput>;
-  runSeeds(request: SeedsRequest, onResult: (result: SeedResult) => void): Promise<void>;
+  runSeeds(request: SeedsRequest, progress?: (done: number) => void): Promise<SeedResult[]>;
   check(source: string): Promise<Diagnostic[]>;
 }
 
