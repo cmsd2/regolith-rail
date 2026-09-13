@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check required files
+        run: test -f LICENSE && test -f README.md
+
+      # The steps below activate once the workspace has a package.json.
+      - uses: pnpm/action-setup@v6
+        if: hashFiles('package.json') != ''
+
+      - uses: actions/setup-node@v7
+        if: hashFiles('package.json') != ''
+        with:
+          node-version: lts/*
+          cache: pnpm
+
+      - name: Install
+        if: hashFiles('package.json') != ''
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        if: hashFiles('package.json') != ''
+        run: pnpm test
