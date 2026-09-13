@@ -1,4 +1,4 @@
-import { NavLink, useParams } from "react-router";
+import { NavLink, useLocation } from "react-router";
 import { Page } from "../components/Page.tsx";
 import { DocArticle } from "../docs/DocArticle.tsx";
 import { DocsSearch } from "../docs/DocsSearch.tsx";
@@ -6,11 +6,11 @@ import styles from "../docs/docs.module.css";
 import { docSections, findDoc } from "../docs/registry.ts";
 import type { Route } from "./+types/docs";
 
-const slugFrom = (params: Record<string, string | undefined>) =>
-  (params["*"] ?? "").replace(/\/+$/, "");
+/** The page slug from a path such as `/docs/ops/min-max`; the path excludes the base path. */
+const slugFrom = (pathname: string) => pathname.replace(/^\/docs\/?/, "").replace(/\/+$/, "");
 
-export function meta({ params }: Route.MetaArgs) {
-  const entry = findDoc(slugFrom(params));
+export function meta({ location }: Route.MetaArgs) {
+  const entry = findDoc(slugFrom(location.pathname));
   if (!entry) return [{ title: "Not found · Regolith Rail" }];
   return [
     { title: `${entry.title} · Regolith Rail documentation` },
@@ -40,7 +40,7 @@ function DocsNav() {
 }
 
 export default function Docs() {
-  const entry = findDoc(slugFrom(useParams()));
+  const entry = findDoc(slugFrom(useLocation().pathname));
   return (
     <Page>
       <div className={styles.layout}>
