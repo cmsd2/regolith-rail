@@ -1,4 +1,5 @@
 import { fieldAnchor, typeAnchor } from "@regolith-rail/policy-api";
+import { constructAnchor, constructParamAnchor } from "@regolith-rail/scenario-kit";
 import MiniSearch from "minisearch";
 import type { ContentPage } from "./content.ts";
 import { searchableText } from "./markdown.ts";
@@ -67,6 +68,26 @@ export function searchDocuments(content: ContentPage[]): SearchDocument[] {
             section: page.section,
             headings: "",
             text: field.summary,
+          });
+        }
+      }
+    } else if (kind.type === "constructs") {
+      documents.push({ ...base, id: page.slug, title: page.title });
+      for (const construct of kind.constructs) {
+        documents.push({
+          id: `${page.slug}#${constructAnchor(construct)}`,
+          title: construct.name,
+          section: page.section,
+          headings: "",
+          text: `${construct.summary} ${construct.params.map((p) => p.name).join(" ")}`,
+        });
+        for (const param of construct.params) {
+          documents.push({
+            id: `${page.slug}#${constructParamAnchor(construct, param)}`,
+            title: `${param.name} (${construct.name})`,
+            section: page.section,
+            headings: "",
+            text: param.summary,
           });
         }
       }

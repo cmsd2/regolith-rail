@@ -35,6 +35,7 @@
     "@regolith-rail/engine": "workspace:*",
     "@regolith-rail/lua-runtime": "workspace:*",
     "@regolith-rail/policy-api": "workspace:*",
+    "@regolith-rail/scenario-kit": "workspace:*",
     "codemirror": "6.0.2",
     "comlink": "4.4.2",
     "idb-keyval": "6.3.0",

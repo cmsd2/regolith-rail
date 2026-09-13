@@ -832,3 +832,29 @@ export const constructs: Construct[] = [...coreConstructs, ...marsConstructs, ..
 
 /** Anchor of a construct on its documentation page. */
 export const constructAnchor = (construct: Construct) => construct.name.replace(/\./g, "-");
+
+/** Anchor of a construct parameter on the construct's documentation page. */
+export const constructParamAnchor = (construct: Construct, param: ConstructParam) =>
+  `${constructAnchor(construct)}-${param.name}`;
+
+/** Reference pages of the construct libraries, by library. */
+export const LIBRARY_PAGES: Record<Library, { slug: string; title: string; description: string }> =
+  {
+    core: {
+      slug: "scenarios/core",
+      title: "Core constructs",
+      description:
+        "Constructs for every part of a scenario: stations, flows, suppliers, routes and events.",
+    },
+    mars: {
+      slug: "scenarios/mars",
+      title: "Mars pack",
+      description:
+        "Surviving Mars rail lines in game terms: stations, buildings, trains and dust storms.",
+    },
+    classic: {
+      slug: "scenarios/classic",
+      title: "Classic templates",
+      description: "Ready-made operations research problems with reference policies and results.",
+    },
+  };

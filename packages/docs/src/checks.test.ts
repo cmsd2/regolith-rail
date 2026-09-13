@@ -3,12 +3,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
+import { constructs } from "@regolith-rail/scenario-kit";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { extractExamples, runExample } from "./examples.ts";
 import { checkLinks } from "./links.ts";
 import { assignHeadingIds, parseMdx } from "./markdown.ts";
 import { parseCodeMeta } from "./meta.ts";
-import { checkReference } from "./reference.ts";
+import { checkConstructs, checkReference } from "./reference.ts";
 
 describe("reference check", () => {
   it("passes for the current Policy API and ops library", () => {
@@ -41,6 +42,41 @@ describe("reference check", () => {
     const first = apiTypes[0];
     expect(checkReference(types, opsBlocks)).toEqual([
       `${first?.name}.${first?.fields[0]?.name} has no documentation`,
+    ]);
+  });
+});
+
+describe("construct reference check", () => {
+  let declared: ReturnType<LuaRuntime["libraryConstructs"]>;
+  beforeAll(async () => {
+    declared = (await LuaRuntime.load()).libraryConstructs();
+  });
+
+  it("passes for the current construct libraries", () => {
+    expect(checkConstructs(constructs, declared)).toEqual([]);
+  });
+
+  it("names a construct parameter the description leaves out", () => {
+    const withExtra = {
+      ...declared,
+      constructs: {
+        ...declared.constructs,
+        "mars.line": { ...declared.constructs["mars.line"], gauge: "integer" },
+      },
+    };
+    expect(checkConstructs(constructs, withExtra)).toEqual([
+      'mars.line parameter "gauge" has no documentation',
+    ]);
+  });
+
+  it("names a construct parameter with a blank summary", () => {
+    const blanked = constructs.map((c) =>
+      c.name === "mars.train"
+        ? { ...c, params: c.params.map((p) => (p.name === "speed" ? { ...p, summary: "" } : p)) }
+        : c,
+    );
+    expect(checkConstructs(blanked, declared)).toEqual([
+      'mars.train parameter "speed" has no documentation',
     ]);
   });
 });
