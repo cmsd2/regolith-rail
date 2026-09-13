@@ -1,4 +1,4 @@
-# dustline
+# Regolith Rail
 
 A browser sandbox for designing and testing freight dispatch policies on shuttle
 rail lines, aimed at Surviving Mars: Relaunched players. Policies are simulated

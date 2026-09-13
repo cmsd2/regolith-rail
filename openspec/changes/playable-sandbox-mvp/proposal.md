@@ -1,6 +1,6 @@
 ## Why
 
-dustline has a roadmap but no software. The quickest way to test the central
+Regolith Rail has a roadmap but no software. The quickest way to test the central
 claim — that stock-balancing train dispatch fails in predictable ways — and to
 find out whether players want to write their own policies is a playable sandbox
 on the public web. It should show the problem, let players write and compare

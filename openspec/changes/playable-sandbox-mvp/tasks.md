@@ -72,7 +72,7 @@
 
 ## 9. Application shell
 
-- [ ] 9.1 Set up the React Router 7 app with prerendering, the base path build variable, CSS Modules, Radix UI and the footer with non-affiliation notice and build version, and verify the built site loads at `/` and under `/dustline/`
+- [ ] 9.1 Set up the React Router 7 app with prerendering, the base path build variable, CSS Modules, Radix UI and the footer with non-affiliation notice and build version, and verify the built site loads at `/` and under `/regolith-rail/`
 - [ ] 9.2 Add Zustand stores for policies, scenario, run results, playhead and batch state, and verify store unit tests pass
 - [ ] 9.3 Add the worker layer with Comlink for single runs and a batch pool, with progress and cancellation, and verify cancelling a long run keeps the previous result and the interface responsive in a Playwright test
 - [ ] 9.4 Add the unsupported-browser check for WebAssembly, module workers and `CompressionStream`, and verify the message appears when those features are stubbed out in a test

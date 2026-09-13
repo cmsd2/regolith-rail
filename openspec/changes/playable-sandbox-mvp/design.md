@@ -220,7 +220,7 @@ produced by the CLI in the same job; and deploy.
 Deploy runs only on `main` after every other job passes, uploads the build with
 `actions/upload-pages-artifact` and publishes with `actions/deploy-pages`. A
 `workflow_dispatch` trigger with a ref input redeploys any earlier commit.
-The Pages build uses base path `/dustline/`.
+The Pages build uses base path `/regolith-rail/`.
 
 S3 deployment is documentation only in this change: an `aws s3 sync` sequence
 that uploads hashed assets with long-lived cache headers and HTML with

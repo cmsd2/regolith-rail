@@ -1,6 +1,6 @@
-# dustline roadmap
+# Regolith Rail roadmap
 
-This document describes what dustline is for, the decisions already made, and
+This document describes what Regolith Rail is for, the decisions already made, and
 the order in which it will be built. It says what each stage delivers and how we
 know it is done. It does not say how to implement anything; that belongs in the
 design notes for each stage.
@@ -13,7 +13,7 @@ balance stock levels across the stations on a line. It does not treat stations
 as supply or demand points, does not account for how fast a station is being
 drained, and has no notion of flow control.
 
-dustline is a browser sandbox that lets players:
+Regolith Rail is a browser sandbox that lets players:
 
 1. See why the current behaviour fails, through prepared scenarios and
    measurements.

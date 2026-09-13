@@ -1,6 +1,6 @@
 ## Purpose
 
-Delivers dustline as a set of static files that work unchanged on GitHub Pages
+Delivers Regolith Rail as a set of static files that work unchanged on GitHub Pages
 or Amazon S3, deployed automatically from CI.
 
 ## ADDED Requirements
@@ -22,9 +22,9 @@ The base path SHALL be set at build time, so the same source works at the root
 of a domain and under a sub-path.
 
 #### Scenario: Project site sub-path
-- **WHEN** the site is built for the base path `/dustline/` and served there
+- **WHEN** the site is built for the base path `/regolith-rail/` and served there
 - **THEN** all pages, assets, workers and WebAssembly modules load, and internal
-  links stay under `/dustline/`
+  links stay under `/regolith-rail/`
 
 ### Requirement: No cross-origin isolation
 The application SHALL work without cross-origin isolation, because neither host

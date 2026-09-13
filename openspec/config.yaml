@@ -2,7 +2,7 @@ schema: spec-driven
 
 # Project context, shown to AI when creating artifacts.
 context: |
-  Product: dustline is a static browser sandbox for designing, simulating and
+  Product: Regolith Rail is a static browser sandbox for designing, simulating and
   sharing freight dispatch policies for the shuttle rail lines in Surviving
   Mars: Relaunched. It demonstrates why the game's apparent stock-balancing
   dispatch fails (half capacity, operating at the edge, no flow control, dead

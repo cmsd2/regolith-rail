@@ -80,7 +80,7 @@ resolve.
 - **THEN** the documentation check fails and lists the broken links
 
 ### Requirement: Non-affiliation notice
-Every application view and documentation page SHALL show a notice that dustline
+Every application view and documentation page SHALL show a notice that Regolith Rail
 is not affiliated with or endorsed by Paradox Interactive or Haemimont Games.
 No game assets SHALL appear in the application or documentation.
 
