@@ -1,9 +1,11 @@
 /** Kinds of scheduled event, in the order they are handled at the same time. */
 export const EventOrder = {
   eventCheck: 0,
-  tick: 1,
-  departure: 2,
-  arrival: 3,
+  delivery: 1,
+  review: 2,
+  tick: 3,
+  departure: 4,
+  arrival: 5,
 } as const;
 
 export type EventOrder = (typeof EventOrder)[keyof typeof EventOrder];

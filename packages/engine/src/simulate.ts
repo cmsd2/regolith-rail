@@ -7,6 +7,7 @@ import {
   type Policy,
   type PolicyOutcome,
   type Quantities,
+  type ReviewSnapshot,
   type StationSnapshot,
   type StopSnapshot,
   type TrainCapacitySnapshot,
@@ -15,9 +16,11 @@ import { EventOrder, EventQueue, type Scheduled } from "./queue.ts";
 import { type Random, streamFor } from "./random.ts";
 import {
   type DistributionDef,
+  EXTERNAL_SUPPLIER,
   type ProducerDef,
   type ProfilePointDef,
   type ScenarioV2 as Scenario,
+  type SupplierDef,
   travelMs,
   UNLIMITED_CAPACITY,
 } from "./scenario/format2.ts";
@@ -49,6 +52,14 @@ export interface FlowTotalsByResource {
   consumed: number[];
   /** Amount converters added (outputs) minus the amount they took (inputs). */
   converted: number[];
+  /** Amount delivered by external suppliers, including any that overflowed. */
+  supplied: number[];
+  /** Amount that did not fit when delivered. */
+  overflow: number[];
+  /** Amount removed because it expired. */
+  expired: number[];
+  /** Amount shipped between stock points and not yet delivered. */
+  inTransit: number[];
 }
 
 type SimEvent = Scheduled &
@@ -65,6 +76,8 @@ type SimEvent = Scheduled &
     | { kind: "departure"; train: number }
     | { kind: "event-check"; world: number }
     | { kind: "event-end"; world: number }
+    | { kind: "review"; point: number }
+    | { kind: "delivery"; shipment: Shipment }
   );
 
 interface FlowState {
@@ -88,6 +101,33 @@ interface FlowState {
   effective: number;
   periodEnd: number;
   on: boolean;
+}
+
+interface SupplierState {
+  resource: number;
+  /** Supplying stock point index, or `undefined` for an external supplier. */
+  from: number | undefined;
+  def: SupplierDef;
+  rng: Random;
+}
+
+/** An order, or part of one, on its way to the stock point that placed it. */
+interface Shipment {
+  point: number;
+  resource: number;
+  from: number | undefined;
+  amount: number;
+  placedAt: number;
+  arrivesAt: number;
+}
+
+/** The part of an order a supplying stock point could not yet ship. */
+interface Backlogged {
+  point: number;
+  resource: number;
+  from: number;
+  amount: number;
+  placedAt: number;
 }
 
 interface ConverterState {
@@ -260,6 +300,25 @@ export function runSimulation(
   });
   const flowTotals: Record<string, number> = Object.fromEntries(flows.map((f) => [f.name, 0]));
 
+  // --- Suppliers and reviews ---------------------------------------------------
+  const suppliers: SupplierState[][] = scenario.stockPoints.map((station) =>
+    station.suppliers.map((def) => ({
+      resource: resourceIndex.get(def.resource) as number,
+      from: def.from === EXTERNAL_SUPPLIER ? undefined : (stationIndex.get(def.from) as number),
+      def,
+      rng: streamFor(seed, `supplier:${station.id}:${def.resource}`),
+    })),
+  );
+  const expiring: number[][] = scenario.stockPoints.map((station, s) =>
+    station.resources
+      .filter((r) => r.expires)
+      .map((r) => (siteOf[s] as number[])[resourceIndex.get(r.id) as number] as number),
+  );
+  /** Orders on their way, and orders waiting at each supplying stock point, oldest first. */
+  const shipments: Shipment[] = [];
+  const backlogs: Backlogged[][] = scenario.stockPoints.map(() => []);
+  let reviewCount = 0;
+
   // --- Converters -------------------------------------------------------------
   const converters: ConverterState[] = [];
   scenario.stockPoints.forEach((station, s) => {
@@ -398,6 +457,8 @@ export function runSimulation(
     budgetOverruns: 0,
     backorderAverage: 0,
     backorderPeak: 0,
+    expired: 0,
+    overflow: 0,
     converterStarvedMs: 0,
     converterBlockedMs: 0,
     byResource,
@@ -471,6 +532,10 @@ export function runSimulation(
     produced: resources.map(() => 0),
     consumed: resources.map(() => 0),
     converted: resources.map(() => 0),
+    supplied: resources.map(() => 0),
+    overflow: resources.map(() => 0),
+    expired: resources.map(() => 0),
+    inTransit: resources.map(() => 0),
   };
   const moving: (LineState["trains"][number] | undefined)[] = trains.map(() => undefined);
   const lastUnload: (number | undefined)[] = sites.map(() => undefined);
@@ -484,7 +549,7 @@ export function runSimulation(
   const recordOutcome = (
     outcome: PolicyOutcome,
     t: number,
-    at: { stop: number; train: string; station: string } | undefined,
+    at: { stop?: number; train?: string; station: string; review?: number } | undefined,
   ) => {
     for (const message of outcome.logs) events.push({ t, kind: "log", ...at, message });
     for (const { name, value } of outcome.records) {
@@ -504,7 +569,14 @@ export function runSimulation(
       records[name] = series;
       series.t.push(t);
       series.v.push(value);
-      events.push({ t, kind: "record", ...(at ? { stop: at.stop } : {}), name, value });
+      events.push({
+        t,
+        kind: "record",
+        ...(at?.stop === undefined ? {} : { stop: at.stop }),
+        ...(at?.review === undefined ? {} : { review: at.review }),
+        name,
+        value,
+      });
     }
     if (at) for (const trace of outcome.traces) events.push({ t, kind: "trace", ...at, trace });
     if (outcome.error) {
@@ -558,6 +630,14 @@ export function runSimulation(
     const r = resourceIndex.get(action.resource);
     const site = r === undefined ? -1 : ((siteOf[s] as number[])[r] as number);
     const requested = action.amount;
+    if (action.type === "order") {
+      warn(
+        `orders can only be placed at reviews; order for ${action.resource} ignored`,
+        requested,
+        0,
+      );
+      return 0;
+    }
     if (r === undefined || site < 0) {
       warn(
         `${action.resource} is not enabled at ${at.station}; ${action.type} ignored`,
@@ -841,9 +921,269 @@ export function runSimulation(
     else if (blocked) metrics.converterBlockedMs += TICK_MS;
   };
 
+  /** Backorders waiting at a stock point for a resource, summed over its consumers. */
+  const backordersAt = (s: number) => {
+    const out: Quantities = {};
+    for (const r of scenario.stockPoints[s]?.resources ?? []) out[r.id] = 0;
+    for (const flow of flows) {
+      if (flow.station !== s || !flow.backorder) continue;
+      const id = resources[flow.resource] as string;
+      out[id] = (out[id] ?? 0) + flow.backlog;
+    }
+    return out;
+  };
+
+  const leadTime = (supplier: SupplierState) => draw(supplier.def.leadTime, supplier.rng);
+
+  /** Sends an amount from a supplier to the stock point that ordered it. */
+  const ship = (
+    t: number,
+    point: number,
+    supplier: SupplierState,
+    amount: number,
+    placedAt: number,
+  ) => {
+    const shipment: Shipment = {
+      point,
+      resource: supplier.resource,
+      from: supplier.from,
+      amount,
+      placedAt,
+      arrivesAt: t + leadTime(supplier),
+    };
+    if (supplier.from !== undefined) {
+      const site = (siteOf[supplier.from] as number[])[supplier.resource] as number;
+      stock[site] = (stock[site] as number) - amount;
+      (running.inTransit[supplier.resource] as number) += amount;
+    }
+    shipments.push(shipment);
+    events.push({
+      t,
+      kind: "shipment",
+      station:
+        supplier.from === undefined ? EXTERNAL_SUPPLIER : (stations[supplier.from] as string),
+      to: stations[point] as string,
+      resource: resources[supplier.resource] as string,
+      amount,
+      arrivesAt: shipment.arrivesAt,
+    });
+    queue.push({
+      kind: "delivery",
+      time: shipment.arrivesAt,
+      order: EventOrder.delivery,
+      entity: point,
+      shipment,
+    });
+  };
+
+  /** Ships what supplying stock points now hold towards the orders waiting there. */
+  const shipBacklogs = (t: number) => {
+    backlogs.forEach((waiting, from) => {
+      while (waiting.length > 0) {
+        const item = waiting[0] as Backlogged;
+        const site = (siteOf[from] as number[])[item.resource] as number;
+        const amount = Math.min(item.amount, stock[site] as number);
+        if (amount <= 0) break;
+        const supplier = (suppliers[item.point] as SupplierState[]).find(
+          (sup) => sup.resource === item.resource,
+        ) as SupplierState;
+        ship(t, item.point, supplier, amount, item.placedAt);
+        item.amount -= amount;
+        if (item.amount === 0) waiting.shift();
+      }
+    });
+  };
+
+  const handleDelivery = (event: Extract<SimEvent, { kind: "delivery" }>) => {
+    const t = event.time;
+    const shipment = event.shipment;
+    shipments.splice(shipments.indexOf(shipment), 1);
+    const site = (siteOf[shipment.point] as number[])[shipment.resource] as number;
+    const added = Math.min(
+      shipment.amount,
+      (siteCapacity[site] as number) - (stock[site] as number),
+    );
+    stock[site] = (stock[site] as number) + added;
+    const overflow = shipment.amount - added;
+    if (shipment.from === undefined)
+      (running.supplied[shipment.resource] as number) += shipment.amount;
+    else (running.inTransit[shipment.resource] as number) -= shipment.amount;
+    (running.overflow[shipment.resource] as number) += overflow;
+    metrics.overflow += overflow;
+    events.push({
+      t,
+      kind: "delivery",
+      station: stations[shipment.point] as string,
+      resource: resources[shipment.resource] as string,
+      amount: added,
+      overflow,
+    });
+  };
+
+  /** Places an order at a review, clamped to the supplier's limits. */
+  const placeOrder = (action: Action, s: number, t: number, review: number) => {
+    const station = stations[s] as string;
+    const r = resourceIndex.get(action.resource);
+    const supplier = (suppliers[s] as SupplierState[]).find((sup) => sup.resource === r);
+    const requested = action.amount;
+    const warn = (message: string, applied: number) => {
+      metrics.warnings++;
+      events.push({
+        t,
+        kind: "warning",
+        station,
+        review,
+        message,
+        action: { type: "order", resource: action.resource, requested, applied },
+      });
+    };
+    if (action.type !== "order") {
+      warn(
+        `${action.type} is only possible at stops; ${action.type} ${action.resource} ignored`,
+        0,
+      );
+      return;
+    }
+    if (supplier === undefined) {
+      warn(`${station} has no supplier for ${action.resource}; order ignored`, 0);
+      return;
+    }
+    let amount = Number.isFinite(requested) ? Math.floor(requested) : 0;
+    let reason = amount === requested ? "" : "amounts are whole milli-units";
+    if (amount <= 0) {
+      if (amount < 0) warn("orders cannot be negative", 0);
+      return;
+    }
+    const { minOrder, maxOrder } = supplier.def;
+    if (minOrder !== undefined && amount < minOrder) {
+      amount = minOrder;
+      reason = `raised to the supplier's minimum order of ${minOrder}`;
+    }
+    if (maxOrder !== undefined && amount > maxOrder) {
+      amount = maxOrder;
+      reason = `limited to the supplier's maximum order of ${maxOrder}`;
+    }
+    if (amount !== requested) warn(`order ${action.resource}: ${reason}`, amount);
+    const from =
+      supplier.from === undefined ? EXTERNAL_SUPPLIER : (stations[supplier.from] as string);
+    events.push({
+      t,
+      kind: "order",
+      review,
+      station,
+      resource: action.resource,
+      from,
+      requested,
+      amount,
+    });
+    if (supplier.from === undefined) {
+      ship(t, s, supplier, amount, t);
+      return;
+    }
+    const site = (siteOf[supplier.from] as number[])[supplier.resource] as number;
+    const now = Math.min(amount, stock[site] as number);
+    if (now > 0) ship(t, s, supplier, now, t);
+    if (amount > now) {
+      (backlogs[supplier.from] as Backlogged[]).push({
+        point: s,
+        resource: supplier.resource,
+        from: supplier.from,
+        amount: amount - now,
+        placedAt: t,
+      });
+    }
+  };
+
+  const handleReview = (event: Extract<SimEvent, { kind: "review" }>) => {
+    const t = event.time;
+    const s = event.point;
+    const station = stations[s] as string;
+    const review = ++reviewCount;
+    events.push({ t, kind: "review", review, station });
+    for (const site of expiring[s] as number[]) {
+      const amount = stock[site] as number;
+      if (amount === 0) continue;
+      stock[site] = 0;
+      metrics.expired += amount;
+      const resource = resourceIndex.get(sites[site]?.resource as string) as number;
+      (running.expired[resource] as number) += amount;
+      events.push({
+        t,
+        kind: "expire",
+        station,
+        resource: sites[site]?.resource as string,
+        amount,
+      });
+    }
+
+    const current = stationQuantities(s);
+    const onOrder = [
+      ...shipments
+        .filter((sh) => sh.point === s)
+        .map((sh) => ({
+          resource: resources[sh.resource] as string,
+          amount: sh.amount,
+          from: sh.from === undefined ? EXTERNAL_SUPPLIER : (stations[sh.from] as string),
+          placed_at: sh.placedAt,
+          arrives_at: sh.arrivesAt,
+        })),
+      ...backlogs.flatMap((waiting) =>
+        waiting
+          .filter((item) => item.point === s)
+          .map((item) => ({
+            resource: resources[item.resource] as string,
+            amount: item.amount,
+            from: stations[item.from] as string,
+            placed_at: item.placedAt,
+          })),
+      ),
+    ].sort((a, b) => a.placed_at - b.placed_at);
+    const snapshot: ReviewSnapshot = {
+      review,
+      now: t,
+      information_level: level,
+      stock_point: {
+        ...(staticStations[s] as StationSnapshot),
+        ...current,
+        backorders: backordersAt(s),
+        on_order: onOrder,
+        suppliers: (suppliers[s] as SupplierState[]).map((sup) => ({
+          resource: resources[sup.resource] as string,
+          from: sup.from === undefined ? EXTERNAL_SUPPLIER : (stations[sup.from] as string),
+          lead_times:
+            sup.def.leadTime.kind === "fixed"
+              ? [{ value: sup.def.leadTime.value, weight: 1 }]
+              : sup.def.leadTime.values.map((v) => ({ value: v.value, weight: v.weight })),
+          ...(sup.def.minOrder === undefined ? {} : { min_order: sup.def.minOrder }),
+          ...(sup.def.maxOrder === undefined ? {} : { max_order: sup.def.maxOrder }),
+        })),
+      },
+      line: {
+        stations: staticStations.map((other, i) =>
+          i === s
+            ? { ...other, ...current }
+            : level === "line"
+              ? { ...other, ...stationQuantities(i) }
+              : other,
+        ),
+      },
+      resources: resourceSnapshots,
+    };
+    if (policy.review) {
+      const outcome = policy.review(snapshot);
+      recordOutcome(outcome, t, { station, review });
+      if (!outcome.error) for (const action of outcome.actions) placeOrder(action, s, t, review);
+    }
+    const next = t + ((scenario.stockPoints[s]?.review?.periodMs as number) ?? duration);
+    if (next < duration) {
+      queue.push({ kind: "review", time: next, order: EventOrder.review, entity: s, point: s });
+    }
+  };
+
   const handleTick = (event: Extract<SimEvent, { kind: "tick" }>) => {
     const t = event.time;
     const tickStart = t - TICK_MS;
+    shipBacklogs(t);
     flows.forEach((flow, f) => {
       const variability = flow.def.variability ?? { kind: "fixed" };
       const rate = flow.def.rate ?? 0;
@@ -990,6 +1330,17 @@ export function runSimulation(
       const time = world.schedule.kind === "fixed" ? world.schedule.startMs : 0;
       queue.push({ kind: "event-check", time, order: EventOrder.eventCheck, entity: i, world: i });
     });
+    scenario.stockPoints.forEach((station, s) => {
+      if (station.review && station.review.offsetMs < duration) {
+        queue.push({
+          kind: "review",
+          time: station.review.offsetMs,
+          order: EventOrder.review,
+          entity: s,
+          point: s,
+        });
+      }
+    });
     if (duration >= TICK_MS)
       queue.push({ kind: "tick", time: TICK_MS, order: EventOrder.tick, entity: 0 });
     trains.forEach((train, i) => {
@@ -1028,6 +1379,12 @@ export function runSimulation(
         case "event-check":
           handleEventCheck(event);
           break;
+        case "review":
+          handleReview(event);
+          break;
+        case "delivery":
+          handleDelivery(event);
+          break;
         case "event-end": {
           const world = worlds[event.world] as WorldEventState;
           events.push({ t: event.time, kind: "event-end", event: world.id, label: world.label });
@@ -1038,6 +1395,10 @@ export function runSimulation(
         produced: running.produced.slice(),
         consumed: running.consumed.slice(),
         converted: running.converted.slice(),
+        supplied: running.supplied.slice(),
+        overflow: running.overflow.slice(),
+        expired: running.expired.slice(),
+        inTransit: running.inTransit.slice(),
       });
     }
   }

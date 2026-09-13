@@ -17,7 +17,9 @@ function markers(output: RunOutput): Markers {
   const open = new Map<string, { from: number; label: string }>();
   for (const event of output.events) {
     if (event.kind === "arrival") result.stops.push(event.t);
-    else if (event.kind === "warning") result.warnings.push({ t: event.t, stop: event.stop });
+    // Warnings at reviews get their own markers with the review inspector.
+    else if (event.kind === "warning" && event.stop !== undefined)
+      result.warnings.push({ t: event.t, stop: event.stop });
     else if (event.kind === "error") result.errors.push({ t: event.t, stop: event.stop });
     else if (event.kind === "event-start")
       open.set(event.event, { from: event.t, label: event.label });

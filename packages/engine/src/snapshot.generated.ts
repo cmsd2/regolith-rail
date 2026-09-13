@@ -94,6 +94,78 @@ export interface LineSnapshot {
   stations: StationSnapshot[];
 }
 
+/** Everything `on_review` receives when a stock point reviews what to order from its suppliers. */
+export interface ReviewSnapshot {
+  /** Number of this review within the run, starting at 1. */
+  review: number;
+  /** Game time in milliseconds since the run started. */
+  now: number;
+  /** How much of the scenario this policy may see. */
+  information_level: "local" | "line";
+  /** The stock point being reviewed, with its stock, orders and suppliers. */
+  stock_point: StockPointSnapshot;
+  /** Every stock point in the scenario, in order. Their stock is readable only at the `line` level. */
+  line: LineSnapshot;
+  /** Every resource in the scenario, in scenario order. */
+  resources: ResourceSnapshot[];
+}
+
+/** A stock point under review. */
+export interface StockPointSnapshot {
+  /** Stock point id, as written in the scenario. */
+  id: string;
+  /** Position in the scenario's list of stock points, starting at 1. */
+  index: number;
+  /** Ids of the resources this stock point stores, in scenario order. */
+  resources: string[];
+  /** Milli-units stored, by resource id, after any expiring stock was removed. */
+  stock: Quantities;
+  /** Storage limit in milli-units, by resource id. */
+  capacity: Quantities;
+  /** Demand waiting to be served here, in milli-units, by resource id. */
+  backorders: Quantities;
+  /** Orders placed by this stock point that have not arrived, oldest first. */
+  on_order: OrderSnapshot[];
+  /** Where each resource can be ordered from. */
+  suppliers: SupplierSnapshot[];
+}
+
+/** An order on its way to the stock point that placed it. */
+export interface OrderSnapshot {
+  /** Resource id. */
+  resource: string;
+  /** Milli-units still to arrive. */
+  amount: number;
+  /** `external`, or the id of the supplying stock point. */
+  from: string;
+  /** Game time the order was placed. */
+  placed_at: number;
+  /** Game time the order arrives; `nil` while it waits for stock at a supplying stock point. */
+  arrives_at?: number;
+}
+
+/** A supplier for one resource. */
+export interface SupplierSnapshot {
+  /** Resource id. */
+  resource: string;
+  /** `external`, or the id of the supplying stock point. */
+  from: string;
+  /** Possible lead times in milliseconds, with their weights. */
+  lead_times: LeadTimeSnapshot[];
+  /** Smallest order in milli-units, when there is one. */
+  min_order?: number;
+  /** Largest order in milli-units, when there is one. */
+  max_order?: number;
+}
+
+/** One possible lead time and how likely it is. */
+export interface LeadTimeSnapshot {
+  /** Lead time in milliseconds. */
+  value: number;
+  /** Relative weight; a fixed lead time has one value with weight 1. */
+  weight: number;
+}
+
 /** A resource and how important it is. */
 export interface ResourceSnapshot {
   /** Resource id, such as `Metals`. */

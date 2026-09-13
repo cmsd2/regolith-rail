@@ -59,7 +59,8 @@ export function luaAnnotationsSource(): string {
     "--- A policy module.",
     "---@class Policy",
     "---@field on_start? fun(ctx: StartContext) Called once at the start of each run.",
-    "---@field on_stop fun(ctx: StopContext) Called every time a train stops.",
+    "---@field on_stop? fun(ctx: StopContext) Called every time a vehicle stops.",
+    "---@field on_review? fun(ctx: ReviewContext) Called at every review of a stock point.",
     "",
   );
   return lines.join("\n");

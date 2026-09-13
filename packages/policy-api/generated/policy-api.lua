@@ -67,6 +67,53 @@
 ---@field distance fun(from: string, to: string): integer Distance along the line between two stations.
 ---@field travel_time fun(from: string, to: string, speed?: integer): integer Milliseconds a train takes between two stations, not counting stops. Uses the stopped train's speed when `speed` is omitted.
 
+--- Everything `on_review` receives when a stock point reviews what to order from its suppliers.
+---@class ReviewContext
+---@field review integer Number of this review within the run, starting at 1.
+---@field now integer Game time in milliseconds since the run started.
+---@field information_level "local"|"line" How much of the scenario this policy may see.
+---@field stock_point StockPoint The stock point being reviewed, with its stock, orders and suppliers.
+---@field line Line Every stock point in the scenario, in order. Their stock is readable only at the `line` level.
+---@field resources Resource[] Every resource in the scenario, in scenario order.
+---@field memory table The same persistent table `on_start` and `on_stop` receive.
+---@field rand fun(): number A number from 0 up to but not including 1, repeatable for the same seed.
+---@field order fun(resource: string, amount: integer) Order `amount` milli-units of `resource` from the stock point's supplier for it. Clamped to the supplier's minimum and maximum order.
+---@field log fun(...: any) Attach a message to this review. Arguments are converted to text and joined with spaces.
+---@field record fun(name: string, value: number) Add a point to a named series that is charted after the run.
+
+--- A stock point under review.
+---@class StockPoint
+---@field id string Stock point id, as written in the scenario.
+---@field index integer Position in the scenario's list of stock points, starting at 1.
+---@field resources string[] Ids of the resources this stock point stores, in scenario order.
+---@field stock table<string, integer> Milli-units stored, by resource id, after any expiring stock was removed.
+---@field capacity table<string, integer> Storage limit in milli-units, by resource id.
+---@field backorders table<string, integer> Demand waiting to be served here, in milli-units, by resource id.
+---@field on_order Order[] Orders placed by this stock point that have not arrived, oldest first.
+---@field suppliers Supplier[] Where each resource can be ordered from.
+---@field memory table Persistent table for this stock point; the same table as `ctx.station.memory` at its stops.
+
+--- An order on its way to the stock point that placed it.
+---@class Order
+---@field resource string Resource id.
+---@field amount integer Milli-units still to arrive.
+---@field from string `external`, or the id of the supplying stock point.
+---@field placed_at integer Game time the order was placed.
+---@field arrives_at? integer Game time the order arrives; `nil` while it waits for stock at a supplying stock point.
+
+--- A supplier for one resource.
+---@class Supplier
+---@field resource string Resource id.
+---@field from string `external`, or the id of the supplying stock point.
+---@field lead_times LeadTime[] Possible lead times in milliseconds, with their weights.
+---@field min_order? integer Smallest order in milli-units, when there is one.
+---@field max_order? integer Largest order in milli-units, when there is one.
+
+--- One possible lead time and how likely it is.
+---@class LeadTime
+---@field value integer Lead time in milliseconds.
+---@field weight integer Relative weight; a fixed lead time has one value with weight 1.
+
 --- A resource and how important it is.
 ---@class Resource
 ---@field id string Resource id, such as `Metals`.
@@ -75,4 +122,5 @@
 --- A policy module.
 ---@class Policy
 ---@field on_start? fun(ctx: StartContext) Called once at the start of each run.
----@field on_stop fun(ctx: StopContext) Called every time a train stops.
+---@field on_stop? fun(ctx: StopContext) Called every time a vehicle stops.
+---@field on_review? fun(ctx: ReviewContext) Called at every review of a stock point.

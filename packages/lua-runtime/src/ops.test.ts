@@ -222,7 +222,7 @@ describe("inventory position and lookahead", () => {
     expect(transfers(out).slice(0, 1)).toEqual(["1:T1@S Metals 10000"]);
     expect(transfers(out).some((t) => t.startsWith("2:"))).toBe(false);
     const reservations = ofKind(out.events, "trace").filter(
-      (e) => e.trace.block === "lookahead" && e.trace.station === "D" && e.stop <= 2,
+      (e) => e.trace.block === "lookahead" && e.trace.station === "D" && (e.stop ?? 0) <= 2,
     );
     expect(reservations.map((e) => [e.train, e.trace.result])).toEqual([["T1", 10_000]]);
   });

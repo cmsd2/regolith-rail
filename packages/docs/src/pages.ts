@@ -57,6 +57,10 @@ export const API_PAGE_TITLES: Record<string, { title: string; description: strin
   },
   "api/station": { title: "Stations", description: "A station's stock, capacity and memory." },
   "api/line": { title: "The line", description: "Every station and train on the line." },
+  "api/review": {
+    title: "Reviews and orders",
+    description: "What on_review receives and how a stock point orders from its suppliers.",
+  },
 };
 
 /** Stages of the ops pipeline, in the order the reference lists them. */

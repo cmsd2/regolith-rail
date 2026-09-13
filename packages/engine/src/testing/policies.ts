@@ -3,6 +3,7 @@ import {
   emptyOutcome,
   type Policy,
   type PolicyOutcome,
+  type ReviewSnapshot,
   type StopSnapshot,
 } from "../policy.ts";
 import type { Scenario, ScenarioV2Input } from "../scenario/format2.ts";
@@ -32,4 +33,13 @@ export function parse(input: ScenarioV1Input | ScenarioV2Input): Scenario {
     throw new Error(result.errors.map((e) => `${e.path}: ${e.message}`).join("\n"));
   }
   return result.scenario;
+}
+
+/** A policy that places orders at reviews, decided by a test function. */
+export function reviewPolicy(decide: (snapshot: ReviewSnapshot) => Action[]): Policy {
+  return {
+    start: () => emptyOutcome(),
+    stop: () => emptyOutcome(),
+    review: (snapshot) => ({ ...emptyOutcome(), actions: decide(snapshot) }),
+  };
 }

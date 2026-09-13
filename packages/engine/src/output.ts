@@ -27,24 +27,69 @@ export type RunEvent =
       /** Positive when loaded onto the train, negative when unloaded. */
       amount: number;
     })
-  | (AtStop & {
+  | (At & {
       kind: "warning";
+      stop?: number;
+      train?: string;
+      station: string;
+      review?: number;
       message: string;
-      action?: { type: "load" | "unload"; resource: string; requested: number; applied: number };
+      action?: {
+        type: "load" | "unload" | "order";
+        resource: string;
+        requested: number;
+        applied: number;
+      };
     })
-  | (At & { kind: "log"; stop?: number; train?: string; station?: string; message: string })
-  | (At & { kind: "record"; stop?: number; name: string; value: number })
-  | (AtStop & { kind: "trace"; trace: Trace })
+  | (At & {
+      kind: "log";
+      stop?: number;
+      train?: string;
+      station?: string;
+      review?: number;
+      message: string;
+    })
+  | (At & { kind: "record"; stop?: number; review?: number; name: string; value: number })
+  | (At & {
+      kind: "trace";
+      stop?: number;
+      train?: string;
+      station: string;
+      review?: number;
+      trace: Trace;
+    })
   | (At & {
       kind: "error";
       stop?: number;
       train?: string;
       station?: string;
+      review?: number;
       errorKind: PolicyErrorKind;
       message: string;
       line?: number;
     })
-  | (At & { kind: "event-start" | "event-end"; event: string; label: string });
+  | (At & { kind: "event-start" | "event-end"; event: string; label: string })
+  | (At & { kind: "review"; review: number; station: string })
+  | (At & {
+      kind: "order";
+      review: number;
+      station: string;
+      resource: string;
+      from: string;
+      requested: number;
+      amount: number;
+    })
+  | (At & {
+      kind: "shipment";
+      /** The supplying stock point, or `external`. */
+      station: string;
+      to: string;
+      resource: string;
+      amount: number;
+      arrivesAt: number;
+    })
+  | (At & { kind: "delivery"; station: string; resource: string; amount: number; overflow: number })
+  | (At & { kind: "expire"; station: string; resource: string; amount: number });
 
 export interface ResourceMetrics {
   unmet: number;
@@ -75,6 +120,10 @@ export interface Metrics {
   backorderAverage: number;
   /** The largest total backorder at the end of any tick. */
   backorderPeak: number;
+  /** Stock removed because it expired at a review. */
+  expired: number;
+  /** Deliveries that did not fit at the stock point they arrived at. */
+  overflow: number;
   /** Time, summed over converters, when a due batch lacked its inputs. */
   converterStarvedMs: number;
   /** Time, summed over converters, when a due batch had no room for its outputs. */
