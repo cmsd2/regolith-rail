@@ -40,16 +40,16 @@
 ## 6. Lua runtime
 
 - [ ] 6.1 Integrate wasmoon in a worker-compatible module that runs in Node and browsers, and verify a trivial policy returns actions in both
-- [ ] 6.2 Implement the Lua 5.1 subset checker with line numbers and suggested alternatives, and verify integer division, bitwise operators, `goto` and attributes are each rejected with the expected message
-- [ ] 6.3 Implement source instrumentation for the instruction budget, and verify the infinite loop scenario reports a budget overrun with the executing line and the run continues
-- [ ] 6.4 Implement the sandbox prelude removing banned globals with guidance messages, and verify every banned name raises its expected error and state does not persist between runs
-- [ ] 6.5 Implement read-only snapshot proxies and information-level enforcement, and verify the writing-to-snapshot, local-level and line-level scenarios pass
-- [ ] 6.6 Implement `load`, `unload`, `log`, `record` and `rand`, and verify the recorded series scenario passes and `rand` is repeatable per seed
-- [ ] 6.7 Implement memory tables with the serialisable check, and verify the function-in-memory scenario reports the offending key
-- [ ] 6.8 Implement seeded shuffled `pairs` and `next`, and verify the key order scenario passes
-- [ ] 6.9 Implement save and reload test mode, and verify the module-local versus `ctx.memory` scenario passes
-- [ ] 6.10 Implement error reporting with message, line, train, station and time for load, runtime, budget and memory errors, and verify the runtime error location scenario passes
-- [ ] 6.11 Record the Policy API version in run output, and verify it appears as version 1
+- [x] 6.2 Implement the Lua 5.1 subset checker with line numbers and suggested alternatives, and verify integer division, bitwise operators, `goto` and attributes are each rejected with the expected message
+- [x] 6.3 Implement source instrumentation for the instruction budget, and verify the infinite loop scenario reports a budget overrun with the executing line and the run continues
+- [x] 6.4 Implement the sandbox prelude removing banned globals with guidance messages, and verify every banned name raises its expected error and state does not persist between runs
+- [x] 6.5 Implement read-only snapshot proxies and information-level enforcement, and verify the writing-to-snapshot, local-level and line-level scenarios pass
+- [x] 6.6 Implement `load`, `unload`, `log`, `record` and `rand`, and verify the recorded series scenario passes and `rand` is repeatable per seed
+- [x] 6.7 Implement memory tables with the serialisable check, and verify the function-in-memory scenario reports the offending key
+- [x] 6.8 Implement seeded shuffled `pairs` and `next`, and verify the key order scenario passes
+- [x] 6.9 Implement save and reload test mode, and verify the module-local versus `ctx.memory` scenario passes
+- [x] 6.10 Implement error reporting with message, line, train, station and time for load, runtime, budget and memory errors, and verify the runtime error location scenario passes
+- [x] 6.11 Record the Policy API version in run output, and verify it appears as version 1
 
 ## 7. Naive baseline
 
