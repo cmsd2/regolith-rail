@@ -26,8 +26,12 @@ test.describe("static build", () => {
     expect(missing.status()).toBe(404);
     expect(await missing.text()).toContain("Page not found");
 
-    await page.goto("/no/such/page");
-    await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+    // The page must hydrate in place at any unknown address, not render a second copy.
+    for (const path of ["/docs/no-such-page", "/no/such/page"]) {
+      await page.goto(path, { waitUntil: "networkidle" });
+      await expect(page.getByRole("heading", { name: "Page not found" })).toHaveCount(1);
+      await expect(page.locator("footer")).toHaveCount(1);
+    }
     await page.getByRole("main").getByRole("link", { name: "workbench" }).click();
     await expect(page.getByTestId("policy-editor").locator(".cm-content")).toBeVisible();
   });
