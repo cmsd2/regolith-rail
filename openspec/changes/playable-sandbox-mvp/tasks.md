@@ -105,10 +105,10 @@
 
 ## 13. Sharing and local saving
 
-- [ ] 13.1 Implement share state encoding in the fragment with version prefix and compression, and verify the link round trip scenario in Playwright across two browser contexts
-- [ ] 13.2 Load share links without running, and handle damaged links, other API versions and over-length links, and verify the no-automatic-execution, corrupt link, older API version and length warning scenarios
-- [ ] 13.3 Implement saving, listing, opening, renaming and deleting policies and scenarios, and debounced drafts, in IndexedDB, and verify the draft restored scenario
-- [ ] 13.4 Handle unavailable storage with a notice, and verify the private browsing scenario with storage disabled
+- [x] 13.1 Implement share state encoding in the fragment with version prefix and compression, and verify the link round trip scenario in Playwright across two browser contexts
+- [x] 13.2 Load share links without running, and handle damaged links, other API versions and over-length links, and verify the no-automatic-execution, corrupt link, older API version and length warning scenarios
+- [x] 13.3 Implement saving, listing, opening, renaming and deleting policies and scenarios, and debounced drafts, in IndexedDB, and verify the draft restored scenario
+- [x] 13.4 Handle unavailable storage with a notice, and verify the private browsing scenario with storage disabled
 
 ## 14. Documentation
 

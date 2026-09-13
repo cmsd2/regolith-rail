@@ -3,14 +3,16 @@ import { BrowserSupport } from "../components/BrowserSupport.tsx";
 import { ErrorList, useRunErrors } from "../components/ErrorList.tsx";
 import { LineMap } from "../components/LineMap.tsx";
 import { MetricsSummary } from "../components/MetricsSummary.tsx";
+import { Notices } from "../components/Notices.tsx";
 import { Page } from "../components/Page.tsx";
 import { RunCharts } from "../components/RunCharts.tsx";
 import { RunControls } from "../components/RunControls.tsx";
 import { ScenarioControls } from "../components/ScenarioControls.tsx";
+import { ShareControls } from "../components/ShareControls.tsx";
 import { StopInspector } from "../components/StopInspector.tsx";
 import { PlaybackControls, Timeline } from "../components/Timeline.tsx";
 import styles from "../components/Workbench.module.css";
-import { useWorkbench } from "../state/instance.ts";
+import { startWorkbenchSession, useWorkbench } from "../state/instance.ts";
 
 // The editors bring in CodeMirror, so they load separately from the rest of the page.
 const EditorPanel = lazy(() => import("../components/EditorPanel.tsx"));
@@ -97,9 +99,10 @@ function ViewSwitch() {
 }
 
 export default function Workbench() {
-  const [mounted, setMounted] = useState(false);
+  // Editors and views wait for shared or draft work, so nothing is edited before it loads.
+  const mounted = useWorkbench((s) => s.loaded);
   const view = useWorkbench((s) => s.view);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => startWorkbenchSession(), []);
   return (
     <Page>
       <BrowserSupport>
@@ -109,6 +112,8 @@ export default function Workbench() {
             <ScenarioControls />
             {view === "run" && <RunControls />}
             {view === "run" && <PlaybackControls />}
+            <ShareControls />
+            <Notices />
           </div>
           {mounted ? (
             <Suspense fallback={<div />}>

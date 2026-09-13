@@ -79,3 +79,63 @@
 .seed {
   width: 6em;
 }
+
+.saved {
+  border-top: 1px solid var(--border);
+  padding: 0.35rem 0.75rem;
+  font-size: 13px;
+}
+
+.saved summary {
+  cursor: pointer;
+}
+
+.draft {
+  float: right;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.saveRow {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.saveRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.savedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 10rem;
+  overflow: auto;
+}
+
+.savedList li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+}
+
+.savedList form {
+  display: flex;
+  flex: 1;
+  gap: 0.4rem;
+}
+
+.savedName {
+  flex: 1;
+  font-family: var(--mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.danger {
+  color: var(--bad);
+}

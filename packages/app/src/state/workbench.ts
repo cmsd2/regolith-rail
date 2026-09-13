@@ -40,7 +40,29 @@ export interface BatchState {
   error: string | null;
 }
 
+export interface Notice {
+  id: number;
+  kind: "error" | "warning" | "info";
+  message: string;
+  /** Identifies the kind of notice, for tests and styling. */
+  topic: string;
+}
+
+/** Work that can be restored from a share link, a draft or a save. */
+export interface WorkContent {
+  view?: WorkbenchState["view"];
+  policy: PolicyDraft;
+  policyB?: PolicyDraft;
+  scenario: { starterId: string | null; text: string };
+  seed: number;
+  saveReloadTest?: boolean;
+  batch?: Pick<BatchState, "seedCount" | "baseSeed" | "compare">;
+}
+
 export interface WorkbenchState {
+  /** Whether the session has restored any shared or draft work. */
+  loaded: boolean;
+  notices: Notice[];
   view: "run" | "batch";
   policy: PolicyDraft;
   policyB: PolicyDraft;
@@ -59,6 +81,11 @@ export interface WorkbenchState {
   /** Asks the policy editor to scroll to and highlight a line. */
   reveal: { line: number; nonce: number } | null;
 
+  setLoaded(): void;
+  notify(kind: Notice["kind"], topic: string, message: string): void;
+  dismissNotice(id: number): void;
+  /** Replaces the work in progress, clearing results. Nothing runs. */
+  restore(content: WorkContent): void;
   setView(view: WorkbenchState["view"]): void;
   setPolicySource(source: string): void;
   setPolicy(policy: PolicyDraft): void;
@@ -112,7 +139,10 @@ function scenarioDraft(starterId: string | null, text: string): ScenarioDraft {
 }
 
 export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<WorkbenchState> {
+  let noticeId = 0;
   return createStore<WorkbenchState>()((set, get) => ({
+    loaded: false,
+    notices: [],
     view: "run",
     policy: { name: "naive.lua", source: BUILT_IN_POLICIES.naive },
     policyB: { name: "supply-to-demand.lua", source: BUILT_IN_POLICIES["supply-to-demand"] },
@@ -132,6 +162,42 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       total: 0,
       results: null,
       error: null,
+    },
+
+    setLoaded: () => set({ loaded: true }),
+    notify: (kind, topic, message) =>
+      set((s) => ({ notices: [...s.notices, { id: ++noticeId, kind, topic, message }] })),
+    dismissNotice: (id) => set((s) => ({ notices: s.notices.filter((n) => n.id !== id) })),
+
+    restore(content) {
+      dependencies.client.cancel();
+      dependencies.pool.cancel();
+      const starterId =
+        content.scenario.starterId !== null &&
+        starterScenarios.some((s) => s.id === content.scenario.starterId) &&
+        starterText(content.scenario.starterId) === content.scenario.text
+          ? content.scenario.starterId
+          : null;
+      set((s) => ({
+        view: content.view ?? s.view,
+        policy: content.policy,
+        policyB: content.policyB ?? s.policyB,
+        scenario: scenarioDraft(starterId, content.scenario.text),
+        seed: content.seed,
+        saveReloadTest: content.saveReloadTest ?? s.saveReloadTest,
+        run: { status: "idle", progress: 0, output: null, error: null },
+        selectedStop: null,
+        reveal: null,
+        batch: {
+          ...s.batch,
+          ...content.batch,
+          status: "idle",
+          done: 0,
+          total: 0,
+          results: null,
+          error: null,
+        },
+      }));
     },
 
     setView: (view) => set({ view }),
