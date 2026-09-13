@@ -29,7 +29,7 @@
 ## 4. Command-line runner and determinism tests
 
 - [ ] 4.1 Implement the CLI to run a scenario with a policy for one seed or a seed range and write JSON output, and verify the headless run and invalid scenario scenarios pass
-- [ ] 4.2 Add a result hash over event log, series and metrics, and a CLI command that writes golden hashes for the starter scenarios on seeds 1 to 20, and verify two consecutive invocations produce identical files
+- [x] 4.2 Add a result hash over event log, series and metrics, and a CLI command that writes golden hashes for the starter scenarios on seeds 1 to 20, and verify two consecutive invocations produce identical files
 - [ ] 4.3 Add a minimal browser test page and Playwright tests that run the same matrix in Chromium, Firefox and WebKit and compare with golden hashes, and verify the CI job passes and fails when one engine constant is changed
 
 ## 5. Policy API definition

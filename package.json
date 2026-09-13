@@ -9,8 +9,10 @@
   "scripts": {
     "lint": "biome check .",
     "format": "biome check --write .",
-    "typecheck": "pnpm -r --no-bail typecheck",
-    "test": "vitest run"
+    "typecheck": "tsc -p tests && pnpm -r --no-bail typecheck",
+    "test": "vitest run",
+    "test:determinism": "vite build -c tests/determinism/vite.config.ts && playwright test tests/determinism",
+    "golden": "pnpm --filter @regolith-rail/cli start golden"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
