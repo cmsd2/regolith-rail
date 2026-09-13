@@ -62,12 +62,14 @@ component: holding, ordering, transport, lost demand, backorders and stalled pro
 - **THEN** holding cost increases by 6
 
 ### Requirement: Format 1 results unchanged
-Running an upgraded format 1 scenario SHALL produce exactly the same event log, time series and metrics as
-before format 2 was introduced.
+Running an upgraded format 1 scenario SHALL produce the same event log, time series and values for every
+metric that existed before format 2 was introduced. New output fields MAY be added, and the golden result
+file MAY be regenerated once they are, provided the fields that existed before are unchanged.
 
 #### Scenario: Golden hashes
-- **WHEN** the golden matrix of starter scenarios, policies and seeds is run after this change
-- **THEN** every result hash equals the previously recorded golden hash
+- **WHEN** the golden matrix of starter scenarios, policies and seeds is run after this change, and each
+  result is hashed without the output fields added by this change
+- **THEN** every hash equals the golden hash recorded before this change
 
 ## MODIFIED Requirements
 

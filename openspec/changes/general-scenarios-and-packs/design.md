@@ -67,6 +67,11 @@ Three rules keep results identical:
   departure < arrival. Format 1 has no deliveries or reviews, so its relative order is unchanged.
 - **Arithmetic.** Shuttle travel time uses today's formula. A path of arcs built from a format 1 line has
   exactly the old segment distances.
+- **Output shape.** Result hashes have not been published anywhere, so breaking them is acceptable. They
+  still prove equivalence during the refactor: steps 1–4 keep the output shape and must reproduce the golden
+  file exactly. When new metrics are added to every run's output, a test first shows that hashing the output
+  without the new fields reproduces the old golden hashes. The golden file is then regenerated once, in the
+  same commit. The output keeps its `stations` and `trains` vocabulary for stock points and vehicles.
 
 ### D3. Routes are explicit paths
 

@@ -14,22 +14,22 @@ export const GAME_HOUR_MS = 60 * GAME_MINUTE_MS;
 /** A sol is 24 game hours. */
 export const SOL_MS = 24 * GAME_HOUR_MS;
 
-const id = z
+export const id = z
   .string()
   .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, "ids start with a letter and use letters, digits, _ or -");
 // Upper bounds keep every intermediate engine value exactly representable.
-const quantity = z.int().nonnegative().max(1_000_000_000);
-const positive = z.int().positive().max(1_000_000_000);
+export const quantity = z.int().nonnegative().max(1_000_000_000);
+export const positive = z.int().positive().max(1_000_000_000);
 /** Up to 100 sols of game time. */
-const span = z
+export const span = z
   .int()
   .positive()
   .max(100 * SOL_MS);
-const offset = z
+export const offset = z
   .int()
   .nonnegative()
   .max(100 * SOL_MS);
-const wholeMinutes = span.refine(
+export const wholeMinutes = span.refine(
   (ms) => ms % GAME_MINUTE_MS === 0,
   "must be a whole number of game minutes (60000 ms)",
 );
