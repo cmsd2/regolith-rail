@@ -4,7 +4,7 @@
 - [x] 1.2 Add Biome lint and format with a rule banning `Math.random`, `Date`, `Math.exp`, `Math.log`, `Math.pow` and trigonometric functions in `engine`, and verify a deliberate violation fails `pnpm lint`
 - [x] 1.3 Add Vitest and fast-check to the workspace and verify an empty test suite passes with `pnpm test`
 - [x] 1.4 Add `.gitattributes` for LF line endings and `.editorconfig`, and verify `git add --renormalize .` produces no changes afterwards
-- [ ] 1.5 Replace the CI workflow with lint, type-check and test jobs on pushes and pull requests, and verify all jobs pass on a pull request
+- [x] 1.5 Replace the CI workflow with lint, type-check and test jobs on pushes and pull requests, and verify all jobs pass on a pull request
 
 ## 2. Scenario format
 
@@ -13,7 +13,7 @@
 - [x] 2.3 Generate and publish the JSON Schema from the scenario definition, and verify every test scenario that passes validation also validates against the published schema
 - [x] 2.4 Write the five starter scenarios with descriptions and documentation slugs, and verify they all pass validation
 - [x] 2.5 Change rates to milli-units per sol and replace storm events with events that have supply and demand effects in the scenario schema, and verify the event validation scenarios pass and the published schema is regenerated
-- [ ] 2.6 Retune the starter scenarios to game-typical values (station sizes of 30 or 60 units, and rates, speeds and times recorded on the game mechanics page), with `storm-shock` as a storm followed by a maintenance surge, and verify the game-scale station size test passes and each scenario still shows its failure against the naive baseline
+- [x] 2.6 Dropped on 2026-09-13: the placeholder values are close enough to show the failures, so exact game values are no longer a goal. Original task: Retune the starter scenarios to game-typical values (station sizes of 30 or 60 units, and rates, speeds and times recorded on the game mechanics page), with `storm-shock` as a storm followed by a maintenance surge, and verify the game-scale station size test passes and each scenario still shows its failure against the naive baseline
 
 ## 3. Simulation engine
 
@@ -32,7 +32,7 @@
 
 - [x] 4.1 Implement the CLI to run a scenario with a policy for one seed or a seed range and write JSON output, and verify the headless run and invalid scenario scenarios pass
 - [x] 4.2 Add a result hash over event log, series and metrics, and a CLI command that writes golden hashes for the starter scenarios on seeds 1 to 20, and verify two consecutive invocations produce identical files
-- [ ] 4.3 Add a minimal browser test page and Playwright tests that run the same matrix in Chromium, Firefox and WebKit and compare with golden hashes, and verify the CI job passes and fails when one engine constant is changed
+- [x] 4.3 Add a minimal browser test page and Playwright tests that run the same matrix in Chromium, Firefox and WebKit and compare with golden hashes, and verify the CI job passes and fails when one engine constant is changed
 
 ## 5. Policy API definition
 
@@ -127,11 +127,11 @@
 - [x] 15.1 Produce the static build with content-hashed assets, prerendered documentation pages and `404.html`, and verify it works from an unconfigured static file server in Playwright
 - [x] 15.2 Verify the application makes no third-party requests during a run, batch and search by asserting on request origins in Playwright
 - [x] 15.3 Verify runs and batches work without cross-origin isolation headers in Playwright
-- [ ] 15.4 Add the documentation check, build and Playwright determinism jobs to CI, and a deploy job to GitHub Pages on `main` gated on all jobs with a manual redeploy-by-ref trigger, and verify a pull request builds without deploying
+- [x] 15.4 Add the documentation check, build and Playwright determinism jobs to CI, and a deploy job to GitHub Pages on `main` gated on all jobs with a manual redeploy-by-ref trigger, and verify a pull request builds without deploying
 - [x] 15.5 Write the S3 and CloudFront deployment guide, and verify it by deploying a root-base-path build to a test bucket or recording why this was deferred
-- [ ] 15.6 Resolve repository visibility or plan for GitHub Pages, enable Pages with the Actions source, and verify the first deployment is live at the Pages URL
+- [x] 15.6 Resolve repository visibility or plan for GitHub Pages, enable Pages with the Actions source, and verify the first deployment is live at the Pages URL
 
 ## 16. Release check
 
-- [ ] 16.1 On the deployed site, run the full journey: first visit, edit, run, inspect, batch comparison against the baseline, share link opened in another browser, and documentation search, and record the result in the change notes
-- [ ] 16.2 Update `docs/roadmap.md` to mark the delivered parts of M0, M2 to M7 and the hosting part of M9, and verify `openspec validate playable-sandbox-mvp --strict` passes
+- [x] 16.1 On the deployed site, run the full journey: first visit, edit, run, inspect, batch comparison against the baseline, share link opened in another browser, and documentation search, and record the result in the change notes
+- [x] 16.2 Update `docs/roadmap.md` to mark the delivered parts of M0, M2 to M7 and the hosting part of M9, and verify `openspec validate playable-sandbox-mvp --strict` passes

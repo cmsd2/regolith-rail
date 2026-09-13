@@ -75,10 +75,10 @@ The exact vanilla rules are not yet confirmed; see §10.
 | World events | Events are states of the world that hold for a time window, like the game's disasters, not one-off impulses. While active, an event's effects scale production (supply shocks) or consumption (demand shocks) of chosen resources at chosen stations. A storm is one kind of event. |
 | Trains and disasters | Disasters do not affect trains: speed, capacity and dwell are unchanged. |
 | Web stack | TypeScript, pnpm workspaces, Vite, React, Zustand, Radix UI, CodeMirror 6, Canvas 2D, uPlot, Observable Plot, Comlink, Zod. |
-| Lua runtime | A Lua VM in the browser matching the game's Lua version (wasmoon or Fengari, decided after the game research stage). |
+| Lua runtime | wasmoon (Lua 5.4 compiled to WebAssembly), with policies checked against the Lua 5.1 subset until the game's Lua version is confirmed. |
 | Docs | MDX content inside the app, prerendered as static pages with React Router 7, KaTeX, Shiki and MiniSearch. |
 | Quality | Vitest, fast-check, Playwright across Chromium, Firefox and WebKit, Biome, GitHub Actions. |
-| Hosting | GitHub Pages or Cloudflare Pages. |
+| Hosting | GitHub Pages, deployed from `main` by CI. The build is host-agnostic, with a guide for S3 and CloudFront. |
 | Licence | Apache-2.0. |
 
 ## 5. Components
@@ -116,9 +116,9 @@ where it matters. No dates are attached.
 
 ### M0 — Foundations
 
-Repository, licence, placeholder README and CI exist.
+**Status** Delivered, apart from contribution notes.
 
-**Remaining deliverables**
+**Deliverables**
 - pnpm workspace with the component packages above as empty shells.
 - Lint, format and type-check in CI.
 - Line-ending and editor settings.
@@ -154,6 +154,10 @@ in our own words.
 
 ### M2 — Simulation engine
 
+**Status** Delivered, except catchments (depots and drones behind a station) and
+the recovery-time metric. Stations have producers and consumers directly. World
+events are states that scale supply or demand for a time window.
+
 **Deliverables**
 - Scenario format with validation and a published schema.
 - Deterministic engine: lines, stations with per-resource capacity, shuttling
@@ -178,6 +182,8 @@ hashes in Node, Chromium, Firefox and WebKit.
 
 ### M3 — Policy runtime and Policy API v1
 
+**Status** Delivered with wasmoon. Matching the game's Lua version waits for M1.
+
 **Deliverables**
 - Lua VM running in a worker, matching the game's Lua version.
 - Sandbox: banned libraries removed, language features outside the game's
@@ -200,6 +206,14 @@ on every starter scenario and seed, and runaway, sandbox-escaping and
 order-dependent test policies are all caught and reported.
 
 ### M4 — `ops` library v1
+
+**Status** Partly delivered: the classify, target, plan and allocate stages;
+manual roles; the balance, order-up-to, min-max, drain, fill and pass-through
+targets; lookahead with reservations; priority and proportional allocation;
+decision traces; level checks; the one-line baseline; and a reference page per
+block. Still to come: the observe, estimate and control stages and hooks,
+estimate blocks, roles by net flow, days of cover, fractional knapsack, and a
+demonstrating scenario for every block.
 
 **Deliverables**
 - Policy pipeline: observe, estimate, classify, target, control, plan,
@@ -227,6 +241,8 @@ ping-pong on the relevant scenarios, and every block is documented.
 
 ### M5 — Single-run app
 
+**Status** Delivered.
+
 **Deliverables**
 - Editor with Lua highlighting, diagnostics, autocomplete and hover
   documentation from the Policy API and `ops`.
@@ -245,6 +261,8 @@ reading the source.
 
 ### M6 — Batch runs and comparison
 
+**Status** Delivered, except parameter sweeps and heatmaps.
+
 **Deliverables**
 - Monte Carlo runner using all available cores.
 - Distributions for every metric across seeds, with confidence intervals.
@@ -262,6 +280,11 @@ baseline breaks down as demand rises.
 ### M7 — Documentation system
 
 Can start alongside M3; content grows with every later stage.
+
+**Status** Delivered, except live widgets and the encyclopedia beyond the
+failure-mode, metric and game mechanics pages. Documentation sections are
+organised as getting started, guides, failure modes, reference and game
+mechanics.
 
 **Deliverables**
 - In-app documentation panel and prerendered public pages under `/docs`.
@@ -308,6 +331,10 @@ label, and scoring a policy twice on different machines and browsers gives the
 same numbers.
 
 ### M9 — Reports, sharing and public alpha
+
+**Status** Public deployment, share links and the getting started guide are
+delivered. Benchmark reports, result cards, verify links and paste repair are
+still to come.
 
 **Deliverables**
 - One-click benchmark run producing:

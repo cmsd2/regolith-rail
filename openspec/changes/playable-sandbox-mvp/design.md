@@ -302,6 +302,25 @@ server and by the link check under both base paths.
 - [Checkpoint memory for long runs] → checkpoint interval is adjustable per run
   length; the starter scenarios are sized to stay small.
 
+## Release check
+
+On 2026-09-13 the full journey was run against the deployed site at
+https://cmsd2.github.io/regolith-rail/ with Playwright:
+
+- First visit opened `two-station` with `naive.lua`.
+- An `ops` policy was typed into the editor and run; the stop inspector showed
+  decision traces and the metrics tab showed weighted unmet demand.
+- A 30-seed batch compared the edited policy with the naive baseline, and the
+  baseline was reported worse on weighted unmet demand.
+- A share link made in Chromium opened in WebKit with the batch view, 30 seeds
+  and the edited policy restored, without running.
+- Searching the documentation for "lookahead" listed `ops.lookahead` first.
+- No page errors or console errors were reported in either browser.
+
+Task 2.6, retuning the starter scenarios to exact game values, was dropped: the
+placeholder values show each failure clearly enough, and exact values are no
+longer a goal.
+
 ## Migration Plan
 
 There is nothing to migrate. First deployment: enable GitHub Pages with the
