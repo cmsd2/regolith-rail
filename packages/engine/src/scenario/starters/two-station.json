@@ -2,9 +2,9 @@
   "format": 1,
   "id": "two-station",
   "title": "Two stations",
-  "description": "One supply station and one demand station with a single shuttle. Balancing moves at most half the stock difference per visit, so demand runs short while the supply station stalls, even though one train could carry enough.",
+  "description": "A mining outpost supplies a dome over a long line with one train. Balancing moves at most half the stock difference per visit, so the dome runs short while the mine's station fills and its extractors stall, even though one train could carry enough.",
   "docs": "failure-modes/half-capacity",
-  "durationMs": 28800000,
+  "durationMs": 864000000,
   "seed": 1,
   "informationLevel": "line",
   "resources": [{ "id": "Metals" }],
@@ -12,8 +12,8 @@
     {
       "id": "Mine",
       "resources": [{ "id": "Metals", "initial": 15000 }],
-      "distanceToNext": 2000,
-      "producers": [{ "resource": "Metals", "rate": 3000 }]
+      "distanceToNext": 72000,
+      "producers": [{ "resource": "Metals", "rate": 45000 }]
     },
     {
       "id": "Dome",
@@ -21,11 +21,20 @@
       "consumers": [
         {
           "resource": "Metals",
-          "rate": 2500,
-          "variability": { "kind": "uniform", "rangePercent": 20 }
+          "rate": 36000,
+          "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
         }
       ]
     }
   ],
-  "trains": [{ "id": "T1", "start": "Mine", "speed": 10, "capacity": { "shared": 30000 } }]
+  "trains": [
+    {
+      "id": "T1",
+      "start": "Mine",
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    }
+  ]
 }

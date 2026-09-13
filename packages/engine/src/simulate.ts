@@ -13,7 +13,13 @@ import {
 } from "./policy.ts";
 import { EventOrder, EventQueue, type Scheduled } from "./queue.ts";
 import { type Random, streamFor } from "./random.ts";
-import type { FlowDef, InformationLevel, Scenario } from "./scenario/schema.ts";
+import {
+  type FlowDef,
+  type InformationLevel,
+  type Scenario,
+  SOL_MS,
+  type WorldEventDef,
+} from "./scenario/schema.ts";
 
 export type Detail = "full" | "summary";
 
@@ -39,8 +45,8 @@ type SimEvent = Scheduled &
     | { kind: "tick" }
     | { kind: "arrival"; train: number; station: number }
     | { kind: "departure"; train: number }
-    | { kind: "storm-check"; storm: number }
-    | { kind: "storm-end"; storm: number }
+    | { kind: "event-check"; world: number }
+    | { kind: "event-end"; world: number }
   );
 
 interface FlowState {
@@ -71,18 +77,29 @@ interface TrainState {
   roundTripMs: number;
 }
 
-interface StormState {
-  id: string;
+interface EffectState {
+  offset: number;
+  duration: number;
   multiplier: number;
-  stations: boolean[];
-  stationIds: string[];
-  start: number;
-  end: number;
-  rng: Random | undefined;
-  schedule: Scenario["events"][number]["schedule"];
 }
 
-const MINUTE_PERMILLE = 60_000;
+interface WorldEventState {
+  id: string;
+  label: string;
+  schedule: WorldEventDef["schedule"];
+  rng: Random | undefined;
+  /** When the current instance ends; checks do not start a new one before then. */
+  end: number;
+  /** Start times of instances whose effects may still be active. */
+  starts: number[];
+  /** Latest time after a start at which any effect can still be active. */
+  reach: number;
+}
+
+/** Rates are per sol, applied every game minute, with multipliers in thousandths. */
+const TICKS_PER_SOL = SOL_MS / TICK_MS;
+const RATE_DIVISOR = TICKS_PER_SOL * 1000;
+const MAX_MULTIPLIER = 1_000_000;
 
 const directionName = (d: 1 | -1): Direction => (d === 1 ? "forward" : "backward");
 
@@ -183,19 +200,39 @@ export function runSimulation(
     };
   });
 
-  // --- Storms ---------------------------------------------------------------
-  const storms: StormState[] = scenario.events.map((event) => {
-    const covered = stations.map((id) => event.stations === "all" || event.stations.includes(id));
-    return {
-      id: event.id,
-      multiplier: event.multiplierPermille,
-      stations: covered,
-      stationIds: stations.filter((_, i) => covered[i]),
-      start: -1,
-      end: -1,
-      rng: event.schedule.kind === "random" ? streamFor(seed, `storm:${event.id}`) : undefined,
-      schedule: event.schedule,
-    };
+  // --- World events -----------------------------------------------------------
+  const worlds: WorldEventState[] = scenario.events.map((event) => ({
+    id: event.id,
+    label: event.label,
+    schedule: event.schedule,
+    rng: event.schedule.kind === "random" ? streamFor(seed, `event:${event.id}`) : undefined,
+    end: 0,
+    starts: [],
+    reach: Math.max(
+      ...event.effects.map((e) => e.startOffsetMs + (e.durationMs ?? event.schedule.durationMs)),
+    ),
+  }));
+  // For each flow, the effects that cover it, so ticks need not search.
+  const flowEffects: { world: number; effect: EffectState }[][] = flows.map((flow) => {
+    const covering: { world: number; effect: EffectState }[] = [];
+    const stationId = stations[flow.station] as string;
+    const resourceId = resources[flow.resource] as string;
+    scenario.events.forEach((event, w) => {
+      for (const effect of event.effects) {
+        if ((effect.type === "demand") !== flow.consumer) continue;
+        if (effect.stations !== "all" && !effect.stations.includes(stationId)) continue;
+        if (effect.resources !== "all" && !effect.resources.includes(resourceId)) continue;
+        covering.push({
+          world: w,
+          effect: {
+            offset: effect.startOffsetMs,
+            duration: effect.durationMs ?? event.schedule.durationMs,
+            multiplier: effect.multiplierPermille,
+          },
+        });
+      }
+    });
+    return covering;
   });
 
   // --- Output ---------------------------------------------------------------
@@ -505,13 +542,10 @@ export function runSimulation(
     });
   };
 
-  const stormActive = (storm: StormState, tickStart: number) =>
-    tickStart >= storm.start && tickStart < storm.end;
-
   const handleTick = (event: Extract<SimEvent, { kind: "tick" }>) => {
     const t = event.time;
     const tickStart = t - TICK_MS;
-    for (const flow of flows) {
+    flows.forEach((flow, f) => {
       const variability = flow.def.variability;
       if (variability.kind === "uniform") {
         if (tickStart >= flow.periodEnd) {
@@ -529,17 +563,21 @@ export function runSimulation(
       }
 
       let multiplier = 1000;
-      if (!flow.consumer) {
-        for (const storm of storms) {
-          if (storm.stations[flow.station] && stormActive(storm, tickStart)) {
-            multiplier = Math.min(multiplier, storm.multiplier);
+      for (const { world, effect } of flowEffects[f] as { world: number; effect: EffectState }[]) {
+        for (const start of (worlds[world] as WorldEventState).starts) {
+          const from = start + effect.offset;
+          if (tickStart >= from && tickStart < from + effect.duration) {
+            multiplier = Math.min(
+              MAX_MULTIPLIER,
+              Math.floor((multiplier * effect.multiplier) / 1000),
+            );
           }
         }
       }
       flow.accumulator += flow.effective * multiplier;
-      const amount = Math.floor(flow.accumulator / MINUTE_PERMILLE);
-      flow.accumulator -= amount * MINUTE_PERMILLE;
-      if (amount === 0) continue;
+      const amount = Math.floor(flow.accumulator / RATE_DIVISOR);
+      flow.accumulator -= amount * RATE_DIVISOR;
+      if (amount === 0) return;
       flowTotals[flow.name] = (flowTotals[flow.name] as number) + amount;
 
       const site = flow.site;
@@ -562,41 +600,43 @@ export function runSimulation(
         metrics.stalledProduction += amount - added;
         perResource.stalled += amount - added;
       }
-    }
+    });
     if (t + TICK_MS <= duration)
       queue.push({ kind: "tick", time: t + TICK_MS, order: EventOrder.tick, entity: 0 });
   };
 
-  const handleStormCheck = (event: Extract<SimEvent, { kind: "storm-check" }>) => {
+  const handleEventCheck = (event: Extract<SimEvent, { kind: "event-check" }>) => {
     const t = event.time;
-    const storm = storms[event.storm] as StormState;
-    const schedule = storm.schedule;
+    const world = worlds[event.world] as WorldEventState;
+    const schedule = world.schedule;
     let starts = false;
     if (schedule.kind === "fixed") {
       starts = true;
     } else {
-      if (t >= storm.end) starts = (storm.rng as Random).chancePpm(schedule.probabilityPpm);
+      if (t >= world.end) starts = (world.rng as Random).chancePpm(schedule.probabilityPpm);
       const next = t + schedule.checkIntervalMs;
-      if (next < duration)
+      if (next < duration) {
         queue.push({
-          kind: "storm-check",
+          kind: "event-check",
           time: next,
-          order: EventOrder.stormCheck,
-          entity: event.storm,
-          storm: event.storm,
+          order: EventOrder.eventCheck,
+          entity: event.world,
+          world: event.world,
         });
+      }
     }
     if (!starts) return;
-    storm.start = t;
-    storm.end = t + schedule.durationMs;
-    events.push({ t, kind: "storm-start", storm: storm.id, stations: storm.stationIds });
-    if (storm.end <= duration) {
+    world.starts = world.starts.filter((start) => start + world.reach > t);
+    world.starts.push(t);
+    world.end = t + schedule.durationMs;
+    events.push({ t, kind: "event-start", event: world.id, label: world.label });
+    if (world.end <= duration) {
       queue.push({
-        kind: "storm-end",
-        time: storm.end,
-        order: EventOrder.stormCheck,
-        entity: event.storm,
-        storm: event.storm,
+        kind: "event-end",
+        time: world.end,
+        order: EventOrder.eventCheck,
+        entity: event.world,
+        world: event.world,
       });
     }
   };
@@ -620,9 +660,9 @@ export function runSimulation(
   const aborted = startOutcome.error?.kind === "load";
 
   if (!aborted) {
-    storms.forEach((storm, i) => {
-      const time = storm.schedule.kind === "fixed" ? storm.schedule.startMs : 0;
-      queue.push({ kind: "storm-check", time, order: EventOrder.stormCheck, entity: i, storm: i });
+    worlds.forEach((world, i) => {
+      const time = world.schedule.kind === "fixed" ? world.schedule.startMs : 0;
+      queue.push({ kind: "event-check", time, order: EventOrder.eventCheck, entity: i, world: i });
     });
     if (duration >= TICK_MS)
       queue.push({ kind: "tick", time: TICK_MS, order: EventOrder.tick, entity: 0 });
@@ -654,17 +694,12 @@ export function runSimulation(
         case "departure":
           handleDeparture(event);
           break;
-        case "storm-check":
-          handleStormCheck(event);
+        case "event-check":
+          handleEventCheck(event);
           break;
-        case "storm-end": {
-          const storm = storms[event.storm] as StormState;
-          events.push({
-            t: event.time,
-            kind: "storm-end",
-            storm: storm.id,
-            stations: storm.stationIds,
-          });
+        case "event-end": {
+          const world = worlds[event.world] as WorldEventState;
+          events.push({ t: event.time, kind: "event-end", event: world.id, label: world.label });
           break;
         }
       }

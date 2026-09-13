@@ -1,6 +1,7 @@
 import type { Direction, PolicyErrorKind, Trace } from "./policy.ts";
 
-export const TICK_MS = 1000;
+/** One game minute: production and consumption are applied once per tick. */
+export const TICK_MS = 60_000;
 
 interface At {
   /** Game time in milliseconds. */
@@ -43,7 +44,7 @@ export type RunEvent =
       message: string;
       line?: number;
     })
-  | (At & { kind: "storm-start" | "storm-end"; storm: string; stations: string[] });
+  | (At & { kind: "event-start" | "event-end"; event: string; label: string });
 
 export interface ResourceMetrics {
   unmet: number;

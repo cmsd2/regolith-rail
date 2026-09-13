@@ -25,7 +25,7 @@
     "durationMs": {
       "type": "integer",
       "exclusiveMinimum": 0,
-      "maximum": 1000000000
+      "maximum": 8640000000
     },
     "seed": {
       "type": "integer",
@@ -37,10 +37,10 @@
       "enum": ["local", "line", "line+history", "colony"]
     },
     "sampleIntervalMs": {
-      "default": 60000,
+      "default": 3600000,
       "type": "integer",
       "exclusiveMinimum": 0,
-      "maximum": 1000000000
+      "maximum": 8640000000
     },
     "resources": {
       "minItems": 1,
@@ -148,10 +148,10 @@
                           "maximum": 100
                         },
                         "periodMs": {
-                          "default": 60000,
+                          "default": 3600000,
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 1000000000
+                          "maximum": 8640000000
                         }
                       },
                       "required": ["kind", "rangePercent"],
@@ -233,10 +233,10 @@
                           "maximum": 100
                         },
                         "periodMs": {
-                          "default": 60000,
+                          "default": 3600000,
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 1000000000
+                          "maximum": 8640000000
                         }
                       },
                       "required": ["kind", "rangePercent"],
@@ -361,34 +361,13 @@
       "items": {
         "type": "object",
         "properties": {
-          "kind": {
-            "type": "string",
-            "const": "storm"
-          },
           "id": {
             "type": "string",
             "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
           },
-          "stations": {
-            "anyOf": [
-              {
-                "type": "string",
-                "const": "all"
-              },
-              {
-                "minItems": 1,
-                "type": "array",
-                "items": {
-                  "type": "string",
-                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
-                }
-              }
-            ]
-          },
-          "multiplierPermille": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 1000
+          "label": {
+            "type": "string",
+            "minLength": 1
           },
           "schedule": {
             "oneOf": [
@@ -402,12 +381,12 @@
                   "startMs": {
                     "type": "integer",
                     "minimum": 0,
-                    "maximum": 1000000000
+                    "maximum": 8640000000
                   },
                   "durationMs": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
-                    "maximum": 1000000000
+                    "maximum": 8640000000
                   }
                 },
                 "required": ["kind", "startMs", "durationMs"],
@@ -428,21 +407,84 @@
                   "checkIntervalMs": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
-                    "maximum": 1000000000
+                    "maximum": 8640000000
                   },
                   "durationMs": {
                     "type": "integer",
                     "exclusiveMinimum": 0,
-                    "maximum": 1000000000
+                    "maximum": 8640000000
                   }
                 },
                 "required": ["kind", "probabilityPpm", "checkIntervalMs", "durationMs"],
                 "additionalProperties": false
               }
             ]
+          },
+          "effects": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": ["supply", "demand"]
+                },
+                "stations": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "const": "all"
+                    },
+                    {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                      }
+                    }
+                  ]
+                },
+                "resources": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "const": "all"
+                    },
+                    {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                      }
+                    }
+                  ]
+                },
+                "multiplierPermille": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 100000
+                },
+                "startOffsetMs": {
+                  "default": 0,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 8640000000
+                },
+                "durationMs": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 8640000000
+                }
+              },
+              "required": ["type", "stations", "resources", "multiplierPermille"],
+              "additionalProperties": false
+            }
           }
         },
-        "required": ["kind", "id", "stations", "multiplierPermille", "schedule"],
+        "required": ["id", "label", "schedule", "effects"],
         "additionalProperties": false
       }
     }

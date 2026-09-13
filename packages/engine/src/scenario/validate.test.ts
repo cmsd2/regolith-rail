@@ -15,7 +15,7 @@ describe("scenario document", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const { scenario } = result;
-    expect(scenario.sampleIntervalMs).toBe(60_000);
+    expect(scenario.sampleIntervalMs).toBe(3_600_000);
     expect(scenario.events).toEqual([]);
     expect(scenario.resources[0]?.priority).toBe(1);
     expect(scenario.trains[0]?.direction).toBe("forward");
@@ -130,16 +130,51 @@ describe("validation errors", () => {
     input.resources.push({ id: "Metals" });
     input.events = [
       {
-        kind: "storm",
         id: "s",
-        stations: ["Q"],
-        multiplierPermille: 0,
-        schedule: { kind: "fixed", startMs: 0, durationMs: 1000 },
+        label: "Storm",
+        schedule: { kind: "fixed", startMs: 0, durationMs: 60_000 },
+        effects: [{ type: "supply", stations: ["Q"], resources: "all", multiplierPermille: 0 }],
       },
     ];
     const paths = errorsOf(input).map((e) => e.path);
     expect(paths).toContain("resources[1].id");
-    expect(paths).toContain("events[0].stations[0]");
+    expect(paths).toContain("events[0].effects[0].stations[0]");
+  });
+
+  it("names an unknown resource in an effect", () => {
+    const input = minimalScenario();
+    input.events = [
+      {
+        id: "maintenance",
+        label: "Maintenance",
+        schedule: { kind: "fixed", startMs: 0, durationMs: 60_000 },
+        effects: [
+          {
+            type: "demand",
+            stations: "all",
+            resources: ["MachineParts"],
+            multiplierPermille: 3000,
+          },
+        ],
+      },
+    ];
+    expect(errorsOf(input)).toContainEqual({
+      path: "events[0].effects[0].resources[0]",
+      message: "unknown resource MachineParts",
+    });
+  });
+
+  it("requires every event to have at least one effect", () => {
+    const input = minimalScenario();
+    input.events = [
+      {
+        id: "quiet",
+        label: "Quiet",
+        schedule: { kind: "fixed", startMs: 0, durationMs: 60_000 },
+        effects: [],
+      },
+    ];
+    expect(errorsOf(input).map((e) => e.path)).toContain("events[0].effects");
   });
 
   it("rejects non-integer quantities", () => {

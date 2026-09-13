@@ -2,50 +2,59 @@
   "format": 1,
   "id": "two-trains",
   "title": "Two trains",
-  "description": "Two trains share a line with one supply and two demand stations. Without knowing what the other train is carrying, both respond to the same shortage and oversupply one station while the other waits.",
+  "description": "Two trains share a line from a mine to a factory and a dome. Without knowing what the other train is carrying, both respond to the same shortage, oversupplying one station while the other waits.",
   "docs": "failure-modes/double-dispatch",
-  "durationMs": 28800000,
+  "durationMs": 864000000,
   "seed": 1,
   "informationLevel": "line",
   "resources": [{ "id": "Metals" }],
   "stations": [
     {
       "id": "Mine",
-      "resources": [{ "id": "Metals", "initial": 20000 }],
-      "distanceToNext": 1200,
-      "producers": [{ "resource": "Metals", "rate": 5000 }]
+      "resources": [{ "id": "Metals", "capacity": 60000, "initial": 30000 }],
+      "distanceToNext": 30000,
+      "producers": [{ "resource": "Metals", "rate": 80000 }]
     },
     {
-      "id": "Works",
-      "resources": [{ "id": "Metals", "initial": 10000 }],
-      "distanceToNext": 1800,
+      "id": "Factory",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "distanceToNext": 42000,
       "consumers": [
         {
           "resource": "Metals",
-          "rate": 1500,
-          "variability": { "kind": "bursts", "onPpm": 20000, "offPpm": 10000 }
+          "rate": 40000,
+          "variability": { "kind": "bursts", "onPpm": 2000, "offPpm": 1000 }
         }
       ]
     },
     {
       "id": "Dome",
-      "resources": [{ "id": "Metals", "initial": 10000 }],
+      "resources": [{ "id": "Metals", "initial": 15000 }],
       "consumers": [
         {
           "resource": "Metals",
-          "rate": 2000,
-          "variability": { "kind": "uniform", "rangePercent": 30 }
+          "rate": 42000,
+          "variability": { "kind": "uniform", "rangePercent": 30, "periodMs": 7200000 }
         }
       ]
     }
   ],
   "trains": [
-    { "id": "T1", "start": "Mine", "speed": 10, "capacity": { "shared": 30000 } },
+    {
+      "id": "T1",
+      "start": "Mine",
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    },
     {
       "id": "T2",
       "start": "Dome",
       "direction": "backward",
-      "speed": 10,
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
       "capacity": { "shared": 30000 }
     }
   ]

@@ -8,13 +8,31 @@ export const UNIT = 1000;
 
 export const DEFAULT_CAPACITY = 30 * UNIT;
 
+/** Game time in milliseconds. */
+export const GAME_MINUTE_MS = 60_000;
+export const GAME_HOUR_MS = 60 * GAME_MINUTE_MS;
+/** A sol is 24 game hours. */
+export const SOL_MS = 24 * GAME_HOUR_MS;
+
 const id = z
   .string()
   .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, "ids start with a letter and use letters, digits, _ or -");
 // Upper bounds keep every intermediate engine value exactly representable.
 const quantity = z.int().nonnegative().max(1_000_000_000);
 const positive = z.int().positive().max(1_000_000_000);
-const wholeSeconds = positive.refine((ms) => ms % 1000 === 0, "must be a whole number of seconds");
+/** Up to 100 sols of game time. */
+const span = z
+  .int()
+  .positive()
+  .max(100 * SOL_MS);
+const offset = z
+  .int()
+  .nonnegative()
+  .max(100 * SOL_MS);
+const wholeMinutes = span.refine(
+  (ms) => ms % GAME_MINUTE_MS === 0,
+  "must be a whole number of game minutes (60000 ms)",
+);
 
 export const Variability = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("fixed") }),
@@ -23,13 +41,13 @@ export const Variability = z.discriminatedUnion("kind", [
     /** Maximum deviation from the base rate, in percent. */
     rangePercent: z.int().min(0).max(100),
     /** How long each sampled rate lasts. */
-    periodMs: positive.default(60_000),
+    periodMs: span.default(GAME_HOUR_MS),
   }),
   z.strictObject({
     kind: z.literal("bursts"),
-    /** Chance per production tick of switching on, in parts per million. */
+    /** Chance per game minute of switching on, in parts per million. */
     onPpm: z.int().min(0).max(1_000_000),
-    /** Chance per production tick of switching off, in parts per million. */
+    /** Chance per game minute of switching off, in parts per million. */
     offPpm: z.int().min(0).max(1_000_000),
     startsOn: z.boolean().default(true),
   }),
@@ -37,7 +55,7 @@ export const Variability = z.discriminatedUnion("kind", [
 
 export const Flow = z.strictObject({
   resource: id,
-  /** Milli-units per minute of game time. */
+  /** Milli-units per sol. */
   rate: quantity,
   variability: Variability.default({ kind: "fixed" }),
 });
@@ -74,24 +92,38 @@ export const Train = z.strictObject({
   capacity: TrainCapacity,
 });
 
-export const StormSchedule = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("fixed"), startMs: quantity, durationMs: positive }),
+export const EventSchedule = z.discriminatedUnion("kind", [
+  z.strictObject({ kind: z.literal("fixed"), startMs: offset, durationMs: span }),
   z.strictObject({
     kind: z.literal("random"),
-    /** Chance of a storm starting at each check, in parts per million. */
+    /** Chance of the event starting at each check while it is not active, in parts per million. */
     probabilityPpm: z.int().min(0).max(1_000_000),
-    checkIntervalMs: positive,
-    durationMs: positive,
+    checkIntervalMs: span,
+    durationMs: span,
   }),
 ]);
 
-export const Storm = z.strictObject({
-  kind: z.literal("storm"),
+const selection = z.union([z.literal("all"), z.array(id).min(1)]);
+
+export const Effect = z.strictObject({
+  /** `supply` scales production; `demand` scales consumption. */
+  type: z.enum(["supply", "demand"]),
+  stations: selection,
+  resources: selection,
+  /** Rate multiplier in thousandths: 0 stops the flow, 1000 leaves it unchanged, 3000 triples it. */
+  multiplierPermille: z.int().min(0).max(100_000),
+  /** When the effect starts, relative to the event's start. */
+  startOffsetMs: offset.default(0),
+  /** How long the effect lasts; defaults to the event's duration. */
+  durationMs: span.optional(),
+});
+
+/** A state of the world, such as a storm, that changes rates while it is active. */
+export const WorldEvent = z.strictObject({
   id,
-  stations: z.union([z.literal("all"), z.array(id).min(1)]),
-  /** Production multiplier during the storm, in thousandths. */
-  multiplierPermille: z.int().min(0).max(1000),
-  schedule: StormSchedule,
+  label: z.string().min(1),
+  schedule: EventSchedule,
+  effects: z.array(Effect).min(1),
 });
 
 export const Resource = z.strictObject({
@@ -110,14 +142,14 @@ export const Scenario = z
     description: z.string().min(1),
     /** Documentation page explaining what the scenario demonstrates. */
     docs: z.string().optional(),
-    durationMs: positive,
+    durationMs: span,
     seed: z.int().nonnegative(),
     informationLevel: z.enum(INFORMATION_LEVELS),
-    sampleIntervalMs: wholeSeconds.default(60_000),
+    sampleIntervalMs: wholeMinutes.default(GAME_HOUR_MS),
     resources: z.array(Resource).min(1),
     stations: z.array(Station),
     trains: z.array(Train).min(1),
-    events: z.array(Storm).default([]),
+    events: z.array(WorldEvent).default([]),
   })
   .superRefine((scenario, ctx) => {
     const issue = (path: (string | number)[], message: string) =>
@@ -212,14 +244,26 @@ export const Scenario = z
       const at = ["events", i];
       if (eventIds.has(event.id)) issue([...at, "id"], `duplicate event id ${event.id}`);
       eventIds.add(event.id);
-      if (event.stations !== "all") {
-        event.stations.forEach((station, j) => {
-          if (!stationIds.has(station)) issue([...at, "stations", j], `unknown station ${station}`);
-        });
-      }
       if (event.schedule.kind === "fixed" && event.schedule.startMs >= scenario.durationMs) {
-        issue([...at, "schedule", "startMs"], "the storm starts after the run ends");
+        issue([...at, "schedule", "startMs"], `event ${event.id} starts after the run ends`);
       }
+      event.effects.forEach((effect, j) => {
+        const where = [...at, "effects", j];
+        if (effect.stations !== "all") {
+          effect.stations.forEach((station, k) => {
+            if (!stationIds.has(station)) {
+              issue([...where, "stations", k], `unknown station ${station}`);
+            }
+          });
+        }
+        if (effect.resources !== "all") {
+          effect.resources.forEach((resource, k) => {
+            if (!resourceIds.has(resource)) {
+              issue([...where, "resources", k], `unknown resource ${resource}`);
+            }
+          });
+        }
+      });
     });
   });
 
@@ -229,5 +273,6 @@ export type StationDef = z.output<typeof Station>;
 export type TrainDef = z.output<typeof Train>;
 export type FlowDef = z.output<typeof Flow>;
 export type VariabilityDef = z.output<typeof Variability>;
-export type StormDef = z.output<typeof Storm>;
+export type WorldEventDef = z.output<typeof WorldEvent>;
+export type EffectDef = z.output<typeof Effect>;
 export type InformationLevel = (typeof SUPPORTED_INFORMATION_LEVELS)[number];

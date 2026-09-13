@@ -2,9 +2,9 @@
   "format": 1,
   "id": "relay",
   "title": "Relay station",
-  "description": "A station with no producers or consumers sits between supply and demand. Balancing fills it to the line average, tying up stock that the demand station needs.",
+  "description": "A junction station with no producers or consumers sits between a mine and a dome. Balancing fills it to the line average, tying up stock the dome needs.",
   "docs": "failure-modes/dead-stock",
-  "durationMs": 28800000,
+  "durationMs": 864000000,
   "seed": 1,
   "informationLevel": "line",
   "resources": [{ "id": "Metals" }],
@@ -12,13 +12,13 @@
     {
       "id": "Mine",
       "resources": [{ "id": "Metals", "initial": 15000 }],
-      "distanceToNext": 1500,
-      "producers": [{ "resource": "Metals", "rate": 3000 }]
+      "distanceToNext": 36000,
+      "producers": [{ "resource": "Metals", "rate": 45000 }]
     },
     {
       "id": "Junction",
       "resources": [{ "id": "Metals" }],
-      "distanceToNext": 1500
+      "distanceToNext": 36000
     },
     {
       "id": "Dome",
@@ -26,11 +26,20 @@
       "consumers": [
         {
           "resource": "Metals",
-          "rate": 2000,
-          "variability": { "kind": "uniform", "rangePercent": 20 }
+          "rate": 34000,
+          "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
         }
       ]
     }
   ],
-  "trains": [{ "id": "T1", "start": "Mine", "speed": 10, "capacity": { "shared": 30000 } }]
+  "trains": [
+    {
+      "id": "T1",
+      "start": "Mine",
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    }
+  ]
 }

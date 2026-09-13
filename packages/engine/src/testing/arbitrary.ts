@@ -5,13 +5,14 @@ import type { ScenarioInput } from "../scenario/schema.ts";
 import { scriptedPolicy } from "./policies.ts";
 
 const RESOURCE_NAMES = ["Metals", "Food", "Polymers"];
+const HOUR = 3_600_000;
 
 const variability = fc.oneof(
   fc.constant({ kind: "fixed" as const }),
   fc.record({
     kind: fc.constant("uniform" as const),
     rangePercent: fc.integer({ min: 0, max: 100 }),
-    periodMs: fc.integer({ min: 1, max: 300 }).map((s) => s * 1000),
+    periodMs: fc.integer({ min: 1, max: 12 }).map((h) => h * HOUR),
   }),
   fc.record({
     kind: fc.constant("bursts" as const),
@@ -21,16 +22,17 @@ const variability = fc.oneof(
   }),
 );
 
-/** Valid scenarios with small lines, varied flows, trains and storms. */
+/** Valid scenarios with small lines, varied flows, trains and world events. */
 export const arbitraryScenario: fc.Arbitrary<ScenarioInput> = fc
   .record({
     resourceCount: fc.integer({ min: 1, max: 3 }),
     stationCount: fc.integer({ min: 2, max: 4 }),
     trainCount: fc.integer({ min: 1, max: 3 }),
+    eventCount: fc.integer({ min: 0, max: 2 }),
     seed: fc.nat(),
-    durationMinutes: fc.integer({ min: 5, max: 40 }),
+    durationHours: fc.integer({ min: 1, max: 12 }),
   })
-  .chain(({ resourceCount, stationCount, trainCount, seed, durationMinutes }) => {
+  .chain(({ resourceCount, stationCount, trainCount, eventCount, seed, durationHours }) => {
     const resources = RESOURCE_NAMES.slice(0, resourceCount);
     const station = (i: number) =>
       fc
@@ -39,12 +41,18 @@ export const arbitraryScenario: fc.Arbitrary<ScenarioInput> = fc
           distance: fc.integer({ min: 50, max: 3000 }),
           capacity: fc.integer({ min: 0, max: 60_000 }),
           fill: fc.integer({ min: 0, max: 100 }),
-          producers: fc.array(fc.record({ rate: fc.integer({ min: 0, max: 8000 }), variability }), {
-            maxLength: 2,
-          }),
-          consumers: fc.array(fc.record({ rate: fc.integer({ min: 0, max: 8000 }), variability }), {
-            maxLength: 2,
-          }),
+          producers: fc.array(
+            fc.record({ rate: fc.integer({ min: 0, max: 400_000 }), variability }),
+            {
+              maxLength: 2,
+            },
+          ),
+          consumers: fc.array(
+            fc.record({ rate: fc.integer({ min: 0, max: 400_000 }), variability }),
+            {
+              maxLength: 2,
+            },
+          ),
           pick: fc.nat(),
         })
         .map((s) => {
@@ -95,37 +103,54 @@ export const arbitraryScenario: fc.Arbitrary<ScenarioInput> = fc
                 ),
               },
         }));
-    const storm = fc
-      .record({
-        random: fc.boolean(),
-        startMinute: fc.integer({ min: 0, max: durationMinutes - 1 }),
-        lengthMinutes: fc.integer({ min: 1, max: 20 }),
-        multiplierPermille: fc.integer({ min: 0, max: 1000 }),
-        probabilityPpm: fc.integer({ min: 0, max: 1_000_000 }),
-      })
-      .map((s) => ({
-        kind: "storm" as const,
-        id: "storm",
-        stations: "all" as const,
-        multiplierPermille: s.multiplierPermille,
-        schedule: s.random
-          ? {
-              kind: "random" as const,
-              probabilityPpm: s.probabilityPpm,
-              checkIntervalMs: 5 * 60_000,
-              durationMs: s.lengthMinutes * 60_000,
-            }
-          : {
-              kind: "fixed" as const,
-              startMs: s.startMinute * 60_000,
-              durationMs: s.lengthMinutes * 60_000,
-            },
-      }));
+    const selection = (ids: string[]) =>
+      fc.oneof(fc.constant("all" as const), fc.subarray(ids, { minLength: 1 }));
+    const effect = fc.record({
+      type: fc.constantFrom("supply" as const, "demand" as const),
+      stations: selection(Array.from({ length: stationCount }, (_, i) => `S${i}`)),
+      resources: selection(resources),
+      multiplierPermille: fc.integer({ min: 0, max: 5000 }),
+      startOffsetMs: fc.integer({ min: 0, max: 4 }).map((h) => h * HOUR),
+      durationMs: fc.option(
+        fc.integer({ min: 1, max: 12 }).map((h) => h * HOUR),
+        {
+          nil: undefined,
+        },
+      ),
+    });
+    const worldEvent = (i: number) =>
+      fc
+        .record({
+          random: fc.boolean(),
+          startHour: fc.integer({ min: 0, max: durationHours - 1 }),
+          lengthHours: fc.integer({ min: 1, max: 8 }),
+          probabilityPpm: fc.integer({ min: 0, max: 1_000_000 }),
+          effects: fc.array(effect, { minLength: 1, maxLength: 3 }),
+        })
+        .map((e) => ({
+          id: `E${i}`,
+          label: `Event ${i}`,
+          effects: e.effects.map(({ durationMs, ...rest }) =>
+            durationMs === undefined ? rest : { ...rest, durationMs },
+          ),
+          schedule: e.random
+            ? {
+                kind: "random" as const,
+                probabilityPpm: e.probabilityPpm,
+                checkIntervalMs: 2 * HOUR,
+                durationMs: e.lengthHours * HOUR,
+              }
+            : {
+                kind: "fixed" as const,
+                startMs: e.startHour * HOUR,
+                durationMs: e.lengthHours * HOUR,
+              },
+        }));
     return fc
       .record({
         stations: fc.tuple(...Array.from({ length: stationCount }, (_, i) => station(i))),
         trains: fc.tuple(...Array.from({ length: trainCount }, (_, i) => train(i))),
-        events: fc.array(storm, { maxLength: 1 }),
+        events: fc.tuple(...Array.from({ length: eventCount }, (_, i) => worldEvent(i))),
       })
       .map(
         ({ stations, trains, events }): ScenarioInput => ({
@@ -133,7 +158,7 @@ export const arbitraryScenario: fc.Arbitrary<ScenarioInput> = fc
           id: "generated",
           title: "Generated",
           description: "Generated by a property test.",
-          durationMs: durationMinutes * 60_000,
+          durationMs: durationHours * HOUR,
           seed,
           informationLevel: "line",
           resources: resources.map((id, k) => ({ id, priority: k + 1 })),

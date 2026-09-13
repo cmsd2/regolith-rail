@@ -1,6 +1,6 @@
 /** Kinds of scheduled event, in the order they are handled at the same time. */
 export const EventOrder = {
-  stormCheck: 0,
+  eventCheck: 0,
   tick: 1,
   departure: 2,
   arrival: 3,
