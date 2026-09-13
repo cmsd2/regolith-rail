@@ -1,0 +1,465 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "format": {
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "docs": {
+      "type": "string"
+    },
+    "durationMs": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 1000000000
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "informationLevel": {
+      "type": "string",
+      "enum": ["local", "line", "line+history", "colony"]
+    },
+    "sampleIntervalMs": {
+      "default": 60000,
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 1000000000
+    },
+    "resources": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "priority": {
+            "default": 1,
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000000000
+          }
+        },
+        "required": ["id"],
+        "additionalProperties": false
+      }
+    },
+    "stations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "resources": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "capacity": {
+                  "default": 30000,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                },
+                "initial": {
+                  "default": 0,
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                }
+              },
+              "required": ["id"],
+              "additionalProperties": false
+            }
+          },
+          "distanceToNext": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000000000
+          },
+          "producers": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "rate": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                },
+                "variability": {
+                  "default": {
+                    "kind": "fixed"
+                  },
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "fixed"
+                        }
+                      },
+                      "required": ["kind"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "uniform"
+                        },
+                        "rangePercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "periodMs": {
+                          "default": 60000,
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 1000000000
+                        }
+                      },
+                      "required": ["kind", "rangePercent"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "bursts"
+                        },
+                        "onPpm": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "offPpm": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "startsOn": {
+                          "default": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["kind", "onPpm", "offPpm"],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": ["resource", "rate"],
+              "additionalProperties": false
+            }
+          },
+          "consumers": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resource": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "rate": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                },
+                "variability": {
+                  "default": {
+                    "kind": "fixed"
+                  },
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "fixed"
+                        }
+                      },
+                      "required": ["kind"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "uniform"
+                        },
+                        "rangePercent": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "periodMs": {
+                          "default": 60000,
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 1000000000
+                        }
+                      },
+                      "required": ["kind", "rangePercent"],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "bursts"
+                        },
+                        "onPpm": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "offPpm": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 1000000
+                        },
+                        "startsOn": {
+                          "default": true,
+                          "type": "boolean"
+                        }
+                      },
+                      "required": ["kind", "onPpm", "offPpm"],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": ["resource", "rate"],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": ["id", "resources"],
+        "additionalProperties": false
+      }
+    },
+    "trains": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "direction": {
+            "default": "forward",
+            "type": "string",
+            "enum": ["forward", "backward"]
+          },
+          "speed": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000000000
+          },
+          "dwellMs": {
+            "default": 10000,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "dwellPerUnitMs": {
+            "default": 1000,
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000000
+          },
+          "capacity": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "shared": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  }
+                },
+                "required": ["shared"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "perResource": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                    },
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000000
+                    }
+                  }
+                },
+                "required": ["perResource"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": ["id", "start", "speed", "capacity"],
+        "additionalProperties": false
+      }
+    },
+    "events": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "const": "storm"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+          },
+          "stations": {
+            "anyOf": [
+              {
+                "type": "string",
+                "const": "all"
+              },
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                }
+              }
+            ]
+          },
+          "multiplierPermille": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "schedule": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "fixed"
+                  },
+                  "startMs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "durationMs": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000000
+                  }
+                },
+                "required": ["kind", "startMs", "durationMs"],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "random"
+                  },
+                  "probabilityPpm": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  },
+                  "checkIntervalMs": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "durationMs": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000000000
+                  }
+                },
+                "required": ["kind", "probabilityPpm", "checkIntervalMs", "durationMs"],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": ["kind", "id", "stations", "multiplierPermille", "schedule"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "format",
+    "id",
+    "title",
+    "description",
+    "durationMs",
+    "seed",
+    "informationLevel",
+    "resources",
+    "stations",
+    "trains"
+  ],
+  "additionalProperties": false,
+  "$id": "https://cmsd2.github.io/regolith-rail/schema/scenario.schema.json",
+  "title": "Regolith Rail scenario"
+}

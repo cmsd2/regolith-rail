@@ -1,0 +1,25 @@
+import { describe, expect, it } from "vitest";
+import { starterScenarios } from "./starters.ts";
+import { validateScenario } from "./validate.ts";
+
+describe("starter scenarios", () => {
+  it("are the five documented scenarios", () => {
+    expect(starterScenarios.map((s) => s.id)).toEqual([
+      "two-station",
+      "relay",
+      "two-trains",
+      "mixed-line",
+      "storm-shock",
+    ]);
+  });
+
+  for (const starter of starterScenarios) {
+    it(`${starter.id} passes validation and links to its documentation`, () => {
+      const result = validateScenario(starter.document);
+      expect(result.ok ? [] : result.errors).toEqual([]);
+      if (!result.ok) return;
+      expect(result.scenario.id).toBe(starter.id);
+      expect(result.scenario.docs).toMatch(/^failure-modes\//);
+    });
+  }
+});

@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "id": "two-station",
+  "title": "Two stations",
+  "description": "One supply station and one demand station with a single shuttle. Balancing moves at most half the stock difference per visit, so demand runs short while the supply station stalls, even though one train could carry enough.",
+  "docs": "failure-modes/half-capacity",
+  "durationMs": 28800000,
+  "seed": 1,
+  "informationLevel": "line",
+  "resources": [{ "id": "Metals" }],
+  "stations": [
+    {
+      "id": "Mine",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "distanceToNext": 2000,
+      "producers": [{ "resource": "Metals", "rate": 3000 }]
+    },
+    {
+      "id": "Dome",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "consumers": [
+        {
+          "resource": "Metals",
+          "rate": 2500,
+          "variability": { "kind": "uniform", "rangePercent": 20 }
+        }
+      ]
+    }
+  ],
+  "trains": [{ "id": "T1", "start": "Mine", "speed": 10, "capacity": { "shared": 30000 } }]
+}

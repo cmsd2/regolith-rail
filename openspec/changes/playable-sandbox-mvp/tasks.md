@@ -1,30 +1,30 @@
 ## 1. Workspace and CI foundations
 
-- [ ] 1.1 Create the pnpm workspace with `engine`, `policy-api`, `lua-runtime`, `cli`, `app` and `docs` packages, strict TypeScript configs (no DOM types in `engine` and `lua-runtime`), and verify `pnpm install` and `pnpm -r typecheck` succeed on a clean checkout
-- [ ] 1.2 Add Biome lint and format with a rule banning `Math.random`, `Date`, `Math.exp`, `Math.log`, `Math.pow` and trigonometric functions in `engine`, and verify a deliberate violation fails `pnpm lint`
-- [ ] 1.3 Add Vitest and fast-check to the workspace and verify an empty test suite passes with `pnpm test`
-- [ ] 1.4 Add `.gitattributes` for LF line endings and `.editorconfig`, and verify `git add --renormalize .` produces no changes afterwards
+- [x] 1.1 Create the pnpm workspace with `engine`, `policy-api`, `lua-runtime`, `cli`, `app` and `docs` packages, strict TypeScript configs (no DOM types in `engine` and `lua-runtime`), and verify `pnpm install` and `pnpm -r typecheck` succeed on a clean checkout
+- [x] 1.2 Add Biome lint and format with a rule banning `Math.random`, `Date`, `Math.exp`, `Math.log`, `Math.pow` and trigonometric functions in `engine`, and verify a deliberate violation fails `pnpm lint`
+- [x] 1.3 Add Vitest and fast-check to the workspace and verify an empty test suite passes with `pnpm test`
+- [x] 1.4 Add `.gitattributes` for LF line endings and `.editorconfig`, and verify `git add --renormalize .` produces no changes afterwards
 - [ ] 1.5 Replace the CI workflow with lint, type-check and test jobs on pushes and pull requests, and verify all jobs pass on a pull request
 
 ## 2. Scenario format
 
-- [ ] 2.1 Define the scenario schema covering document fields, line topology, trains, producers and consumers, events, information level and defaults, and verify the minimal valid scenario and default capacity tests pass
-- [ ] 2.2 Implement validation errors for unknown fields, duplicate ids, unknown references, invalid quantities, unsupported levels and format versions, all reported together with document paths, and verify each error case has a passing test
-- [ ] 2.3 Generate and publish the JSON Schema from the scenario definition, and verify every test scenario that passes validation also validates against the published schema
-- [ ] 2.4 Write the five starter scenarios with descriptions and documentation slugs, and verify they all pass validation
+- [x] 2.1 Define the scenario schema covering document fields, line topology, trains, producers and consumers, events, information level and defaults, and verify the minimal valid scenario and default capacity tests pass
+- [x] 2.2 Implement validation errors for unknown fields, duplicate ids, unknown references, invalid quantities, unsupported levels and format versions, all reported together with document paths, and verify each error case has a passing test
+- [x] 2.3 Generate and publish the JSON Schema from the scenario definition, and verify every test scenario that passes validation also validates against the published schema
+- [x] 2.4 Write the five starter scenarios with descriptions and documentation slugs, and verify they all pass validation
 
 ## 3. Simulation engine
 
-- [ ] 3.1 Implement the xoshiro128** generator, stream seeding by name hash, integer uniform and burst distributions, and batch seed derivation, and verify output matches recorded reference values
-- [ ] 3.2 Implement the event queue with deterministic tie-breaking and the one-second production and consumption tick with integer remainders, and verify rates below one milli-unit per tick are exact over a long run
-- [ ] 3.3 Implement train movement, reversal at terminals, travel time and dwell time, with trains not blocking one another, and verify the reversal and dwell scenarios pass
-- [ ] 3.4 Implement production, consumption, stalled production and unmet demand, and verify the full and empty station scenarios pass
-- [ ] 3.5 Implement storm events, scheduled and random, and verify the scheduled storm scenario passes
-- [ ] 3.6 Implement the policy interface, ordered action application, clamping with warnings, unknown-resource warnings and policy failure handling, and verify the stops, actions and failure scenarios pass
-- [ ] 3.7 Implement the TypeScript reference naive policy, and verify it runs every starter scenario to completion
-- [ ] 3.8 Implement columnar run output: event log, sampled time series, string table and checkpoints, and verify state at arbitrary times rebuilt from output equals state captured during the run
-- [ ] 3.9 Implement the metrics, and verify the oscillation and priority-weighting scenarios pass
-- [ ] 3.10 Add property tests for conservation, stock and cargo bounds, repeatability and stream independence over generated scenarios and random policies, and verify they pass with at least 500 cases each
+- [x] 3.1 Implement the xoshiro128** generator, stream seeding by name hash, integer uniform and burst distributions, and batch seed derivation, and verify output matches recorded reference values
+- [x] 3.2 Implement the event queue with deterministic tie-breaking and the one-second production and consumption tick with integer remainders, and verify rates below one milli-unit per tick are exact over a long run
+- [x] 3.3 Implement train movement, reversal at terminals, travel time and dwell time, with trains not blocking one another, and verify the reversal and dwell scenarios pass
+- [x] 3.4 Implement production, consumption, stalled production and unmet demand, and verify the full and empty station scenarios pass
+- [x] 3.5 Implement storm events, scheduled and random, and verify the scheduled storm scenario passes
+- [x] 3.6 Implement the policy interface, ordered action application, clamping with warnings, unknown-resource warnings and policy failure handling, and verify the stops, actions and failure scenarios pass
+- [x] 3.7 Implement the TypeScript reference naive policy, and verify it runs every starter scenario to completion
+- [x] 3.8 Implement columnar run output: event log, sampled time series, string table and checkpoints, and verify state at arbitrary times rebuilt from output equals state captured during the run
+- [x] 3.9 Implement the metrics, and verify the oscillation and priority-weighting scenarios pass
+- [x] 3.10 Add property tests for conservation, stock and cargo bounds, repeatability and stream independence over generated scenarios and random policies, and verify they pass with at least 500 cases each
 
 ## 4. Command-line runner and determinism tests
 
