@@ -124,11 +124,11 @@
 
 ## 15. Static build and deployment
 
-- [ ] 15.1 Produce the static build with content-hashed assets, prerendered documentation pages and `404.html`, and verify it works from an unconfigured static file server in Playwright
-- [ ] 15.2 Verify the application makes no third-party requests during a run, batch and search by asserting on request origins in Playwright
-- [ ] 15.3 Verify runs and batches work without cross-origin isolation headers in Playwright
+- [x] 15.1 Produce the static build with content-hashed assets, prerendered documentation pages and `404.html`, and verify it works from an unconfigured static file server in Playwright
+- [x] 15.2 Verify the application makes no third-party requests during a run, batch and search by asserting on request origins in Playwright
+- [x] 15.3 Verify runs and batches work without cross-origin isolation headers in Playwright
 - [ ] 15.4 Add the documentation check, build and Playwright determinism jobs to CI, and a deploy job to GitHub Pages on `main` gated on all jobs with a manual redeploy-by-ref trigger, and verify a pull request builds without deploying
-- [ ] 15.5 Write the S3 and CloudFront deployment guide, and verify it by deploying a root-base-path build to a test bucket or recording why this was deferred
+- [x] 15.5 Write the S3 and CloudFront deployment guide, and verify it by deploying a root-base-path build to a test bucket or recording why this was deferred
 - [ ] 15.6 Resolve repository visibility or plan for GitHub Pages, enable Pages with the Actions source, and verify the first deployment is live at the Pages URL
 
 ## 16. Release check

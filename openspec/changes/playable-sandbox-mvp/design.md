@@ -268,7 +268,15 @@ The Pages build uses base path `/regolith-rail/`.
 S3 deployment is documentation only in this change: an `aws s3 sync` sequence
 that uploads hashed assets with long-lived cache headers and HTML with
 no-cache, sets `application/wasm` for WebAssembly, and configures `404.html` as
-the error document or CloudFront custom error response.
+the error document or CloudFront custom error response. The guide is in
+`docs/deploy-s3.md`. A private bucket behind CloudFront also needs a small
+viewer-request function to serve `index.html` for documentation folders, which
+an S3 website endpoint would otherwise provide.
+
+Verifying the guide against a real bucket is deferred: there is no AWS account
+set up for the project, and GitHub Pages hosts the first release. The
+host-independent parts are covered by Playwright tests against a plain static
+server and by the link check under both base paths.
 
 ## Risks / Trade-offs
 
