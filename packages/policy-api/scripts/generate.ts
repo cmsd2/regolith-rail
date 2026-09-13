@@ -2,11 +2,13 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
-import { generatedFiles } from "../src/generate.ts";
+import { generatedFiles, LUA_SOURCE_DIRECTORIES } from "../src/generate.ts";
+import { readLuaSources } from "./lua-sources.ts";
 
 const root = new URL("../../../", import.meta.url);
+const policies = readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.policies}/`, root));
 const written: string[] = [];
-for (const [path, text] of Object.entries(generatedFiles())) {
+for (const [path, text] of Object.entries(generatedFiles(policies))) {
   const target = new URL(path, root);
   mkdirSync(new URL(".", target), { recursive: true });
   writeFileSync(target, text);

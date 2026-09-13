@@ -199,6 +199,12 @@ importers:
       '@regolith-rail/engine':
         specifier: workspace:*
         version: link:../engine
+      '@regolith-rail/lua-runtime':
+        specifier: workspace:*
+        version: link:../lua-runtime
+      '@regolith-rail/policy-api':
+        specifier: workspace:*
+        version: link:../policy-api
     devDependencies:
       '@types/node':
         specifier: ^24.13.4
@@ -241,6 +247,9 @@ importers:
         specifier: 1.16.0
         version: 1.16.0
     devDependencies:
+      '@regolith-rail/policy-api':
+        specifier: workspace:*
+        version: link:../policy-api
       '@types/luaparse':
         specifier: 0.2.13
         version: 0.2.13

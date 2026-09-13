@@ -1,7 +1,8 @@
 /**
  * Lua 5.4 code that runs before any policy in a fresh Lua state. It builds
  * the sandbox, wraps snapshots in read-only tables, enforces the instruction
- * budget and memory rules, and exchanges data with the host as JSON.
+ * budget and memory rules, and exchanges data with the host: snapshots
+ * arrive as Lua table constructors and outcomes leave as JSON.
  *
  * The host sets `__rr_host_rand`, `__rr_host_shuffle` and `__rr_budget`
  * globals first; the prelude captures and removes them and leaves a single
@@ -15,12 +16,12 @@ local type, next, error, pcall, xpcall, tostring, tonumber, select, assert =
   type, next, error, pcall, xpcall, tostring, tonumber, select, assert
 local setmetatable, getmetatable, rawget, rawset, rawequal, rawlen, load =
   setmetatable, getmetatable, rawget, rawset, rawequal, rawlen, load
-local sformat, sbyte, schar, ssub, sfind, sgsub, srep, smatch =
-  string.format, string.byte, string.char, string.sub, string.find, string.gsub, string.rep, string.match
+local sformat, sbyte, sgsub, srep, smatch =
+  string.format, string.byte, string.gsub, string.rep, string.match
 local tconcat, tsort, tunpack = table.concat, table.sort, table.unpack
 local mfloor, mtype, mhuge = math.floor, math.type, math.huge
 
--- JSON ------------------------------------------------------------------------
+-- JSON encoding for outcomes ---------------------------------------------------
 
 local escapes = { ['"'] = '\\"', ["\\"] = "\\\\", ["\n"] = "\\n", ["\r"] = "\\r", ["\t"] = "\\t" }
 local function encode_string(s)
@@ -64,76 +65,6 @@ function encode(value)
     parts[#parts + 1] = encode_string(tostring(k)) .. ":" .. encode(value[k])
   end
   return "{" .. tconcat(parts, ",") .. "}"
-end
-
-local function decode(text)
-  local pos = 1
-  local value
-  local function skip() pos = sfind(text, "[^ \t\r\n]", pos) or (#text + 1) end
-  local function fail(what) error("invalid JSON from host: " .. what .. " at " .. pos) end
-  function value()
-    skip()
-    local c = ssub(text, pos, pos)
-    if c == "{" then
-      pos = pos + 1
-      local t = {}
-      skip()
-      if ssub(text, pos, pos) == "}" then pos = pos + 1 return t end
-      while true do
-        skip()
-        local key = value()
-        skip()
-        if ssub(text, pos, pos) ~= ":" then fail("expected :") end
-        pos = pos + 1
-        t[key] = value()
-        skip()
-        c = ssub(text, pos, pos)
-        pos = pos + 1
-        if c == "}" then return t end
-        if c ~= "," then fail("expected , or }") end
-      end
-    elseif c == "[" then
-      pos = pos + 1
-      local t = {}
-      skip()
-      if ssub(text, pos, pos) == "]" then pos = pos + 1 return t end
-      while true do
-        t[#t + 1] = value()
-        skip()
-        c = ssub(text, pos, pos)
-        pos = pos + 1
-        if c == "]" then return t end
-        if c ~= "," then fail("expected , or ]") end
-      end
-    elseif c == '"' then
-      local out, i = {}, pos + 1
-      while true do
-        local j = sfind(text, '["\\]', i)
-        if not j then fail("unterminated string") end
-        out[#out + 1] = ssub(text, i, j - 1)
-        if ssub(text, j, j) == '"' then pos = j + 1 break end
-        local e = ssub(text, j + 1, j + 1)
-        if e == "u" then
-          local code = tonumber(ssub(text, j + 2, j + 5), 16)
-          out[#out + 1] = utf8.char(code)
-          i = j + 6
-        else
-          out[#out + 1] = ({ b = "\b", f = "\f", n = "\n", r = "\r", t = "\t" })[e] or e
-          i = j + 2
-        end
-      end
-      return tconcat(out)
-    elseif c == "t" then pos = pos + 4 return true
-    elseif c == "f" then pos = pos + 5 return false
-    elseif c == "n" then pos = pos + 4 return nil
-    else
-      local number = smatch(text, "^-?%d+%.?%d*[eE]?[-+]?%d*", pos)
-      if not number or number == "" then fail("unexpected character") end
-      pos = pos + #number
-      return tonumber(number)
-    end
-  end
-  return value()
 end
 
 -- Budget ----------------------------------------------------------------------
@@ -525,16 +456,22 @@ function __rr.load(source)
   return encode(current)
 end
 
-function __rr.start(json)
+-- Snapshots arrive as Lua table constructors, which Lua's own parser loads far
+-- faster than decoding JSON in Lua.
+local function snapshot(literal)
+  return assert(load(literal, "=snapshot", "t", {}))()
+end
+
+function __rr.start(literal)
   current = new_outcome()
   local on_start = rawget(policy, "on_start")
-  if type(on_start) == "function" then call_hook(on_start, start_context(decode(json))) end
+  if type(on_start) == "function" then call_hook(on_start, start_context(snapshot(literal))) end
   return encode(current)
 end
 
-function __rr.stop(json)
+function __rr.stop(literal)
   current = new_outcome()
-  call_hook(policy.on_stop, stop_context(decode(json)))
+  call_hook(policy.on_stop, stop_context(snapshot(literal)))
   return encode(current)
 end
 

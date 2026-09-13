@@ -30,7 +30,7 @@
 
 ## 4. Command-line runner and determinism tests
 
-- [ ] 4.1 Implement the CLI to run a scenario with a policy for one seed or a seed range and write JSON output, and verify the headless run and invalid scenario scenarios pass
+- [x] 4.1 Implement the CLI to run a scenario with a policy for one seed or a seed range and write JSON output, and verify the headless run and invalid scenario scenarios pass
 - [x] 4.2 Add a result hash over event log, series and metrics, and a CLI command that writes golden hashes for the starter scenarios on seeds 1 to 20, and verify two consecutive invocations produce identical files
 - [ ] 4.3 Add a minimal browser test page and Playwright tests that run the same matrix in Chromium, Firefox and WebKit and compare with golden hashes, and verify the CI job passes and fails when one engine constant is changed
 
@@ -41,7 +41,7 @@
 
 ## 6. Lua runtime
 
-- [ ] 6.1 Integrate wasmoon in a worker-compatible module that runs in Node and browsers, and verify a trivial policy returns actions in both
+- [x] 6.1 Integrate wasmoon in a worker-compatible module that runs in Node and browsers, and verify a trivial policy returns actions in both
 - [x] 6.2 Implement the Lua 5.1 subset checker with line numbers and suggested alternatives, and verify integer division, bitwise operators, `goto` and attributes are each rejected with the expected message
 - [x] 6.3 Implement source instrumentation for the instruction budget, and verify the infinite loop scenario reports a budget overrun with the executing line and the run continues
 - [x] 6.4 Implement the sandbox prelude removing banned globals with guidance messages, and verify every banned name raises its expected error and state does not persist between runs
@@ -55,9 +55,9 @@
 
 ## 7. Naive baseline
 
-- [ ] 7.1 Write `naive.lua` implementing the documented rule, and verify its event logs equal the TypeScript reference on every starter scenario for seeds 1 to 50
-- [ ] 7.2 Add the naive baseline and reference cross-check to the golden hash matrix, and verify the Playwright determinism job covers it
-- [ ] 7.3 Measure a 100-seed `mixed-line` batch with `naive.lua` in Node and Chromium, record the timings in the design notes, and verify the decision to keep wasmoon or switch to Fengari is recorded
+- [x] 7.1 Write `naive.lua` implementing the documented rule, and verify its event logs equal the TypeScript reference on every starter scenario for seeds 1 to 50
+- [x] 7.2 Add the naive baseline and reference cross-check to the golden hash matrix, and verify the Playwright determinism job covers it
+- [x] 7.3 Measure a 100-seed `mixed-line` batch with `naive.lua` in Node and Chromium, record the timings in the design notes, and verify the decision to keep wasmoon or switch to Fengari is recorded
 
 ## 8. `ops` library
 

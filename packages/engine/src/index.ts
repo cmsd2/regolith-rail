@@ -1,4 +1,10 @@
-export { GOLDEN_SEEDS, type GoldenEntry, goldenMatrix } from "./golden.ts";
+export {
+  GOLDEN_POLICIES,
+  GOLDEN_SEEDS,
+  type GoldenEntry,
+  goldenMatrix,
+  runGoldenMatrix,
+} from "./golden.ts";
 export { hashRun } from "./hash.ts";
 export * from "./output.ts";
 export * from "./policy.ts";

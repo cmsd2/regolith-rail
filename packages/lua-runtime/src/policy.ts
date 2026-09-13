@@ -10,6 +10,7 @@ import {
 } from "@regolith-rail/engine";
 import { LuaEngine, LuaFactory, type LuaWasm } from "wasmoon";
 import { checkPolicySource, instrumentPolicySource } from "./check.ts";
+import { toLuaLiteral } from "./literal.ts";
 import { PRELUDE } from "./prelude.ts";
 
 /** Loop iterations and function calls a single hook call may make. */
@@ -27,8 +28,8 @@ export interface LuaPolicyOptions {
 
 interface Entry {
   load(source: string): string;
-  start(json: string): string;
-  stop(json: string): string;
+  start(literal: string): string;
+  stop(literal: string): string;
   save(): string;
   restore(text: string): void;
 }
@@ -108,8 +109,8 @@ export class LuaPolicy implements Policy {
     const table = state.global.get("__rr") as Record<keyof Entry, (...args: unknown[]) => unknown>;
     this.entry = {
       load: (source) => table.load(source) as string,
-      start: (json) => table.start(json) as string,
-      stop: (json) => table.stop(json) as string,
+      start: (literal) => table.start(literal) as string,
+      stop: (literal) => table.stop(literal) as string,
       save: () => table.save() as string,
       restore: (text) => {
         table.restore(text);
@@ -126,7 +127,7 @@ export class LuaPolicy implements Policy {
     this.reload = streamFor(run.seed, "policy:reload");
     const loaded = this.open();
     if (loaded.error) return loaded;
-    return parseOutcome((this.entry as Entry).start(JSON.stringify(snapshot)));
+    return parseOutcome((this.entry as Entry).start(toLuaLiteral(snapshot)));
   }
 
   stop(snapshot: StopSnapshot): PolicyOutcome {
@@ -138,7 +139,7 @@ export class LuaPolicy implements Policy {
       if (loaded.error) return loaded;
       (this.entry as Entry).restore(saved);
     }
-    return parseOutcome((this.entry as Entry).stop(JSON.stringify(snapshot)));
+    return parseOutcome((this.entry as Entry).stop(toLuaLiteral(snapshot)));
   }
 
   /** Releases the Lua state. The policy can be started again afterwards. */

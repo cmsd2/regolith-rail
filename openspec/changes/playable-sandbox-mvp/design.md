@@ -125,6 +125,23 @@ operations inside WebAssembly are deterministic across browsers, including the
 but is slower for compute-heavy policies and less actively maintained.
 Revisited after M1 alongside the confirmed game Lua version.
 
+**Measured (task 7.3, 2026-09-13, Windows laptop, one thread, summary detail):**
+
+| Batch of 100 seeds | Node | Chromium |
+|---|---|---|
+| `mixed-line`, `naive.lua` (38,101 stops) | 5.2 s | 4.9 s |
+| `mixed-line`, TypeScript reference | 0.6 s | — |
+| `two-station`, `naive.lua` (5,593 stops) | 0.7 s | 0.6 s |
+
+Passing snapshots into Lua as JSON decoded by Lua code cost about 250 µs per
+stop; passing them as Lua table constructors loaded by Lua's own parser brought
+that to about 135 µs. Most of the remaining time is building the read-only
+snapshot tables and encoding outcomes, not the WebAssembly boundary, so Fengari
+would not help. **Decision: keep wasmoon.** Spread over the batch worker pool, a
+100-seed `mixed-line` batch takes about a second. If policies built with `ops`
+prove slower, the next step is sending the unchanging parts of the line to Lua
+once per run instead of at every stop.
+
 ### D7. Language restrictions and budget by source analysis
 
 Policy source is parsed in the Lua 5.1 grammar with luaparse before loading.

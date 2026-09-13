@@ -20,7 +20,7 @@ export function naiveReferencePolicy(): Policy {
               ...emptyOutcome(),
               error: {
                 kind: "runtime",
-                message: "reading stock at other stations requires the line information level",
+                message: "reading another station's stock requires the line information level",
               },
             };
           }

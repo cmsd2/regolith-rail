@@ -15,6 +15,8 @@
     "typescript": "7.0.2"
   },
   "dependencies": {
-    "@regolith-rail/engine": "workspace:*"
+    "@regolith-rail/engine": "workspace:*",
+    "@regolith-rail/lua-runtime": "workspace:*",
+    "@regolith-rail/policy-api": "workspace:*"
   }
 }

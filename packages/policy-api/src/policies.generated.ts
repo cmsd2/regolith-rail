@@ -1,0 +1,7 @@
+// Generated from packages/policy-api/src/spec.ts. Do not edit.
+
+/** Built-in policies shipped with the application, by name. */
+export const BUILT_IN_POLICIES = {
+  naive:
+    "-- Naive baseline: how Surviving Mars: Relaunched trains appear to decide what to\n-- carry, based on observed behaviour and not yet verified against the game.\n--\n-- At every stop, each resource the station stores is moved towards the average\n-- stock of that resource across all stations on the line that store it. Nothing\n-- else is considered: not how fast stations consume or produce, not what other\n-- trains carry, and not which station needs the resource most.\n\nlocal policy = {}\n\nlocal function stores(station, resource)\n  for _, id in ipairs(station.resources) do\n    if id == resource then\n      return true\n    end\n  end\n  return false\nend\n\nfunction policy.on_stop(ctx)\n  local station = ctx.station\n  for _, resource in ipairs(station.resources) do\n    local total, count = 0, 0\n    for _, other in ipairs(ctx.line.stations) do\n      if stores(other, resource) then\n        total = total + other.stock[resource]\n        count = count + 1\n      end\n    end\n    local target = math.floor(total / count)\n    local difference = station.stock[resource] - target\n    if difference > 0 then\n      ctx.load(resource, difference)\n    elseif difference < 0 then\n      ctx.unload(resource, -difference)\n    end\n  end\nend\n\nreturn policy\n",
+} as const;

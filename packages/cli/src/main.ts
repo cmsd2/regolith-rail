@@ -1,16 +1,26 @@
 import { writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
+import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { writeGolden } from "./golden.ts";
-import { CliError, loadPolicy, loadScenario, parseSeeds, runSeeds, toJson } from "./run.ts";
+import {
+  CliError,
+  loadScenario,
+  needsLua,
+  POLICY_HELP,
+  parseSeeds,
+  resolvePolicy,
+  runSeeds,
+  toJson,
+} from "./run.ts";
 
 const USAGE = `Usage:
   regolith-rail run --scenario <starter id | file.json> --policy <policy> [--seed N | --seeds A..B]
                     [--detail full|summary] [--out file.json]
   regolith-rail golden [--out file.json]
 
-Policies: reference:naive`;
+Policies: ${POLICY_HELP}`;
 
-function main(argv: string[]): number {
+async function main(argv: string[]): Promise<number> {
   const [command, ...rest] = argv;
   if (command === "run") {
     const { values } = parseArgs({
@@ -24,25 +34,22 @@ function main(argv: string[]): number {
         out: { type: "string" },
       },
     });
-    if (!values.scenario || !values.policy)
+    if (!values.scenario || !values.policy) {
       throw new CliError(`--scenario and --policy are required\n\n${USAGE}`);
+    }
     if (values.detail !== "full" && values.detail !== "summary") {
       throw new CliError("--detail must be full or summary");
     }
     const scenario = loadScenario(values.scenario);
-    const policySpec = values.policy;
+    const spec = values.policy;
+    const runtime = needsLua(spec) ? await LuaRuntime.load() : undefined;
+    const policy = resolvePolicy(spec, runtime);
     const seeds = values.seeds
       ? parseSeeds(values.seeds)
       : values.seed
         ? parseSeeds(values.seed)
         : [scenario.seed];
-    loadPolicy(policySpec, scenario);
-    const outputs = runSeeds(
-      scenario,
-      () => loadPolicy(policySpec, scenario),
-      seeds,
-      values.detail,
-    );
+    const outputs = runSeeds(scenario, () => policy, seeds, values.detail);
     const json = values.seeds ? outputs.map(toJson) : toJson(outputs[0] as never);
     const text = `${JSON.stringify(json, null, 2)}\n`;
     if (values.out) writeFileSync(values.out, text);
@@ -51,7 +58,7 @@ function main(argv: string[]): number {
   }
   if (command === "golden") {
     const { values } = parseArgs({ args: rest, options: { out: { type: "string" } } });
-    const file = writeGolden(values.out);
+    const file = await writeGolden(values.out);
     process.stderr.write(`wrote ${file}\n`);
     return 0;
   }
@@ -66,7 +73,7 @@ process.stdout.on("error", (error: NodeJS.ErrnoException) => {
 });
 
 try {
-  process.exitCode = main(process.argv.slice(2));
+  process.exitCode = await main(process.argv.slice(2));
 } catch (error) {
   if (error instanceof CliError) {
     process.stderr.write(`${error.message}\n`);
