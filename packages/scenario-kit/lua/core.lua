@@ -448,6 +448,9 @@ local function flow(p, name)
   local out = { resource = id_param(name, "resource", p.resource) }
   out.rate = quantity(name, "rate", p.rate)
   out.variability = expect_kind(name, "variability", p.variability, { "uniform", "bursts" })
+  if out.variability == nil and out.rate ~= nil then
+    out.variability = { kind = "fixed" }
+  end
   out.poisson = expect_kind(name, "poisson", p.poisson, { "poisson" })
   out.perPeriod = expect_kind(name, "per_period", p.per_period, { "per_period" })
   out.trace = expect_kind(name, "trace", p.trace, { "trace" })

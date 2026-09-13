@@ -5,16 +5,19 @@ import { constructs } from "./constructs.ts";
 import { generatedFiles, LUA_SOURCE_DIRECTORIES } from "./generate.ts";
 import { SCENARIO_LIBRARIES } from "./libraries.generated.ts";
 import { CLASSIC_POLICIES } from "./policies.generated.ts";
+import { STARTER_SCRIPTS } from "./starters.generated.ts";
 
 const root = new URL("../../../", import.meta.url);
 const lua = {
   libraries: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.libraries}/`, root)),
   policies: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.policies}/`, root)),
+  starters: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.starters}/`, root)),
 };
 const hint = "run `pnpm --filter @regolith-rail/scenario-kit generate`";
 const EMBEDDED = [
   "packages/scenario-kit/src/libraries.generated.ts",
   "packages/scenario-kit/src/policies.generated.ts",
+  "packages/scenario-kit/src/starters.generated.ts",
 ];
 
 describe("generated scenario kit files", () => {
@@ -30,6 +33,7 @@ describe("generated scenario kit files", () => {
   it("embeds the libraries and policies exactly", () => {
     expect(SCENARIO_LIBRARIES, hint).toEqual(lua.libraries);
     expect(CLASSIC_POLICIES, hint).toEqual(lua.policies);
+    expect(STARTER_SCRIPTS, hint).toEqual(lua.starters);
   });
 });
 

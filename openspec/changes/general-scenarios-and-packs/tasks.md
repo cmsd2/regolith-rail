@@ -53,9 +53,9 @@
 
 ## 7. Mars pack
 
-- [ ] 7.1 Write the `mars` library with line, small and large station, train, extractor, farm, factory, dome and dust storm constructs and their descriptions; verify the line-in-game-terms, station sizes, overriding a building rate and dust storm tests pass
-- [ ] 7.2 Record the Mars building defaults on the game mechanics page with evidence levels; verify the documentation check passes
-- [ ] 7.3 Rewrite the five starter scenarios as Mars scripts; verify each evaluates to a document whose golden hashes equal the recorded ones in Node and in browsers, and the starter failure tests still pass
+- [x] 7.1 Write the `mars` library with line, small and large station, train, extractor, farm, factory, dome and dust storm constructs and their descriptions; verify the line-in-game-terms, station sizes, overriding a building rate and dust storm tests pass
+- [x] 7.2 Record the Mars building defaults on the game mechanics page with evidence levels; verify the documentation check passes
+- [x] 7.3 Rewrite the five starter scenarios as Mars scripts; verify each evaluates to a document whose golden hashes equal the recorded ones in Node and in browsers, and the starter failure tests still pass
 
 ## 8. Classic problems pack
 

@@ -6,6 +6,7 @@ const HEADER = "Generated from packages/scenario-kit. Do not edit.";
 export const LUA_SOURCE_DIRECTORIES = {
   libraries: "packages/scenario-kit/lua",
   policies: "packages/scenario-kit/policies",
+  starters: "packages/scenario-kit/starters",
 } as const;
 
 function luaModule(description: string, name: string, sources: Record<string, string>): string {
@@ -72,6 +73,7 @@ export function luaAnnotationsSource(): string {
 export function generatedFiles(lua: {
   libraries: Record<string, string>;
   policies: Record<string, string>;
+  starters: Record<string, string>;
 }): Record<string, string> {
   return {
     "packages/scenario-kit/src/libraries.generated.ts": luaModule(
@@ -83,6 +85,11 @@ export function generatedFiles(lua: {
       "Reference policies for the classic problem templates, by name.",
       "CLASSIC_POLICIES",
       lua.policies,
+    ),
+    "packages/scenario-kit/src/starters.generated.ts": luaModule(
+      "Starter scenarios as Mars pack scripts, by scenario id.",
+      "STARTER_SCRIPTS",
+      lua.starters,
     ),
     "packages/scenario-kit/generated/constructs.json": constructDataSource(),
     "packages/scenario-kit/generated/scenario-kit.lua": luaAnnotationsSource(),

@@ -1050,6 +1050,489 @@
       ],
       "docs": "scenarios/core",
       "href": "scenarios/core#weeks"
+    },
+    {
+      "name": "mars.line",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "A rail line: stations in order joined by track, and trains shuttling along all of it. Resource priorities default to mars.PRIORITIES.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Scenario id.",
+          "required": true
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "summary": "Title shown to players.",
+          "required": false,
+          "default": "the id"
+        },
+        {
+          "name": "description",
+          "type": "string",
+          "summary": "What the scenario shows.",
+          "required": false,
+          "default": "the title"
+        },
+        {
+          "name": "docs",
+          "type": "string",
+          "summary": "Documentation page explaining the scenario.",
+          "required": false
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random processes.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "information",
+          "type": "\"local\"|\"line\"",
+          "summary": "How much of other stations policies can see.",
+          "required": false,
+          "default": "\"line\""
+        },
+        {
+          "name": "resources",
+          "type": "string[]",
+          "summary": "Resource ids in scenario order.",
+          "required": false,
+          "default": "in the order stations store them"
+        },
+        {
+          "name": "stations",
+          "type": "station[]",
+          "summary": "Stations from one end of the line to the other.",
+          "required": true
+        },
+        {
+          "name": "distances",
+          "type": "integer|integer[]",
+          "summary": "Track length between neighbours, or one per gap.",
+          "required": true
+        },
+        {
+          "name": "trains",
+          "type": "train[]",
+          "summary": "Trains built with mars.train.",
+          "required": true
+        },
+        {
+          "name": "events",
+          "type": "event[]",
+          "summary": "Disasters, such as mars.dust_storm.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-line"
+    },
+    {
+      "name": "mars.small_station",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "A small station: 30 units of storage for each resource it stores.",
+      "returns": "station",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Station id.",
+          "required": true
+        },
+        {
+          "name": "resources",
+          "type": "string[]",
+          "summary": "Resources the station stores, in order, before any its buildings and stock add.",
+          "required": false
+        },
+        {
+          "name": "stock",
+          "type": "table<string, number>",
+          "summary": "Stock at the start of a run, by resource id.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "capacity",
+          "type": "table<string, number>",
+          "summary": "Storage by resource id, instead of 30 units.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "buildings",
+          "type": "building[]",
+          "summary": "Buildings next to the station, such as mars.extractor.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-small_station"
+    },
+    {
+      "name": "mars.large_station",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "A large station: 60 units of storage for each resource it stores.",
+      "returns": "station",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Station id.",
+          "required": true
+        },
+        {
+          "name": "resources",
+          "type": "string[]",
+          "summary": "Resources the station stores, in order, before any its buildings and stock add.",
+          "required": false
+        },
+        {
+          "name": "stock",
+          "type": "table<string, number>",
+          "summary": "Stock at the start of a run, by resource id.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "capacity",
+          "type": "table<string, number>",
+          "summary": "Storage by resource id, instead of 60 units.",
+          "required": false,
+          "unit": "units"
+        },
+        {
+          "name": "buildings",
+          "type": "building[]",
+          "summary": "Buildings next to the station, such as mars.extractor.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-large_station"
+    },
+    {
+      "name": "mars.train",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "A train shuttling along the whole line.",
+      "returns": "train",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Train id.",
+          "required": true
+        },
+        {
+          "name": "start",
+          "type": "string",
+          "summary": "Station the train starts at.",
+          "required": false,
+          "default": "the first station"
+        },
+        {
+          "name": "direction",
+          "type": "\"forward\"|\"backward\"",
+          "summary": "Direction it starts in along the line.",
+          "required": false,
+          "default": "\"forward\""
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "summary": "Distance per second.",
+          "required": false,
+          "default": "5"
+        },
+        {
+          "name": "capacity",
+          "type": "number",
+          "summary": "Units it carries across all resources.",
+          "required": false,
+          "default": "30",
+          "unit": "units"
+        },
+        {
+          "name": "dwell",
+          "type": "integer",
+          "summary": "Time at every station.",
+          "required": false,
+          "default": "minutes(10)",
+          "unit": "ms"
+        },
+        {
+          "name": "dwell_per_unit",
+          "type": "integer",
+          "summary": "Extra time per unit loaded or unloaded.",
+          "required": false,
+          "default": "minutes(1)",
+          "unit": "ms"
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-train"
+    },
+    {
+      "name": "mars.extractor",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "Extracts a resource from a deposit, such as metals.",
+      "returns": "building",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource extracted.",
+          "required": true
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Output per sol.",
+          "required": false,
+          "default": "40",
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "number|uniform|bursts",
+          "summary": "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-extractor"
+    },
+    {
+      "name": "mars.farm",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "Grows food.",
+      "returns": "building",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource grown.",
+          "required": false,
+          "default": "\"Food\""
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Output per sol.",
+          "required": false,
+          "default": "30",
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "number|uniform|bursts",
+          "summary": "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-farm"
+    },
+    {
+      "name": "mars.producer",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "Any other building that adds a resource.",
+      "returns": "building",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource produced.",
+          "required": true
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Output per sol.",
+          "required": true,
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "number|uniform|bursts",
+          "summary": "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-producer"
+    },
+    {
+      "name": "mars.consumer",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "Any other building that uses a resource, such as for maintenance.",
+      "returns": "building",
+      "params": [
+        {
+          "name": "resource",
+          "type": "string",
+          "summary": "Resource used.",
+          "required": true
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Use per sol.",
+          "required": true,
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "number|uniform|bursts",
+          "summary": "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-consumer"
+    },
+    {
+      "name": "mars.dome",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "A dome whose colonists use resources.",
+      "returns": "building",
+      "params": [
+        {
+          "name": "consumes",
+          "type": "table<string, number>|table[]",
+          "summary": "Use per sol by resource id, or a list such as { { \"Food\", 45, variability = 20 } } to keep an order.",
+          "required": false,
+          "default": "{ Food = 20 }",
+          "unit": "units per sol"
+        },
+        {
+          "name": "variability",
+          "type": "number|uniform|bursts",
+          "summary": "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-dome"
+    },
+    {
+      "name": "mars.factory",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "Turns input resources into output resources in batches.",
+      "returns": "building",
+      "params": [
+        {
+          "name": "inputs",
+          "type": "table<string, number>",
+          "summary": "Resources each batch uses.",
+          "required": false,
+          "default": "{ Metals = 3 }",
+          "unit": "units"
+        },
+        {
+          "name": "outputs",
+          "type": "table<string, number>",
+          "summary": "Resources each batch makes.",
+          "required": false,
+          "default": "{ MachineParts = 1 }",
+          "unit": "units"
+        },
+        {
+          "name": "rate",
+          "type": "number",
+          "summary": "Batches per sol.",
+          "required": false,
+          "default": "10"
+        },
+        {
+          "name": "variability",
+          "type": "number|uniform|bursts",
+          "summary": "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-factory"
+    },
+    {
+      "name": "mars.dust_storm",
+      "library": "mars",
+      "kind": "construct",
+      "summary": "A dust storm that stops production while it lasts, optionally followed by a surge in demand for repairs.",
+      "returns": "event",
+      "params": [
+        {
+          "name": "id",
+          "type": "string",
+          "summary": "Event id.",
+          "required": false,
+          "default": "\"dust-storm\""
+        },
+        {
+          "name": "start",
+          "type": "integer",
+          "summary": "When the storm starts, for a storm at a fixed time.",
+          "required": false,
+          "unit": "ms"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "How long the storm lasts.",
+          "required": true,
+          "unit": "ms"
+        },
+        {
+          "name": "chance_ppm",
+          "type": "integer",
+          "summary": "Chance at each check of a random storm starting, in parts per million.",
+          "required": false
+        },
+        {
+          "name": "check_every",
+          "type": "integer",
+          "summary": "Time between checks of a random storm.",
+          "required": false,
+          "unit": "ms"
+        },
+        {
+          "name": "stations",
+          "type": "\"all\"|string[]",
+          "summary": "Stations the storm covers.",
+          "required": false,
+          "default": "\"all\""
+        },
+        {
+          "name": "surge",
+          "type": "{ station, resource, multiplier, after, duration }",
+          "summary": "Extra demand after the storm starts: a multiplier (default 2) for a resource at a station, starting after a delay and lasting a duration.",
+          "required": false
+        }
+      ],
+      "docs": "scenarios/mars",
+      "href": "scenarios/mars#mars-dust_storm"
     }
   ]
 }

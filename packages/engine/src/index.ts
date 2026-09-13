@@ -5,6 +5,7 @@ export {
   goldenMatrix,
   runGoldenMatrix,
   runGoldenMatrixWith,
+  starterScenario,
 } from "./golden.ts";
 export { FORMAT1_METRICS, hashRun, hashRunFormat1 } from "./hash.ts";
 export * from "./output.ts";

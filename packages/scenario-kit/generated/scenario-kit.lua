@@ -300,3 +300,134 @@ function days(value) end
 ---@param value number Number of weeks, such as 1.5.
 ---@return integer
 function weeks(value) end
+
+---@class MarsLineParams
+---@field id string Scenario id.
+---@field title? string Title shown to players. Default the id.
+---@field description? string What the scenario shows. Default the title.
+---@field docs? string Documentation page explaining the scenario.
+---@field duration integer Length of a run. In ms.
+---@field seed? integer Base seed for random processes. Default 1.
+---@field information? "local"|"line" How much of other stations policies can see. Default "line".
+---@field resources? string[] Resource ids in scenario order. Default in the order stations store them.
+---@field stations station[] Stations from one end of the line to the other.
+---@field distances integer|integer[] Track length between neighbours, or one per gap.
+---@field trains train[] Trains built with mars.train.
+---@field events? event[] Disasters, such as mars.dust_storm.
+
+--- A rail line: stations in order joined by track, and trains shuttling along all of it. Resource priorities default to mars.PRIORITIES.
+---@param p MarsLineParams
+---@return table
+function mars.line(p) end
+
+---@class MarsSmallStationParams
+---@field id string Station id.
+---@field resources? string[] Resources the station stores, in order, before any its buildings and stock add.
+---@field stock? table<string, number> Stock at the start of a run, by resource id. In units.
+---@field capacity? table<string, number> Storage by resource id, instead of 30 units. In units.
+---@field buildings? building[] Buildings next to the station, such as mars.extractor.
+
+--- A small station: 30 units of storage for each resource it stores.
+---@param p MarsSmallStationParams
+---@return table
+function mars.small_station(p) end
+
+---@class MarsLargeStationParams
+---@field id string Station id.
+---@field resources? string[] Resources the station stores, in order, before any its buildings and stock add.
+---@field stock? table<string, number> Stock at the start of a run, by resource id. In units.
+---@field capacity? table<string, number> Storage by resource id, instead of 60 units. In units.
+---@field buildings? building[] Buildings next to the station, such as mars.extractor.
+
+--- A large station: 60 units of storage for each resource it stores.
+---@param p MarsLargeStationParams
+---@return table
+function mars.large_station(p) end
+
+---@class MarsTrainParams
+---@field id string Train id.
+---@field start? string Station the train starts at. Default the first station.
+---@field direction? "forward"|"backward" Direction it starts in along the line. Default "forward".
+---@field speed? integer Distance per second. Default 5.
+---@field capacity? number Units it carries across all resources. In units. Default 30.
+---@field dwell? integer Time at every station. In ms. Default minutes(10).
+---@field dwell_per_unit? integer Extra time per unit loaded or unloaded. In ms. Default minutes(1).
+
+--- A train shuttling along the whole line.
+---@param p MarsTrainParams
+---@return table
+function mars.train(p) end
+
+---@class MarsExtractorParams
+---@field resource string Resource extracted.
+---@field rate? number Output per sol. In units per sol. Default 40.
+---@field variability? number|uniform|bursts A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.
+
+--- Extracts a resource from a deposit, such as metals.
+---@param p MarsExtractorParams
+---@return table
+function mars.extractor(p) end
+
+---@class MarsFarmParams
+---@field resource? string Resource grown. Default "Food".
+---@field rate? number Output per sol. In units per sol. Default 30.
+---@field variability? number|uniform|bursts A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.
+
+--- Grows food.
+---@param p MarsFarmParams
+---@return table
+function mars.farm(p) end
+
+---@class MarsProducerParams
+---@field resource string Resource produced.
+---@field rate number Output per sol. In units per sol.
+---@field variability? number|uniform|bursts A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.
+
+--- Any other building that adds a resource.
+---@param p MarsProducerParams
+---@return table
+function mars.producer(p) end
+
+---@class MarsConsumerParams
+---@field resource string Resource used.
+---@field rate number Use per sol. In units per sol.
+---@field variability? number|uniform|bursts A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.
+
+--- Any other building that uses a resource, such as for maintenance.
+---@param p MarsConsumerParams
+---@return table
+function mars.consumer(p) end
+
+---@class MarsDomeParams
+---@field consumes? table<string, number>|table[] Use per sol by resource id, or a list such as { { "Food", 45, variability = 20 } } to keep an order. In units per sol. Default { Food = 20 }.
+---@field variability? number|uniform|bursts A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.
+
+--- A dome whose colonists use resources.
+---@param p MarsDomeParams
+---@return table
+function mars.dome(p) end
+
+---@class MarsFactoryParams
+---@field inputs? table<string, number> Resources each batch uses. In units. Default { Metals = 3 }.
+---@field outputs? table<string, number> Resources each batch makes. In units. Default { MachineParts = 1 }.
+---@field rate? number Batches per sol. Default 10.
+---@field variability? number|uniform|bursts A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.
+
+--- Turns input resources into output resources in batches.
+---@param p MarsFactoryParams
+---@return table
+function mars.factory(p) end
+
+---@class MarsDustStormParams
+---@field id? string Event id. Default "dust-storm".
+---@field start? integer When the storm starts, for a storm at a fixed time. In ms.
+---@field duration integer How long the storm lasts. In ms.
+---@field chance_ppm? integer Chance at each check of a random storm starting, in parts per million.
+---@field check_every? integer Time between checks of a random storm. In ms.
+---@field stations? "all"|string[] Stations the storm covers. Default "all".
+---@field surge? { station, resource, multiplier, after, duration } Extra demand after the storm starts: a multiplier (default 2) for a resource at a station, starting after a delay and lasting a duration.
+
+--- A dust storm that stops production while it lasts, optionally followed by a surge in demand for repairs.
+---@param p MarsDustStormParams
+---@return table
+function mars.dust_storm(p) end

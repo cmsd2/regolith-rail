@@ -505,8 +505,176 @@ export const coreConstructs: Construct[] = [
   durationHelper("weeks", "7 days"),
 ];
 
+const MARS_DOCS = "scenarios/mars";
+
+const mars = (
+  name: string,
+  summary: string,
+  returns: string,
+  params: ConstructParam[],
+): Construct => ({
+  name: `mars.${name}`,
+  library: "mars",
+  kind: "construct",
+  summary,
+  returns,
+  params,
+  docs: MARS_DOCS,
+});
+
+const variability = param(
+  "variability",
+  "number|uniform|bursts",
+  "A percentage for a uniform range over two hours, or a uniform or bursts construct. Fixed when omitted.",
+);
+
+const stationParams = (size: number): ConstructParam[] => [
+  required("id", "string", "Station id."),
+  param(
+    "resources",
+    "string[]",
+    "Resources the station stores, in order, before any its buildings and stock add.",
+  ),
+  param("stock", "table<string, number>", "Stock at the start of a run, by resource id.", {
+    unit: "units",
+  }),
+  param("capacity", "table<string, number>", `Storage by resource id, instead of ${size} units.`, {
+    unit: "units",
+  }),
+  param("buildings", "building[]", "Buildings next to the station, such as mars.extractor."),
+];
+
+export const marsConstructs: Construct[] = [
+  mars(
+    "line",
+    "A rail line: stations in order joined by track, and trains shuttling along all of it. Resource priorities default to mars.PRIORITIES.",
+    "scenario document",
+    [
+      required("id", "string", "Scenario id."),
+      param("title", "string", "Title shown to players.", { default: "the id" }),
+      param("description", "string", "What the scenario shows.", { default: "the title" }),
+      param("docs", "string", "Documentation page explaining the scenario."),
+      required("duration", "integer", "Length of a run.", "ms"),
+      param("seed", "integer", "Base seed for random processes.", { default: "1" }),
+      param("information", '"local"|"line"', "How much of other stations policies can see.", {
+        default: '"line"',
+      }),
+      param("resources", "string[]", "Resource ids in scenario order.", {
+        default: "in the order stations store them",
+      }),
+      required("stations", "station[]", "Stations from one end of the line to the other."),
+      required(
+        "distances",
+        "integer|integer[]",
+        "Track length between neighbours, or one per gap.",
+      ),
+      required("trains", "train[]", "Trains built with mars.train."),
+      param("events", "event[]", "Disasters, such as mars.dust_storm."),
+    ],
+  ),
+  mars(
+    "small_station",
+    "A small station: 30 units of storage for each resource it stores.",
+    "station",
+    stationParams(30),
+  ),
+  mars(
+    "large_station",
+    "A large station: 60 units of storage for each resource it stores.",
+    "station",
+    stationParams(60),
+  ),
+  mars("train", "A train shuttling along the whole line.", "train", [
+    required("id", "string", "Train id."),
+    param("start", "string", "Station the train starts at.", { default: "the first station" }),
+    param("direction", '"forward"|"backward"', "Direction it starts in along the line.", {
+      default: '"forward"',
+    }),
+    param("speed", "integer", "Distance per second.", { default: "5" }),
+    param("capacity", "number", "Units it carries across all resources.", {
+      default: "30",
+      unit: "units",
+    }),
+    param("dwell", "integer", "Time at every station.", { default: "minutes(10)", unit: "ms" }),
+    param("dwell_per_unit", "integer", "Extra time per unit loaded or unloaded.", {
+      default: "minutes(1)",
+      unit: "ms",
+    }),
+  ]),
+  mars("extractor", "Extracts a resource from a deposit, such as metals.", "building", [
+    required("resource", "string", "Resource extracted."),
+    param("rate", "number", "Output per sol.", { default: "40", unit: "units per sol" }),
+    variability,
+  ]),
+  mars("farm", "Grows food.", "building", [
+    param("resource", "string", "Resource grown.", { default: '"Food"' }),
+    param("rate", "number", "Output per sol.", { default: "30", unit: "units per sol" }),
+    variability,
+  ]),
+  mars("producer", "Any other building that adds a resource.", "building", [
+    required("resource", "string", "Resource produced."),
+    required("rate", "number", "Output per sol.", "units per sol"),
+    variability,
+  ]),
+  mars(
+    "consumer",
+    "Any other building that uses a resource, such as for maintenance.",
+    "building",
+    [
+      required("resource", "string", "Resource used."),
+      required("rate", "number", "Use per sol.", "units per sol"),
+      variability,
+    ],
+  ),
+  mars("dome", "A dome whose colonists use resources.", "building", [
+    param(
+      "consumes",
+      "table<string, number>|table[]",
+      'Use per sol by resource id, or a list such as { { "Food", 45, variability = 20 } } to keep an order.',
+      { default: "{ Food = 20 }", unit: "units per sol" },
+    ),
+    variability,
+  ]),
+  mars("factory", "Turns input resources into output resources in batches.", "building", [
+    param("inputs", "table<string, number>", "Resources each batch uses.", {
+      default: "{ Metals = 3 }",
+      unit: "units",
+    }),
+    param("outputs", "table<string, number>", "Resources each batch makes.", {
+      default: "{ MachineParts = 1 }",
+      unit: "units",
+    }),
+    param("rate", "number", "Batches per sol.", { default: "10" }),
+    variability,
+  ]),
+  mars(
+    "dust_storm",
+    "A dust storm that stops production while it lasts, optionally followed by a surge in demand for repairs.",
+    "event",
+    [
+      param("id", "string", "Event id.", { default: '"dust-storm"' }),
+      param("start", "integer", "When the storm starts, for a storm at a fixed time.", {
+        unit: "ms",
+      }),
+      required("duration", "integer", "How long the storm lasts.", "ms"),
+      param(
+        "chance_ppm",
+        "integer",
+        "Chance at each check of a random storm starting, in parts per million.",
+      ),
+      param("check_every", "integer", "Time between checks of a random storm.", { unit: "ms" }),
+      param("stations", '"all"|string[]', "Stations the storm covers.", { default: '"all"' }),
+      param(
+        "surge",
+        "{ station, resource, multiplier, after, duration }",
+        "Extra demand after the storm starts: a multiplier (default 2) for a resource at a station, starting after a delay and lasting a duration.",
+      ),
+    ],
+  ),
+];
+
 /** Every construct in every library. */
-export const constructs: Construct[] = [...coreConstructs];
+export const constructs: Construct[] = [...coreConstructs, ...marsConstructs];
 
 /** Anchor of a construct on its documentation page. */
 export const constructAnchor = (construct: Construct) => construct.name.replace(/\./g, "-");

@@ -689,9 +689,11 @@ end
 -- What the construct libraries may use beyond the sandbox.
 local kit = {
   caller_line = script_line,
+  -- The first construct to mark a table names it, so a pack construct that returns a
+  -- core construct's result keeps the core kind.
   mark = function(t, kind, line)
     if type(t) == "table" then
-      kinds[t] = kind
+      if kinds[t] == nil then kinds[t] = kind end
       if line and origins[t] == nil then origins[t] = line end
     end
     return t

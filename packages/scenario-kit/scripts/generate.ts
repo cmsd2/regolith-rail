@@ -9,6 +9,7 @@ const root = new URL("../../../", import.meta.url);
 const lua = {
   libraries: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.libraries}/`, root)),
   policies: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.policies}/`, root)),
+  starters: readLuaSources(new URL(`${LUA_SOURCE_DIRECTORIES.starters}/`, root)),
 };
 const written: string[] = [];
 for (const [path, text] of Object.entries(generatedFiles(lua))) {
