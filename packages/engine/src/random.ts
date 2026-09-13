@@ -82,6 +82,21 @@ export class Random {
     }
   }
 
+  /**
+   * True with probability `numerator / denominator`, exactly, for denominators up to 2^53.
+   * Uses two words per draw, and none when the outcome is certain.
+   */
+  chance(numerator: number, denominator: number): boolean {
+    if (numerator <= 0) return false;
+    if (numerator >= denominator) return true;
+    const span = 9_007_199_254_740_992; // 2^53
+    const limit = span - (span % denominator);
+    for (;;) {
+      const value = (this.nextU32() >>> 11) * 0x1_0000_0000 + this.nextU32();
+      if (value < limit) return value % denominator < numerator;
+    }
+  }
+
   /** True with the given probability in parts per million. */
   chancePpm(ppm: number): boolean {
     return this.int(0, 999_999) < ppm;

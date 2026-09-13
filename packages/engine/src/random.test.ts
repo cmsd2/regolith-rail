@@ -100,3 +100,24 @@ describe("streams and batches", () => {
     `);
   });
 });
+
+describe("exact chances", () => {
+  it("is certain at the ends and matches its probability on average", () => {
+    const rng = streamFor(1, "chance");
+    expect(rng.chance(0, 7)).toBe(false);
+    expect(rng.chance(7, 7)).toBe(true);
+    let hits = 0;
+    const draws = 100_000;
+    for (let i = 0; i < draws; i++) if (rng.chance(1, 3)) hits++;
+    expect(hits / draws).toBeGreaterThan(0.325);
+    expect(hits / draws).toBeLessThan(0.342);
+  });
+
+  it("accepts denominators beyond 32 bits", () => {
+    const rng = streamFor(2, "chance");
+    let hits = 0;
+    for (let i = 0; i < 20_000; i++) if (rng.chance(5_000_000_000_000, 10_000_000_000_000)) hits++;
+    expect(hits).toBeGreaterThan(9_500);
+    expect(hits).toBeLessThan(10_500);
+  });
+});

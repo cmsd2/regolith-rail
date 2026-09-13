@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { stateAt } from "./output.ts";
 import type { ScenarioV2Input } from "./scenario/format2.ts";
-import { runSimulation } from "./simulate.ts";
+import { profileAt, runSimulation } from "./simulate.ts";
 import { minimalScenarioV2 } from "./testing/fixtures.ts";
 import { idlePolicy, parse, scriptedPolicy } from "./testing/policies.ts";
 
@@ -115,5 +115,106 @@ describe("sol-scale backorders", () => {
     const out = runSimulation(s, idlePolicy, { detail: "summary" });
     expect(out.metrics.backorderPeak).toBe(24_000);
     expect(out.metrics.unmetDemand).toBe(0);
+  });
+});
+
+describe("demand processes", () => {
+  /** B consumes with the given process from unlimited stock, so demand is never limited. */
+  function consuming(consumer: object, durationMs: number, seed = 1) {
+    return scenario((input, a, b) => {
+      input.durationMs = durationMs;
+      input.seed = seed;
+      input.vehicles = [];
+      a.producers = [];
+      b.resources = [{ id: "Metals", capacity: "unlimited", initial: 1_000_000_000 }];
+      b.consumers = [
+        { resource: "Metals", ...consumer } as Point["consumers"] extends (infer C)[] | undefined
+          ? C
+          : never,
+      ];
+    });
+  }
+  const demand = (out: ReturnType<typeof runSimulation>) =>
+    out.flowTotals["consumer:B:Metals:0"] as number;
+
+  it("gives Poisson arrivals their mean rate over many sols", () => {
+    const sols = 50;
+    const s = consuming(
+      { poisson: { arrivalsPerSol: 24_000, size: { kind: "fixed", value: 1000 } } },
+      sols * SOL,
+    );
+    const perSol = demand(runSimulation(s, idlePolicy, { detail: "summary" })) / sols;
+    // 1200 arrivals: three standard deviations of the mean is about 2100 milli-units per sol.
+    expect(perSol).toBeGreaterThan(24_000 - 2100);
+    expect(perSol).toBeLessThan(24_000 + 2100);
+  });
+
+  it("keeps Poisson arrivals whole and repeatable for the same seed", () => {
+    const s = consuming(
+      { poisson: { arrivalsPerSol: 24_000, size: { kind: "fixed", value: 1000 } } },
+      5 * SOL,
+      9,
+    );
+    const first = demand(runSimulation(s, idlePolicy, { detail: "summary" }));
+    expect(first % 1000).toBe(0);
+    expect(demand(runSimulation(s, idlePolicy, { detail: "summary" }))).toBe(first);
+  });
+
+  it("handles Poisson rates of many arrivals per minute", () => {
+    // The largest rate the format allows: a million arrivals a sol, about 694 a minute.
+    const s = consuming(
+      { poisson: { arrivalsPerSol: 1_000_000_000, size: { kind: "fixed", value: 1 } } },
+      HOUR,
+    );
+    const total = demand(runSimulation(s, idlePolicy, { detail: "summary" }));
+    // 41667 expected arrivals, with a standard deviation of about 204.
+    expect(total).toBeGreaterThan(41_667 - 700);
+    expect(total).toBeLessThan(41_667 + 700);
+  });
+
+  it("draws per-period amounts from a discrete distribution", () => {
+    const days = 40;
+    const s = consuming(
+      {
+        perPeriod: {
+          periodMs: SOL,
+          amount: {
+            kind: "discrete",
+            values: [
+              { value: 0, weight: 1 },
+              { value: 5000, weight: 3 },
+            ],
+          },
+        },
+      },
+      days * SOL,
+    );
+    const total = demand(runSimulation(s, idlePolicy, { detail: "summary" }));
+    expect(total % 5000).toBe(0);
+    expect(total / days).toBeGreaterThan(3000);
+    expect(total / days).toBeLessThan(4500);
+  });
+
+  it("spreads a recorded trace over each period and stops after its end", () => {
+    const s = consuming({ trace: { periodMs: HOUR, amounts: [0, 5000, 2000] } }, 5 * HOUR);
+    const out = runSimulation(s, idlePolicy);
+    expect(demand(out)).toBe(7000);
+    // Half-way through the second hour, half its 5000 has been consumed.
+    expect(1_000_000_000 - (stateAt(out, HOUR + 30 * MINUTE).stock[1] as number)).toBe(2500);
+  });
+
+  it("ramps a rate with a profile", () => {
+    const points = [
+      { atMs: 0, multiplierPermille: 1000 },
+      { atMs: 2 * HOUR, multiplierPermille: 2000 },
+    ];
+    expect(profileAt(points, HOUR)).toBe(1500);
+    expect(profileAt(points, 3 * HOUR)).toBe(2000);
+    const s = consuming({ rate: 1000 * 1440, profile: points }, 2 * HOUR);
+    const out = runSimulation(s, idlePolicy);
+    // The minute starting at 1 h runs at one and a half times the base rate.
+    const before = stateAt(out, HOUR).stock[1] as number;
+    const after = stateAt(out, HOUR + MINUTE).stock[1] as number;
+    expect(before - after).toBe(1500);
   });
 });

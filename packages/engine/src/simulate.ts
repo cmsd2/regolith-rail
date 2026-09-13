@@ -14,7 +14,9 @@ import {
 import { EventOrder, EventQueue, type Scheduled } from "./queue.ts";
 import { type Random, streamFor } from "./random.ts";
 import {
+  type DistributionDef,
   type ProducerDef,
+  type ProfilePointDef,
   type ScenarioV2 as Scenario,
   travelMs,
   UNLIMITED_CAPACITY,
@@ -65,6 +67,12 @@ interface FlowState {
   site: number;
   resource: number;
   def: ProducerDef;
+  kind: "rate" | "poisson" | "perPeriod" | "trace";
+  /** Accumulator divisor: per-sol rates for `rate`, ticks per period for periodic kinds. */
+  divisor: number;
+  /** Amount for the current period of a periodic kind, and the period it belongs to. */
+  periodAmount: number;
+  periodIndex: number;
   /** Consumers only: unmet demand is carried in `backlog` instead of being lost. */
   backorder: boolean;
   backlog: number;
@@ -122,6 +130,25 @@ const RATE_DIVISOR = TICKS_PER_SOL * 1000;
 const MAX_MULTIPLIER = 1_000_000;
 
 const directionName = (d: 1 | -1): Direction => (d === 1 ? "forward" : "backward");
+
+/**
+ * A profile's multiplier in thousandths at a time: the first point's value before it, the last
+ * point's after it, and linear interpolation rounded down between points.
+ */
+export function profileAt(points: readonly ProfilePointDef[], t: number): number {
+  const first = points[0] as ProfilePointDef;
+  if (t <= first.atMs) return first.multiplierPermille;
+  for (let k = 1; k < points.length; k++) {
+    const next = points[k] as ProfilePointDef;
+    if (t < next.atMs) {
+      const previous = points[k - 1] as ProfilePointDef;
+      const span = next.atMs - previous.atMs;
+      const rise = next.multiplierPermille - previous.multiplierPermille;
+      return previous.multiplierPermille + Math.floor((rise * (t - previous.atMs)) / span);
+    }
+  }
+  return (points[points.length - 1] as ProfilePointDef).multiplierPermille;
+}
 
 /** Runs one scenario with one policy and seed. */
 export function runSimulation(
@@ -184,6 +211,22 @@ export function runSimulation(
           site: (siteOf[s] as number[])[ri] as number,
           resource: ri,
           def,
+          kind:
+            def.poisson !== undefined
+              ? "poisson"
+              : def.perPeriod !== undefined
+                ? "perPeriod"
+                : def.trace !== undefined
+                  ? "trace"
+                  : "rate",
+          divisor:
+            def.perPeriod !== undefined
+              ? (def.perPeriod.periodMs / TICK_MS) * 1000
+              : def.trace !== undefined
+                ? (def.trace.periodMs / TICK_MS) * 1000
+                : RATE_DIVISOR,
+          periodAmount: 0,
+          periodIndex: -1,
           backorder: "unmet" in def && def.unmet === "backorder",
           backlog: 0,
           rng: streamFor(seed, name),
@@ -650,6 +693,49 @@ export function runSimulation(
     });
   };
 
+  /** Draws a whole amount from a fixed value or weighted values. */
+  const draw = (distribution: DistributionDef, rng: Random) => {
+    if (distribution.kind === "fixed") return distribution.value;
+    let total = 0;
+    for (const option of distribution.values) total += option.weight;
+    let pick = rng.int(0, total - 1);
+    for (const option of distribution.values) {
+      if (pick < option.weight) return option.value;
+      pick -= option.weight;
+    }
+    return 0;
+  };
+
+  /** At the first tick of a period, sets the amount a periodic flow spreads over that period. */
+  const startPeriod = (flow: FlowState, tickStart: number) => {
+    const def = flow.def;
+    const periodMs = (def.perPeriod ?? def.trace)?.periodMs as number;
+    const index = Math.floor(tickStart / periodMs);
+    if (index === flow.periodIndex) return;
+    flow.periodIndex = index;
+    flow.accumulator = 0;
+    flow.periodAmount = def.perPeriod
+      ? draw(def.perPeriod.amount, flow.rng)
+      : (def.trace?.amounts[index] ?? 0);
+  };
+
+  /**
+   * Poisson arrivals in one tick, approximated by Bernoulli sub-steps: at least eight per
+   * tick, and more for high rates, so each sub-step's chance stays at most one in eight.
+   */
+  const poissonAmount = (flow: FlowState, multiplier: number) => {
+    const poisson = flow.def.poisson as NonNullable<ProducerDef["poisson"]>;
+    // Arrivals per tick are arrivalsPerSol × multiplier / (1000 × 1000 × ticks per sol).
+    const numerator = poisson.arrivalsPerSol * multiplier;
+    const perTick = 1_000_000 * TICKS_PER_SOL;
+    const substeps = 8 * Math.max(1, Math.ceil(numerator / perTick));
+    let amount = 0;
+    for (let k = 0; k < substeps; k++) {
+      if (flow.rng.chance(numerator, perTick * substeps)) amount += draw(poisson.size, flow.rng);
+    }
+    return amount;
+  };
+
   const handleTick = (event: Extract<SimEvent, { kind: "tick" }>) => {
     const t = event.time;
     const tickStart = t - TICK_MS;
@@ -672,6 +758,12 @@ export function runSimulation(
       }
 
       let multiplier = 1000;
+      if (flow.def.profile) {
+        multiplier = Math.min(
+          MAX_MULTIPLIER,
+          Math.floor((multiplier * profileAt(flow.def.profile, tickStart)) / 1000),
+        );
+      }
       for (const { world, effect } of flowEffects[f] as { world: number; effect: EffectState }[]) {
         for (const start of (worlds[world] as WorldEventState).starts) {
           const from = start + effect.offset;
@@ -683,9 +775,16 @@ export function runSimulation(
           }
         }
       }
-      flow.accumulator += flow.effective * multiplier;
-      const amount = Math.floor(flow.accumulator / RATE_DIVISOR);
-      flow.accumulator -= amount * RATE_DIVISOR;
+      let amount: number;
+      if (flow.kind === "poisson") {
+        amount = poissonAmount(flow, multiplier);
+      } else {
+        if (flow.kind !== "rate") startPeriod(flow, tickStart);
+        const base = flow.kind === "rate" ? flow.effective : flow.periodAmount;
+        flow.accumulator += base * multiplier;
+        amount = Math.floor(flow.accumulator / flow.divisor);
+        flow.accumulator -= amount * flow.divisor;
+      }
       if (amount === 0 && flow.backlog === 0) return;
       flowTotals[flow.name] = (flowTotals[flow.name] as number) + amount;
 
