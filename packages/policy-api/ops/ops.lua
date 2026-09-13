@@ -2,7 +2,9 @@
 --
 -- A declarative policy runs these stages at every stop:
 --   classify -> target -> plan -> allocate -> execute
--- Each stage takes a block from this library or a Lua function. The library is
+-- and, when given a review table, orders each supplied resource up to its
+-- target at every review. Each stage takes a block from this library or a Lua
+-- function. The library is
 -- written to the same Lua 5.1 subset as policies and counts towards the same
 -- instruction budget. Its state lives in ctx.memory.ops.
 --
@@ -294,11 +296,11 @@ local function validate_spec(spec)
     error("ops.policy expects a table, such as ops.policy { target = ops.balance {} }", 3)
   end
   for key in pairs(spec) do
-    if key ~= "classify" and key ~= "target" and key ~= "plan" and key ~= "allocate" then
+    if key ~= "classify" and key ~= "target" and key ~= "plan" and key ~= "allocate" and key ~= "review" then
       error("ops.policy has no stage named " .. tostring(key), 3)
     end
   end
-  if spec.target == nil then
+  if spec.target == nil and spec.review == nil then
     error("ops.policy: target is required", 3)
   end
 
@@ -332,8 +334,23 @@ local function validate_spec(spec)
         end
       end
     end
-  else
+  elseif spec.target ~= nil then
     stage("target", spec.target)
+  end
+
+  if spec.review ~= nil then
+    if type(spec.review) ~= "table" or spec.review.ops_block then
+      error("ops.policy: review must be a table, such as review = { target = ops.order_up_to { level = 10000 } }", 3)
+    end
+    for key in pairs(spec.review) do
+      if key ~= "target" then
+        error("ops.policy: review has no entry named " .. tostring(key), 3)
+      end
+    end
+    if spec.review.target == nil then
+      error("ops.policy: review needs a target", 3)
+    end
+    stage("target", spec.review.target)
   end
 
   for _, block in ipairs(blocks) do
@@ -367,8 +384,8 @@ function ops.policy(spec)
     return spec.classify.decide(site, ctx)
   end
 
-  local function target_of(site, ctx, view)
-    local chosen = spec.target
+  local function target_of(site, ctx, view, chosen)
+    chosen = chosen or spec.target
     if type(chosen) == "table" and not chosen.ops_block then
       chosen = chosen[site.role]
       if chosen == nil then
@@ -405,6 +422,67 @@ function ops.policy(spec)
 
   local policy = {}
 
+  local function line_view(ctx)
+    local view = { stations = {} }
+    if scenario_level == "line" then
+      for i, id in ipairs(ctx.station_order) do
+        view.stations[i] = ctx.stations[id]
+      end
+    end
+    return view
+  end
+
+  if spec.review ~= nil then
+    --- Orders each supplied resource up to its target, from the inventory
+    --- position: stock plus orders on the way minus backorders.
+    function policy.on_review(ctx)
+      local here = ctx.here
+      local view = line_view(ctx)
+      local seen = {}
+      for _, supplier in ipairs(here.suppliers) do
+        local resource = supplier.resource
+        if not seen[resource] then
+          seen[resource] = true
+          local stock = here.stock[resource] or 0
+          local backorders = here.backorders and here.backorders[resource] or 0
+          local on_order = 0
+          for _, order in ipairs(here.on_order or {}) do
+            if order.resource == resource then
+              on_order = on_order + order.amount
+            end
+          end
+          local site = {
+            station = here.id,
+            resource = resource,
+            stock = stock,
+            capacity = here.capacity[resource],
+            on_order = on_order,
+            backorders = backorders,
+            position = stock + on_order - backorders,
+            role = "any",
+          }
+          local target = target_of(site, ctx, view, spec.review.target)
+          local amount = 0
+          if target ~= nil and target > site.position then
+            amount = target - site.position
+            ctx.order(resource, amount)
+          end
+          trace(
+            "order",
+            here.id,
+            resource,
+            { stock = stock, on_order = on_order, backorders = backorders, position = site.position },
+            amount
+          )
+        end
+      end
+    end
+  end
+
+  if spec.target == nil then
+    return policy
+  end
+
   function policy.on_stop(ctx)
     local state = memory_of(ctx)
     local vehicle = ctx.vehicle
@@ -414,12 +492,7 @@ function ops.policy(spec)
     local mine = {}
     state.reservations[vehicle.id] = mine
 
-    local view = { stations = {} }
-    if scenario_level == "line" then
-      for i, id in ipairs(ctx.station_order) do
-        view.stations[i] = ctx.stations[id]
-      end
-    end
+    local view = line_view(ctx)
 
     -- Classify and target every site at this station.
     local wants = {}

@@ -39,7 +39,7 @@
 - [x] 5.4 Redesign Policy API version 2 in the single API description around the shared context: `ctx.here`, keyed `ctx.stations` with neighbours, orders and suppliers, keyed `ctx.resources`, `ctx.vehicle` with its route ahead linking station tables, `ctx.distance` and `ctx.travel_time`; verify generated types, annotations and editor data are regenerated and the reference completeness check passes
 - [x] 5.5 Build the shared context in the engine for start, stop and review, port the reference naive policy and TypeScript test policies, and send the Lua runtime a static layout once and changes per call that it links into the same station tables; verify the context, same-station-tables, route-ahead, information-level and read-only tests pass
 - [x] 5.6 Port `ops.lua`, `naive.lua`, `supply-to-demand.lua` and the documentation pages and examples to the new context; verify `naive.lua` matches the reference on every starter scenario for seeds 1 to 50, the ops and example tests pass, the golden and format 1 reference hashes pass, and the documentation check passes
-- [ ] 5.7 Add the `review` specification to `ops.policy` with inventory position from stock, orders on the way and backorders, and decision traces; verify the base-stock order and (s, S) hold-off tests pass
+- [x] 5.7 Add the `review` specification to `ops.policy` with inventory position from stock, orders on the way and backorders, and decision traces; verify the base-stock order and (s, S) hold-off tests pass
 - [ ] 5.8 Compute mod-ready status from the loaded policy's hooks and the evaluated scenario in the worker; verify tests for a mod-ready Mars pairing and for pairings blocked by a review hook, converters and suppliers
 
 ## 6. Scenario scripts
