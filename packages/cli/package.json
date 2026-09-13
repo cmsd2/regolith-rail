@@ -1,0 +1,22 @@
+{
+  "name": "@regolith-rail/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/run.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "start": "node src/main.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@regolith-rail/engine": "workspace:*",
+    "@regolith-rail/lua-runtime": "workspace:*",
+    "@regolith-rail/policy-api": "workspace:*"
+  }
+}

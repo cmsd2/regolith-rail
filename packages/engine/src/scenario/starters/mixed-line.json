@@ -1,0 +1,95 @@
+{
+  "format": 1,
+  "id": "mixed-line",
+  "title": "Mixed line",
+  "description": "Five stations trade food, metals and polymers of different importance. Balancing carries goods back and forth between stations that neither produce nor need them, and treats food the same as metals.",
+  "docs": "failure-modes/ping-pong",
+  "durationMs": 864000000,
+  "seed": 1,
+  "informationLevel": "line",
+  "resources": [
+    { "id": "Metals", "priority": 1 },
+    { "id": "Polymers", "priority": 2 },
+    { "id": "Food", "priority": 3 }
+  ],
+  "stations": [
+    {
+      "id": "Farm",
+      "resources": [
+        { "id": "Food", "capacity": 60000, "initial": 30000 },
+        { "id": "Metals", "initial": 10000 }
+      ],
+      "distanceToNext": 18000,
+      "producers": [{ "resource": "Food", "rate": 60000 }],
+      "consumers": [{ "resource": "Metals", "rate": 4000 }]
+    },
+    {
+      "id": "Mine",
+      "resources": [
+        { "id": "Metals", "capacity": 60000, "initial": 30000 },
+        { "id": "Food", "initial": 10000 }
+      ],
+      "distanceToNext": 24000,
+      "producers": [{ "resource": "Metals", "rate": 40000 }],
+      "consumers": [{ "resource": "Food", "rate": 8000 }]
+    },
+    {
+      "id": "Depot",
+      "resources": [{ "id": "Metals" }, { "id": "Polymers" }, { "id": "Food" }],
+      "distanceToNext": 18000
+    },
+    {
+      "id": "Plant",
+      "resources": [{ "id": "Polymers", "initial": 15000 }, { "id": "Metals", "initial": 10000 }],
+      "distanceToNext": 30000,
+      "producers": [{ "resource": "Polymers", "rate": 24000 }],
+      "consumers": [
+        {
+          "resource": "Metals",
+          "rate": 12000,
+          "variability": { "kind": "uniform", "rangePercent": 25, "periodMs": 7200000 }
+        }
+      ]
+    },
+    {
+      "id": "Dome",
+      "resources": [
+        { "id": "Food", "capacity": 60000, "initial": 30000 },
+        { "id": "Polymers", "initial": 15000 },
+        { "id": "Metals", "initial": 15000 }
+      ],
+      "consumers": [
+        {
+          "resource": "Food",
+          "rate": 45000,
+          "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
+        },
+        { "resource": "Polymers", "rate": 16000 },
+        {
+          "resource": "Metals",
+          "rate": 16000,
+          "variability": { "kind": "bursts", "onPpm": 1500, "offPpm": 1500 }
+        }
+      ]
+    }
+  ],
+  "trains": [
+    {
+      "id": "T1",
+      "start": "Farm",
+      "speed": 6,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    },
+    {
+      "id": "T2",
+      "start": "Dome",
+      "direction": "backward",
+      "speed": 6,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    }
+  ]
+}

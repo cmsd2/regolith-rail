@@ -50,9 +50,11 @@ without the app.
 
 Hybrid discrete-event simulation. Train arrivals, departures and scenario events
 are scheduled in a priority queue keyed by (time, event kind order, entity id).
-Production and consumption are integrated on a fixed one-second game-time tick,
+Production and consumption are integrated on a fixed one-game-minute tick,
 also scheduled through the queue, with integer remainders carried between ticks
-so rates below one milli-unit per tick are exact over time.
+so rates below one milli-unit per tick are exact over time. A minute is fine
+enough for rates stated per sol and keeps full-detail replay data small over
+runs of several sols (1,440 rows per sol).
 
 *Alternatives:* pure fixed tick (simple, but train timing is quantised and slow
 for long runs); pure event-driven with analytic production (exact, but stock
@@ -61,8 +63,10 @@ train timing exact and production simple.
 
 ### D3. Integer quantities
 
-Stock, cargo and capacity in milli-units; time in milliseconds; rates in
-milli-units per minute. All engine arithmetic is integer and stays below 2⁵³.
+Stock, cargo and capacity in milli-units; time in milliseconds of game time;
+rates in milli-units per sol, as the game states them (for example about 8
+Metals per sol from an extractor). All engine arithmetic is integer and stays
+below 2⁵³.
 The milli-unit scale matches the resource scale used in the original game's
 public source, which reduces translation in the future mod; M1 will confirm it
 for Relaunched.
@@ -78,6 +82,28 @@ per million. No `Math.random`, `Date`, `exp`, `log`, `pow` or trigonometry in
 simulation code; a lint rule enforces this in `engine`.
 
 Batch seed lists are derived by the same hash from the base seed and index.
+
+### D4a. World events as states
+
+Events are windows during which the world is in a different state, as the
+game's disasters are, rather than impulses that change stock directly. Each
+event has a schedule (fixed, or random checks with a probability) and effects;
+each effect has a type (`supply` or `demand`), a station and resource selection,
+a multiplier in thousandths, and optionally its own offset and duration relative
+to the event start. At each tick a flow's rate is its variable base rate times
+the product of every active effect covering it, computed with integer
+arithmetic in thousandths. Event start and end are logged per event, and each
+effect's activation is derived from the event's start, so replay needs no extra
+state.
+
+Trains are deliberately untouched by events. Diverted traffic from grounded
+shuttles is deferred to the roadmap; when added it will be further supply and
+demand effects, not a new mechanism.
+
+*Alternative:* a fixed list of disaster types with built-in consequences.
+Rejected because the game's consequences for rail freight vary by colony, and
+effects compose to express storms, maintenance surges and later diverted traffic
+with one mechanism.
 
 ### D5. Policy interface inside the engine
 
@@ -98,6 +124,23 @@ operations inside WebAssembly are deterministic across browsers, including the
 *Alternative:* Fengari (Lua 5.3 in JavaScript). Avoids the WebAssembly boundary
 but is slower for compute-heavy policies and less actively maintained.
 Revisited after M1 alongside the confirmed game Lua version.
+
+**Measured (task 7.3, 2026-09-13, Windows laptop, one thread, summary detail):**
+
+| Batch of 100 seeds | Node | Chromium |
+|---|---|---|
+| `mixed-line`, `naive.lua` (38,101 stops) | 5.2 s | 4.9 s |
+| `mixed-line`, TypeScript reference | 0.6 s | — |
+| `two-station`, `naive.lua` (5,593 stops) | 0.7 s | 0.6 s |
+
+Passing snapshots into Lua as JSON decoded by Lua code cost about 250 µs per
+stop; passing them as Lua table constructors loaded by Lua's own parser brought
+that to about 135 µs. Most of the remaining time is building the read-only
+snapshot tables and encoding outcomes, not the WebAssembly boundary, so Fengari
+would not help. **Decision: keep wasmoon.** Spread over the batch worker pool, a
+100-seed `mixed-line` batch takes about a second. If policies built with `ops`
+prove slower, the next step is sending the unchanging parts of the line to Lua
+once per run instead of at every stop.
 
 ### D7. Language restrictions and budget by source analysis
 
@@ -225,7 +268,15 @@ The Pages build uses base path `/regolith-rail/`.
 S3 deployment is documentation only in this change: an `aws s3 sync` sequence
 that uploads hashed assets with long-lived cache headers and HTML with
 no-cache, sets `application/wasm` for WebAssembly, and configures `404.html` as
-the error document or CloudFront custom error response.
+the error document or CloudFront custom error response. The guide is in
+`docs/deploy-s3.md`. A private bucket behind CloudFront also needs a small
+viewer-request function to serve `index.html` for documentation folders, which
+an S3 website endpoint would otherwise provide.
+
+Verifying the guide against a real bucket is deferred: there is no AWS account
+set up for the project, and GitHub Pages hosts the first release. The
+host-independent parts are covered by Playwright tests against a plain static
+server and by the link check under both base paths.
 
 ## Risks / Trade-offs
 

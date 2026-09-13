@@ -1,0 +1,19 @@
+## How it works
+
+The target for a site is the average stock of its resource across every station on the
+line that stores it, rounded down:
+
+$$
+\text{target} = \left\lfloor \frac{1}{n} \sum_{i=1}^{n} \text{stock}_i \right\rfloor
+$$
+
+This is the rule the game's trains appear to follow; see
+[station balancing](/docs/game-mechanics#station-balancing). Used as the only target,
+it behaves exactly like `naive.lua`:
+
+```lua runnable
+return ops.policy { target = ops.balance {} }
+```
+
+It is a useful baseline and a poor dispatcher: see the
+[failure modes](/docs/failure-modes/half-capacity).

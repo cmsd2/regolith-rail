@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+coverage/
+test-results/
+playwright-report/
+.react-router/
+*.log
+tests/determinism/dist/
+packages/app/src/docs/search-index.json
+
+# React Router
+.react-router/

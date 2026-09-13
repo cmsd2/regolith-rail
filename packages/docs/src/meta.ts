@@ -1,0 +1,31 @@
+export const DEFAULT_EXAMPLE_SCENARIO = "two-station";
+
+export interface CodeMeta {
+  /** Runs during the documentation check and can be opened in the editor. */
+  runnable: boolean;
+  /** Holds the log lines the runnable example before it must produce. */
+  output: boolean;
+  scenario: string;
+  seed: number;
+}
+
+/**
+ * Reads the words after a code fence's language, such as
+ * `lua runnable scenario=relay seed=3`.
+ */
+export function parseCodeMeta(meta: string | null | undefined): CodeMeta {
+  const result: CodeMeta = {
+    runnable: false,
+    output: false,
+    scenario: DEFAULT_EXAMPLE_SCENARIO,
+    seed: 1,
+  };
+  for (const token of (meta ?? "").split(/\s+/).filter(Boolean)) {
+    const [key, value] = token.split("=", 2) as [string, string | undefined];
+    if (key === "runnable") result.runnable = true;
+    else if (key === "output") result.output = true;
+    else if (key === "scenario" && value) result.scenario = value;
+    else if (key === "seed" && value && /^\d+$/.test(value)) result.seed = Number(value);
+  }
+  return result;
+}

@@ -1,0 +1,32 @@
+language js
+
+or {
+  `Math.random` as $banned,
+  `Math.exp` as $banned,
+  `Math.expm1` as $banned,
+  `Math.log` as $banned,
+  `Math.log1p` as $banned,
+  `Math.log2` as $banned,
+  `Math.log10` as $banned,
+  `Math.pow` as $banned,
+  `Math.cbrt` as $banned,
+  `Math.hypot` as $banned,
+  `Math.sin` as $banned,
+  `Math.cos` as $banned,
+  `Math.tan` as $banned,
+  `Math.asin` as $banned,
+  `Math.acos` as $banned,
+  `Math.atan` as $banned,
+  `Math.atan2` as $banned,
+  `Math.sinh` as $banned,
+  `Math.cosh` as $banned,
+  `Math.tanh` as $banned,
+  `Math.asinh` as $banned,
+  `Math.acosh` as $banned,
+  `Math.atanh` as $banned,
+  `Date` as $banned,
+  `performance.now` as $banned,
+  `$base ** $exponent` as $banned
+} where {
+  register_diagnostic(span=$banned, message="Not allowed in simulation code: results must be identical in every JavaScript engine. Use integer arithmetic and the engine's seeded generator.")
+}

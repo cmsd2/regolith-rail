@@ -1,0 +1,50 @@
+---
+title: Ping-pong
+description: Why goods travel back and forth between stations that neither make nor need them.
+section: Failure modes
+order: 4
+---
+
+Scenario: **Mixed line**. Five stations trading food, metals and polymers, with
+resources of different importance and two trains.
+
+## What happens
+
+Trains unload metal at a station, and a little later a train loads the same metal
+there again to carry it back the way it came. Train time and space go on moving stock
+that ends where it started, while food, the most important resource, runs short.
+
+## Why
+
+Balancing evens out every station that stores a resource, including stations that
+neither produce nor consume it, such as the depot. The average moves as stations
+consume and produce, so the same stock is pushed one way and then the other. The
+simulation counts each reload soon after an unload at the same site as an
+[oscillation](/docs/metrics#oscillations).
+
+Balancing also treats every resource alike. When a train is nearly full, it has no
+reason to prefer food over metals.
+
+## What helps
+
+Roles per resource stop the back-and-forth, and [ops.priority](/docs/ops/priority)
+gives limited train space to the resources that matter most. This policy, like the
+built-in `supply-to-demand.lua`, does both:
+
+```lua runnable scenario=mixed-line
+return ops.policy {
+  classify = ops.roles.manual {
+    Farm = { Food = "supply", Metals = "demand" },
+    Mine = { Metals = "supply", Food = "demand" },
+    Depot = "relay",
+    Plant = { Polymers = "supply", Metals = "demand" },
+    Dome = "demand",
+  },
+  target = { supply = ops.drain {}, demand = ops.fill {}, relay = ops.pass_through {} },
+  plan = ops.lookahead {},
+  allocate = ops.priority {},
+}
+```
+
+[Unmet demand (weighted)](/docs/metrics#unmet-demand-weighted) scores shortages by
+resource priority, so it shows the difference food makes.

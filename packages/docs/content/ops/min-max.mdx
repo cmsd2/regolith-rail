@@ -1,0 +1,31 @@
+## How it works
+
+Also called an *(s, S)* policy in inventory theory. When a site's inventory position
+falls below `min`, the target becomes `max`; otherwise the site is left alone. The gap
+between the two keeps trains from topping a station up by small amounts at every stop.
+
+$$
+\text{target} =
+\begin{cases}
+\text{max} & \text{if position} < \text{min} \\
+\text{no change} & \text{otherwise}
+\end{cases}
+$$
+
+Choose `min` to cover demand until the next delivery can arrive, and `max` no higher
+than the station's capacity.
+
+## Example
+
+```lua runnable scenario=storm-shock
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = {
+    supply = ops.drain {},
+    demand = ops.min_max { min = 20000, max = 30000 },
+  },
+}
+```
+
+The stop inspector shows a trace for every decision, with the position, `min` and
+`max` the block saw.

@@ -71,6 +71,9 @@ The exact vanilla rules are not yet confirmed; see §9.
 | Policy model | A policy is a Lua module against a versioned Policy API. It is called when a train stops, receives a snapshot of the world, and issues load and unload actions. |
 | High-level constructs | An `ops` library, written in Lua and shipped to both simulator and mod, providing operations research building blocks arranged as a pipeline. Custom Lua is the escape hatch. |
 | Simulation | Discrete, integer-based simulation of lines, stations, trains and station catchments, with randomised production, consumption and shocks. Monte Carlo over many seeds, with paired seeds for comparisons. |
+| Scale | Scenarios use game units: rates per sol (24 game hours) and game time, with values typical of the game rather than arbitrary ones. |
+| World events | Events are states of the world that hold for a time window, like the game's disasters, not one-off impulses. While active, an event's effects scale production (supply shocks) or consumption (demand shocks) of chosen resources at chosen stations. A storm is one kind of event. |
+| Trains and disasters | Disasters do not affect trains: speed, capacity and dwell are unchanged. |
 | Web stack | TypeScript, pnpm workspaces, Vite, React, Zustand, Radix UI, CodeMirror 6, Canvas 2D, uPlot, Observable Plot, Comlink, Zod. |
 | Lua runtime | A Lua VM in the browser matching the game's Lua version (wasmoon or Fengari, decided after the game research stage). |
 | Docs | MDX content inside the app, prerendered as static pages with React Router 7, KaTeX, Shiki and MiniSearch. |
@@ -334,9 +337,13 @@ take a new player from nothing to a shared result, and the site is public.
 - Form-based policy builder that edits the same Lua text, with custom
   functions shown as code cells.
 - Encyclopedia pages for every new concept.
+- Diverted traffic: while storms ground shuttles, freight they would have
+  carried moves onto the rail line, raising supply and demand at the stations
+  those shuttles served, with an optional backlog after the storm clears.
 
 **Done when** tuning measurably improves a documented example policy on
-evaluation seeds, and every new block meets the M4 documentation standard.
+evaluation seeds, every new block meets the M4 documentation standard, and a
+storm scenario with diverted traffic is part of the benchmark's next version.
 
 ### M11 — Mod: shadow mode
 
@@ -405,6 +412,7 @@ something players can read or use.
 | Which Lua version does Relaunched embed? | Lua runtime choice, language subset | M1 |
 | What exactly is the vanilla balancing rule: line average or neighbours, live or stale stock, does train cargo count? | Faithful baseline | M1, confirmed in M11 |
 | What is a train's cargo capacity and is it per resource or shared? | Engine model | M1 |
+| What are typical game values for train speed, trip times, loading time, station sizes (30 small, 60 large per resource) and production and consumption per sol? | Realistic starter scenarios | Player observation, then M1 |
 | How do multiple trains on one line behave? | Engine model, multi-train scenarios | M1 |
 | What happens when a station is full or empty: do producers stall, do drones reroute? | Catchment model | M1 |
 | Can a mod read other stations' stock and catchment data? | Definition of the Vanilla category | M1 |

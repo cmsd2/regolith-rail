@@ -1,0 +1,110 @@
+---
+title: Metrics
+description: How a run is scored, and which way is better for each number.
+section: Reference
+order: 1
+---
+
+Every run reports the metrics below. Quantities are shown in units; the engine counts
+milli-units. Batches compare the same metrics across seeds.
+
+Consumption and production happen once per game minute. In each minute $t$, a consumer
+$c$ wants $d_{c,t}$ from its station, which holds $s_{c,t}$; a producer $p$ makes
+$m_{p,t}$ into a station with room $r_{p,t}$.
+
+## Unmet demand (weighted)
+
+Unmet demand for each resource, multiplied by that resource's priority from the
+scenario. **Lower is better.** This is the headline number: it scores a food shortage
+above a metal shortage when food has the higher priority.
+
+$$
+U_w = \sum_{\text{resources } k} \text{priority}_k \cdot U_k
+$$
+
+## Unmet demand
+
+What consumers wanted but could not take, because their station ran out. **Lower is
+better.**
+
+$$
+U = \sum_t \sum_c \max\left(0,\; d_{c,t} - s_{c,t}\right)
+$$
+
+## Stalled production
+
+What producers made but could not store, because their station was full. **Lower is
+better.** In the game this is the moment extractors and factories stop working.
+
+$$
+S = \sum_t \sum_p \max\left(0,\; m_{p,t} - r_{p,t}\right)
+$$
+
+## Demand met
+
+What consumers took from their stations. **Higher is better**, but compare it with
+unmet demand: a scenario with more demand meets more.
+
+## Empty distance share
+
+The share of distance trains travelled with no cargo at all. **Lower is better.** Some
+empty running is unavoidable on a shuttle line, where a train must return from a
+demand station to fetch more.
+
+$$
+E = \frac{\text{distance travelled empty}}{\text{distance travelled}}
+$$
+
+It is 0 when no train has moved.
+
+## Dwell time
+
+Total time trains spent stopped. Each stop takes the train's fixed dwell time plus its
+dwell per unit for every whole unit moved. **Lower is better** for the same deliveries.
+
+## Oscillations
+
+The number of loads at a station, for a resource, within one round trip of the last
+unload of that resource there. A round trip is the time the loading train takes to
+travel the whole line and back. **Lower is better.** High counts mean stock is being
+carried back the way it came; see [ping-pong](/docs/failure-modes/ping-pong).
+
+## Stops
+
+The number of times a train stopped at a station. It depends mostly on the scenario
+and on dwell time.
+
+## Transferred
+
+Total amount loaded and unloaded. Moving more is not better in itself: ping-pong moves
+a lot and delivers little.
+
+## Warnings
+
+The number of actions the engine clamped, such as loading more than a station holds,
+and recorded values it ignored because they were not finite. **Lower is better**;
+clamping usually means the policy's picture of the line is wrong. The stop inspector
+shows what was requested and what was applied.
+
+## Policy errors
+
+Stops where the policy raised an error, including budget overruns. The train leaves
+without transfers after an error. **Lower is better**; zero is the goal.
+
+## Budget overruns
+
+Stops where the policy ran past the [instruction budget](/docs/language#instruction-budget).
+These are also counted as policy errors.
+
+## Comparing policies
+
+A batch runs both policies on the same seeds, so each seed gives a paired difference
+$\Delta_i = b_i - a_i$. The batch view reports the mean difference with a 95%
+confidence interval from Student's t distribution:
+
+$$
+\bar{\Delta} \pm t_{0.975,\,n-1} \cdot \frac{s_\Delta}{\sqrt{n}}
+$$
+
+A difference is called better or worse only when the interval leaves out zero;
+otherwise it is within noise. More seeds narrow the interval.

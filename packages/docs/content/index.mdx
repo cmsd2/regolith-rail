@@ -1,0 +1,38 @@
+---
+title: Documentation
+description: How to write, test and share dispatch policies for shuttle rail lines.
+section: Getting started
+order: 0
+---
+
+Regolith Rail is a sandbox for freight dispatch on shuttle rail lines. You write a
+policy that decides what each train loads and unloads at every stop, run it on a
+scenario, and compare it with other policies over many random seeds.
+
+## Where to start
+
+- [Getting started](/docs/getting-started) walks through a first run, an edit and a
+  batch comparison.
+- [Language and sandbox rules](/docs/language) covers the Lua that policies are
+  written in, and what the sandbox allows.
+- [The ops pipeline](/docs/ops) introduces the building blocks that let most policies
+  be a few lines long.
+
+## Why the baseline struggles
+
+Each starter scenario shows one way that simple stock balancing goes wrong:
+
+- [Half capacity](/docs/failure-modes/half-capacity): one train, two stations, and a
+  shortage that never closes.
+- [Dead stock](/docs/failure-modes/dead-stock): a relay station holds what the dome needs.
+- [Double dispatch](/docs/failure-modes/double-dispatch): two trains answer the same shortage.
+- [Ping-pong](/docs/failure-modes/ping-pong): goods travel back and forth for nothing.
+- [Storm recovery](/docs/failure-modes/storm-recovery): no buffer for a supply or demand shock.
+
+## Reference
+
+- [Policy API](/docs/api/context): everything a policy can read and do.
+- [Metrics](/docs/metrics): how results are scored.
+- [Scenario format](/docs/scenario-format): writing your own lines.
+- [Game mechanics](/docs/game-mechanics): what the simulation assumes about the game,
+  and how sure we are.
