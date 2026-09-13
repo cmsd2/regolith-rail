@@ -1533,6 +1533,364 @@
       ],
       "docs": "scenarios/mars",
       "href": "scenarios/mars#mars-dust_storm"
+    },
+    {
+      "name": "classic.newsvendor",
+      "library": "classic",
+      "kind": "template",
+      "summary": "One stand whose unsold stock expires at each daily review, facing random demand each period with lost sales.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "demand",
+          "type": "number|discrete",
+          "summary": "Demand in each period.",
+          "required": false,
+          "default": "discrete { { 5, 1 }, { 10, 2 }, { 15, 3 }, { 20, 2 }, { 25, 1 } }",
+          "unit": "units"
+        },
+        {
+          "name": "unit_cost",
+          "type": "integer",
+          "summary": "Cost of each unit ordered.",
+          "required": false,
+          "default": "2"
+        },
+        {
+          "name": "lost_cost",
+          "type": "integer",
+          "summary": "Cost of each unit of demand that finds no stock.",
+          "required": false,
+          "default": "5"
+        },
+        {
+          "name": "period",
+          "type": "integer",
+          "summary": "Length of a selling period, with a review at its start.",
+          "required": false,
+          "default": "days(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "periods",
+          "type": "integer",
+          "summary": "Number of periods in a run.",
+          "required": false,
+          "default": "30"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "classic/newsvendor",
+      "href": "classic/newsvendor#classic-newsvendor"
+    },
+    {
+      "name": "classic.reorder",
+      "library": "classic",
+      "kind": "template",
+      "summary": "One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "demand",
+          "type": "number",
+          "summary": "Average demand per sol.",
+          "required": false,
+          "default": "10",
+          "unit": "units per sol"
+        },
+        {
+          "name": "random",
+          "type": "boolean",
+          "summary": "Poisson arrivals of one unit each instead of a steady rate.",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer",
+          "summary": "Time from order to delivery.",
+          "required": false,
+          "default": "0",
+          "unit": "ms"
+        },
+        {
+          "name": "review_period",
+          "type": "integer",
+          "summary": "Time between reviews.",
+          "required": false,
+          "default": "hours(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per sol.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "order_cost",
+          "type": "integer",
+          "summary": "Fixed cost per order.",
+          "required": false,
+          "default": "20"
+        },
+        {
+          "name": "unit_cost",
+          "type": "integer",
+          "summary": "Cost per unit ordered.",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "shortage",
+          "type": "\"lost\"|\"backorder\"",
+          "summary": "Whether unmet demand is lost or backordered.",
+          "required": false,
+          "default": "\"backorder\""
+        },
+        {
+          "name": "shortage_cost",
+          "type": "integer",
+          "summary": "Cost per unit lost, or per unit backordered per sol.",
+          "required": false,
+          "default": "10"
+        },
+        {
+          "name": "initial",
+          "type": "number",
+          "summary": "Stock at the start of a run.",
+          "required": false,
+          "default": "0",
+          "unit": "units"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "sols(20)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "classic/reorder",
+      "href": "classic/reorder#classic-reorder"
+    },
+    {
+      "name": "classic.serial_chain",
+      "library": "classic",
+      "kind": "template",
+      "summary": "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "stages",
+          "type": "integer",
+          "summary": "Number of stages, from 2 to 10.",
+          "required": false,
+          "default": "4"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer",
+          "summary": "Shipping time into each stage.",
+          "required": false,
+          "default": "days(2)",
+          "unit": "ms"
+        },
+        {
+          "name": "review_period",
+          "type": "integer",
+          "summary": "Time between each stage's reviews, and the demand period.",
+          "required": false,
+          "default": "days(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "demand",
+          "type": "number|discrete",
+          "summary": "Customer demand each period.",
+          "required": false,
+          "default": "discrete { { 2, 1 }, { 4, 2 }, { 6, 1 } }",
+          "unit": "units"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per sol at every stage.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "backorder_cost",
+          "type": "integer",
+          "summary": "Cost per unit of customer demand backordered per sol.",
+          "required": false,
+          "default": "2"
+        },
+        {
+          "name": "initial",
+          "type": "number",
+          "summary": "Stock at every stage at the start.",
+          "required": false,
+          "default": "12",
+          "unit": "units"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "sols(60)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "classic/serial-chain",
+      "href": "classic/serial-chain#classic-serial_chain"
+    },
+    {
+      "name": "classic.fixed_route_delivery",
+      "library": "classic",
+      "kind": "template",
+      "summary": "A depot supplied from outside and customers that trucks visit on a fixed loop, with lost sales when a customer runs dry.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "customers",
+          "type": "integer",
+          "summary": "Number of customers, from 1 to 20.",
+          "required": false,
+          "default": "3"
+        },
+        {
+          "name": "demand",
+          "type": "number",
+          "summary": "Demand per sol at each customer.",
+          "required": false,
+          "default": "4",
+          "unit": "units per sol"
+        },
+        {
+          "name": "customer_capacity",
+          "type": "number",
+          "summary": "Storage at each customer.",
+          "required": false,
+          "default": "20",
+          "unit": "units"
+        },
+        {
+          "name": "customer_initial",
+          "type": "number",
+          "summary": "Stock at each customer at the start.",
+          "required": false,
+          "default": "10",
+          "unit": "units"
+        },
+        {
+          "name": "distance",
+          "type": "integer",
+          "summary": "Length of each leg of the loop.",
+          "required": false,
+          "default": "600"
+        },
+        {
+          "name": "vehicles",
+          "type": "integer",
+          "summary": "Number of trucks, from 1 to 10.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "vehicle_capacity",
+          "type": "number",
+          "summary": "What each truck carries.",
+          "required": false,
+          "default": "30",
+          "unit": "units"
+        },
+        {
+          "name": "speed",
+          "type": "integer",
+          "summary": "Truck speed in distance per second.",
+          "required": false,
+          "default": "5"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer",
+          "summary": "Time from a depot order to delivery.",
+          "required": false,
+          "default": "days(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "review_period",
+          "type": "integer",
+          "summary": "Time between depot reviews.",
+          "required": false,
+          "default": "days(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "depot_initial",
+          "type": "number",
+          "summary": "Stock at the depot at the start.",
+          "required": false,
+          "default": "60",
+          "unit": "units"
+        },
+        {
+          "name": "lost_cost",
+          "type": "integer",
+          "summary": "Cost per unit of customer demand lost.",
+          "required": false,
+          "default": "5"
+        },
+        {
+          "name": "cost_per_distance",
+          "type": "integer",
+          "summary": "Transport cost per unit of distance.",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "sols(20)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "classic/fixed-route-delivery",
+      "href": "classic/fixed-route-delivery#classic-fixed_route_delivery"
     }
   ]
 }

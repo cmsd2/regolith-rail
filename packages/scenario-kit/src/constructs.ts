@@ -673,8 +673,162 @@ export const marsConstructs: Construct[] = [
   ),
 ];
 
+const template = (
+  name: string,
+  slug: string,
+  summary: string,
+  params: ConstructParam[],
+): Construct => ({
+  name: `classic.${name}`,
+  library: "classic",
+  kind: "template",
+  summary,
+  returns: "scenario document",
+  params,
+  docs: `classic/${slug}`,
+});
+
+const seedParam = param("seed", "integer", "Base seed for random demand.", { default: "1" });
+
+export const classicConstructs: Construct[] = [
+  template(
+    "newsvendor",
+    "newsvendor",
+    "One stand whose unsold stock expires at each daily review, facing random demand each period with lost sales.",
+    [
+      param("demand", "number|discrete", "Demand in each period.", {
+        default: "discrete { { 5, 1 }, { 10, 2 }, { 15, 3 }, { 20, 2 }, { 25, 1 } }",
+        unit: "units",
+      }),
+      param("unit_cost", "integer", "Cost of each unit ordered.", { default: "2" }),
+      param("lost_cost", "integer", "Cost of each unit of demand that finds no stock.", {
+        default: "5",
+      }),
+      param("period", "integer", "Length of a selling period, with a review at its start.", {
+        default: "days(1)",
+        unit: "ms",
+      }),
+      param("periods", "integer", "Number of periods in a run.", { default: "30" }),
+      seedParam,
+    ],
+  ),
+  template(
+    "reorder",
+    "reorder",
+    "One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.",
+    [
+      param("demand", "number", "Average demand per sol.", {
+        default: "10",
+        unit: "units per sol",
+      }),
+      param("random", "boolean", "Poisson arrivals of one unit each instead of a steady rate.", {
+        default: "false",
+      }),
+      param("lead_time", "integer", "Time from order to delivery.", { default: "0", unit: "ms" }),
+      param("review_period", "integer", "Time between reviews.", {
+        default: "hours(1)",
+        unit: "ms",
+      }),
+      param("holding_cost", "integer", "Cost per unit held per sol.", { default: "1" }),
+      param("order_cost", "integer", "Fixed cost per order.", { default: "20" }),
+      param("unit_cost", "integer", "Cost per unit ordered.", { default: "0" }),
+      param("shortage", '"lost"|"backorder"', "Whether unmet demand is lost or backordered.", {
+        default: '"backorder"',
+      }),
+      param("shortage_cost", "integer", "Cost per unit lost, or per unit backordered per sol.", {
+        default: "10",
+      }),
+      param("initial", "number", "Stock at the start of a run.", { default: "0", unit: "units" }),
+      param("duration", "integer", "Length of a run.", { default: "sols(20)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+  template(
+    "serial_chain",
+    "serial-chain",
+    "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",
+    [
+      param("stages", "integer", "Number of stages, from 2 to 10.", { default: "4" }),
+      param("lead_time", "integer", "Shipping time into each stage.", {
+        default: "days(2)",
+        unit: "ms",
+      }),
+      param(
+        "review_period",
+        "integer",
+        "Time between each stage's reviews, and the demand period.",
+        {
+          default: "days(1)",
+          unit: "ms",
+        },
+      ),
+      param("demand", "number|discrete", "Customer demand each period.", {
+        default: "discrete { { 2, 1 }, { 4, 2 }, { 6, 1 } }",
+        unit: "units",
+      }),
+      param("holding_cost", "integer", "Cost per unit held per sol at every stage.", {
+        default: "1",
+      }),
+      param("backorder_cost", "integer", "Cost per unit of customer demand backordered per sol.", {
+        default: "2",
+      }),
+      param("initial", "number", "Stock at every stage at the start.", {
+        default: "12",
+        unit: "units",
+      }),
+      param("duration", "integer", "Length of a run.", { default: "sols(60)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+  template(
+    "fixed_route_delivery",
+    "fixed-route-delivery",
+    "A depot supplied from outside and customers that trucks visit on a fixed loop, with lost sales when a customer runs dry.",
+    [
+      param("customers", "integer", "Number of customers, from 1 to 20.", { default: "3" }),
+      param("demand", "number", "Demand per sol at each customer.", {
+        default: "4",
+        unit: "units per sol",
+      }),
+      param("customer_capacity", "number", "Storage at each customer.", {
+        default: "20",
+        unit: "units",
+      }),
+      param("customer_initial", "number", "Stock at each customer at the start.", {
+        default: "10",
+        unit: "units",
+      }),
+      param("distance", "integer", "Length of each leg of the loop.", { default: "600" }),
+      param("vehicles", "integer", "Number of trucks, from 1 to 10.", { default: "1" }),
+      param("vehicle_capacity", "number", "What each truck carries.", {
+        default: "30",
+        unit: "units",
+      }),
+      param("speed", "integer", "Truck speed in distance per second.", { default: "5" }),
+      param("lead_time", "integer", "Time from a depot order to delivery.", {
+        default: "days(1)",
+        unit: "ms",
+      }),
+      param("review_period", "integer", "Time between depot reviews.", {
+        default: "days(1)",
+        unit: "ms",
+      }),
+      param("depot_initial", "number", "Stock at the depot at the start.", {
+        default: "60",
+        unit: "units",
+      }),
+      param("lost_cost", "integer", "Cost per unit of customer demand lost.", { default: "5" }),
+      param("cost_per_distance", "integer", "Transport cost per unit of distance.", {
+        default: "0",
+      }),
+      param("duration", "integer", "Length of a run.", { default: "sols(20)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+];
+
 /** Every construct in every library. */
-export const constructs: Construct[] = [...coreConstructs, ...marsConstructs];
+export const constructs: Construct[] = [...coreConstructs, ...marsConstructs, ...classicConstructs];
 
 /** Anchor of a construct on its documentation page. */
 export const constructAnchor = (construct: Construct) => construct.name.replace(/\./g, "-");

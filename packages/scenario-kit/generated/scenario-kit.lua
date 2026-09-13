@@ -431,3 +431,73 @@ function mars.factory(p) end
 ---@param p MarsDustStormParams
 ---@return table
 function mars.dust_storm(p) end
+
+---@class ClassicNewsvendorParams
+---@field demand? number|discrete Demand in each period. In units. Default discrete { { 5, 1 }, { 10, 2 }, { 15, 3 }, { 20, 2 }, { 25, 1 } }.
+---@field unit_cost? integer Cost of each unit ordered. Default 2.
+---@field lost_cost? integer Cost of each unit of demand that finds no stock. Default 5.
+---@field period? integer Length of a selling period, with a review at its start. In ms. Default days(1).
+---@field periods? integer Number of periods in a run. Default 30.
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- One stand whose unsold stock expires at each daily review, facing random demand each period with lost sales.
+---@param p ClassicNewsvendorParams
+---@return table
+function classic.newsvendor(p) end
+
+---@class ClassicReorderParams
+---@field demand? number Average demand per sol. In units per sol. Default 10.
+---@field random? boolean Poisson arrivals of one unit each instead of a steady rate. Default false.
+---@field lead_time? integer Time from order to delivery. In ms. Default 0.
+---@field review_period? integer Time between reviews. In ms. Default hours(1).
+---@field holding_cost? integer Cost per unit held per sol. Default 1.
+---@field order_cost? integer Fixed cost per order. Default 20.
+---@field unit_cost? integer Cost per unit ordered. Default 0.
+---@field shortage? "lost"|"backorder" Whether unmet demand is lost or backordered. Default "backorder".
+---@field shortage_cost? integer Cost per unit lost, or per unit backordered per sol. Default 10.
+---@field initial? number Stock at the start of a run. In units. Default 0.
+---@field duration? integer Length of a run. In ms. Default sols(20).
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.
+---@param p ClassicReorderParams
+---@return table
+function classic.reorder(p) end
+
+---@class ClassicSerialChainParams
+---@field stages? integer Number of stages, from 2 to 10. Default 4.
+---@field lead_time? integer Shipping time into each stage. In ms. Default days(2).
+---@field review_period? integer Time between each stage's reviews, and the demand period. In ms. Default days(1).
+---@field demand? number|discrete Customer demand each period. In units. Default discrete { { 2, 1 }, { 4, 2 }, { 6, 1 } }.
+---@field holding_cost? integer Cost per unit held per sol at every stage. Default 1.
+---@field backorder_cost? integer Cost per unit of customer demand backordered per sol. Default 2.
+---@field initial? number Stock at every stage at the start. In units. Default 12.
+---@field duration? integer Length of a run. In ms. Default sols(60).
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.
+---@param p ClassicSerialChainParams
+---@return table
+function classic.serial_chain(p) end
+
+---@class ClassicFixedRouteDeliveryParams
+---@field customers? integer Number of customers, from 1 to 20. Default 3.
+---@field demand? number Demand per sol at each customer. In units per sol. Default 4.
+---@field customer_capacity? number Storage at each customer. In units. Default 20.
+---@field customer_initial? number Stock at each customer at the start. In units. Default 10.
+---@field distance? integer Length of each leg of the loop. Default 600.
+---@field vehicles? integer Number of trucks, from 1 to 10. Default 1.
+---@field vehicle_capacity? number What each truck carries. In units. Default 30.
+---@field speed? integer Truck speed in distance per second. Default 5.
+---@field lead_time? integer Time from a depot order to delivery. In ms. Default days(1).
+---@field review_period? integer Time between depot reviews. In ms. Default days(1).
+---@field depot_initial? number Stock at the depot at the start. In units. Default 60.
+---@field lost_cost? integer Cost per unit of customer demand lost. Default 5.
+---@field cost_per_distance? integer Transport cost per unit of distance. Default 0.
+---@field duration? integer Length of a run. In ms. Default sols(20).
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- A depot supplied from outside and customers that trucks visit on a fixed loop, with lost sales when a customer runs dry.
+---@param p ClassicFixedRouteDeliveryParams
+---@return table
+function classic.fixed_route_delivery(p) end

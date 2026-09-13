@@ -1,6 +1,16 @@
 export {
+  type ClassicTemplate,
+  classicTemplates,
+  poissonProbabilities,
+  type ReferenceResult,
+  type TemplateParams,
+  type TemplateValue,
+  templateCall,
+} from "./classic.ts";
+export {
   type Construct,
   type ConstructParam,
+  classicConstructs,
   constructAnchor,
   constructs,
   coreConstructs,

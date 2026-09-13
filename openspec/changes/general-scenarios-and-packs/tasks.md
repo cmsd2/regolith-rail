@@ -49,7 +49,7 @@
 - [x] 6.3 Implement caller line capture and the document path to line source map, with validation errors mapped to the longest path prefix; verify the invalid parameter and unknown station tests report the right lines
 - [x] 6.4 Implement unit helpers with exact conversion and nearest-value errors, and evaluation size limits; verify the durations-with-units, unrepresentable quantity and size limit tests pass
 - [x] 6.5 Write the core construct library for every format 2 part, with defaults and modifiable results, and a test that its constructs and parameters match the description; verify the defaults-applied and modifying-a-construct's-result tests pass
-- [ ] 6.6 Add script and template support to the command-line runner; verify the template run and invalid script tests pass
+- [x] 6.6 Add script and template support to the command-line runner; verify the template run and invalid script tests pass
 
 ## 7. Mars pack
 
@@ -59,10 +59,10 @@
 
 ## 8. Classic problems pack
 
-- [ ] 8.1 Write the `classic.newsvendor` template, its reference policy and analytic reference; verify the template-with-defaults test and the newsvendor optimum test over 400 seeds pass
-- [ ] 8.2 Write the `classic.reorder` template for deterministic and random demand with lead times and costs, its reference policies and analytic references; verify the economic order quantity test and a base-stock expected cost test pass
-- [ ] 8.3 Write the `classic.serial_chain` template and its reference policy; verify the template-with-parameters test, conservation, and that order variance grows upstream under a moving-average order-up-to policy
-- [ ] 8.4 Write the `classic.fixed_route_delivery` template and its reference policy; verify it validates, runs with its reference policy without errors, and matches a hand-computed short trace
+- [x] 8.1 Write the `classic.newsvendor` template, its reference policy and analytic reference; verify the template-with-defaults test and the newsvendor optimum test over 400 seeds pass
+- [x] 8.2 Write the `classic.reorder` template for deterministic and random demand with lead times and costs, its reference policies and analytic references; verify the economic order quantity test and a base-stock expected cost test pass
+- [x] 8.3 Write the `classic.serial_chain` template and its reference policy; verify the template-with-parameters test, conservation, and that order variance grows upstream under a moving-average order-up-to policy
+- [x] 8.4 Write the `classic.fixed_route_delivery` template and its reference policy; verify it validates, runs with its reference policy without errors, and matches a hand-computed short trace
 
 ## 9. Workbench
 

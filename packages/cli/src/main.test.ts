@@ -86,6 +86,42 @@ describe("command-line runner", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ scenarioId: "script", aborted: false });
   }, 60_000);
 
+  it("runs a template with parameters", async () => {
+    const result = await cli(
+      "run",
+      "--template",
+      "classic.reorder",
+      "--param",
+      "demand=5",
+      "--param",
+      "review_period=hours(6)",
+      "--param",
+      "shortage=lost",
+      "--policy",
+      "reference:naive",
+    );
+    expect(result.code).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output).toMatchObject({ scenarioId: "reorder", aborted: false });
+    expect(output.events.filter((e: { kind: string }) => e.kind === "review")).toHaveLength(80);
+  }, 60_000);
+
+  it("reports a template parameter error", async () => {
+    const result = await cli(
+      "run",
+      "--template",
+      "classic.serial_chain",
+      "--param",
+      "stages=40",
+      "--policy",
+      "reference:naive",
+    );
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(
+      "classic.serial_chain: stages must be a whole number from 2 to 10",
+    );
+  }, 60_000);
+
   it("reports an invalid scenario script at its lines", async () => {
     const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
     const file = join(dir, "bad.lua");
