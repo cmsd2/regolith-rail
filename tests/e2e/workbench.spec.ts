@@ -54,6 +54,7 @@ test.describe("scenario editor", () => {
   test("shows validation errors and disables Run until they are fixed", async ({ page }) => {
     await openWorkbench(page);
     await page.getByTestId("tab-scenario").click();
+    await page.getByTestId("scenario-kind-json").click();
     await setEditorText(page, "scenario-editor", '{ "format": 1, "id": "broken" }');
     await expect(page.getByTestId("scenario-errors")).toContainText("title");
     await expect(page.getByTestId("run")).toBeDisabled();

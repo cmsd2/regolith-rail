@@ -1,5 +1,5 @@
 import type { Metrics, PolicyError, RunOutput, Scenario } from "@regolith-rail/engine";
-import type { Diagnostic } from "@regolith-rail/lua-runtime";
+import type { Diagnostic, ScriptScenario } from "@regolith-rail/lua-runtime";
 import type { ModReadiness } from "../lib/mod-ready.ts";
 
 export interface RunRequest {
@@ -31,6 +31,7 @@ export interface SimulationWorkerApi {
   run(request: RunRequest, progress?: (fraction: number) => void): Promise<RunOutput>;
   runSeeds(request: SeedsRequest, progress?: (done: number) => void): Promise<SeedResult[]>;
   check(source: string): Promise<Diagnostic[]>;
+  loadScript(source: string): Promise<ScriptScenario>;
   modReady(policy: string, scenario: Scenario): Promise<ModReadiness>;
 }
 

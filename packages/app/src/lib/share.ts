@@ -1,5 +1,6 @@
 import { POLICY_API_VERSION } from "@regolith-rail/engine";
 import type { WorkbenchState } from "../state/workbench.ts";
+import { type ScenarioSource, upgradeScenarioRecord } from "./scenario-source.ts";
 
 /** Links longer than this may be truncated by forums and chat apps. */
 export const LINK_LENGTH_WARNING = 8000;
@@ -12,10 +13,16 @@ export interface ShareState {
   view: "run" | "batch";
   policy: { name: string; source: string };
   policyB?: { name: string; source: string };
-  scenario: { starterId: string | null; text: string };
+  scenario: ScenarioSource;
   seed: number;
   saveReloadTest: boolean;
   batch?: { seedCount: number; baseSeed: number; compare: boolean };
+}
+
+/** The parts of a scenario draft that links, drafts and saves keep. */
+export function scenarioRecord(scenario: ScenarioSource): ScenarioSource {
+  const { kind, source, starterId, template } = scenario;
+  return { kind, source, starterId, ...(template ? { template } : {}) };
 }
 
 /** The parts of the workbench a share link carries. */
@@ -27,7 +34,7 @@ export function toShareState(state: WorkbenchState, appVersion: string): ShareSt
     view: state.view,
     policy: state.policy,
     ...(state.view === "batch" && compare ? { policyB: state.policyB } : {}),
-    scenario: { starterId: state.scenario.starterId, text: state.scenario.text },
+    scenario: scenarioRecord(state.scenario),
     seed: state.seed,
     saveReloadTest: state.saveReloadTest,
     ...(state.view === "batch" ? { batch: { seedCount, baseSeed, compare } } : {}),
@@ -84,8 +91,6 @@ function valid(state: unknown): state is ShareState {
     isPolicy(state.policy) &&
     (state.policyB === undefined || isPolicy(state.policyB)) &&
     isRecord(scenario) &&
-    typeof scenario.text === "string" &&
-    (scenario.starterId === null || typeof scenario.starterId === "string") &&
     isCount(state.seed) &&
     typeof state.saveReloadTest === "boolean" &&
     (batch === undefined ||
@@ -117,6 +122,10 @@ export async function decodeShare(hash: string): Promise<DecodeResult> {
     return damaged;
   }
   if (!valid(state)) return damaged;
+  // Links made before scenario scripts carry JSON text; they open upgraded.
+  const scenario = upgradeScenarioRecord(state.scenario);
+  if (!scenario) return damaged;
+  state.scenario = scenario;
   const warnings: string[] = [];
   if (state.apiVersion !== POLICY_API_VERSION) {
     warnings.push(

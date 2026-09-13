@@ -66,13 +66,13 @@
 
 ## 9. Workbench
 
-- [ ] 9.1 Store scenarios as script or JSON source with the evaluated document and source map, evaluated in the worker; verify store tests for script edits, JSON edits and evaluation errors disabling Run
-- [ ] 9.2 Add the script editor mode with Lua highlighting, subset diagnostics, construct completion and hover, a read-only evaluated view, and conversion from JSON; verify the hover help for a construct and evaluated document scenarios in Playwright
-- [ ] 9.3 Add the pack and template picker with parameter forms that write one-line template scripts, a Classic problems group and documentation links; verify the template parameters and template-links-to-its-page scenarios in Playwright
-- [ ] 9.4 Move the map to projected coordinates with the line, loop, layered and circular layouts, backorders and shipments in transit; verify the Mars line looks unchanged against a screenshot and the loop-drawn-as-a-network scenario passes
-- [ ] 9.5 Add review markers and the review inspector to the timeline; verify the inspect-a-review scenario in Playwright
-- [ ] 9.6 Show mod-ready status and its reason in the workbench; verify the classic-template-is-not-mod-ready scenario in Playwright
-- [ ] 9.7 Carry scenario kind and source in share links, saves and drafts, with older links upgraded; verify the script round trip, script saved and link-from-the-first-release scenarios in Playwright
+- [x] 9.1 Store scenarios as script or JSON source with the evaluated document and source map, evaluated in the worker; verify store tests for script edits, JSON edits and evaluation errors disabling Run
+- [x] 9.2 Add the script editor mode with Lua highlighting, subset diagnostics, construct completion and hover, a read-only evaluated view, and conversion from JSON; verify the hover help for a construct and evaluated document scenarios in Playwright
+- [x] 9.3 Add the pack and template picker with parameter forms that write one-line template scripts, a Classic problems group and documentation links; verify the template parameters and template-links-to-its-page scenarios in Playwright
+- [x] 9.4 Move the map to projected coordinates with the line, loop, layered and circular layouts, backorders and shipments in transit; verify the Mars line looks unchanged against a screenshot and the loop-drawn-as-a-network scenario passes
+- [x] 9.5 Add review markers and the review inspector to the timeline; verify the inspect-a-review scenario in Playwright
+- [x] 9.6 Show mod-ready status and its reason in the workbench; verify the classic-template-is-not-mod-ready scenario in Playwright
+- [x] 9.7 Carry scenario kind and source in share links, saves and drafts, with older links upgraded; verify the script round trip, script saved and link-from-the-first-release scenarios in Playwright
 
 ## 10. Documentation
 

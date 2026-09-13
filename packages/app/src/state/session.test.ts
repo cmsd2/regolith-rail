@@ -1,11 +1,12 @@
 import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { describe, expect, it } from "vitest";
+import { formerStarterText, starterSource } from "../lib/scenario-source.ts";
 import { encodeShare, toShareState } from "../lib/share.ts";
 import { memoryStorage, unavailableStorage, type WorkStorage } from "../lib/storage.ts";
 import { BatchPool, SimulationClient, type WorkerHandle } from "../workers/client.ts";
 import { createLibrary } from "./library.ts";
 import { startSession } from "./session.ts";
-import { createWorkbench, starterText } from "./workbench.ts";
+import { createWorkbench } from "./workbench.ts";
 
 const noWorker = (): WorkerHandle => {
   throw new Error("nothing should run");
@@ -61,7 +62,7 @@ describe("session", () => {
     const draft = {
       policy: { name: "draft.lua", source: "return { on_stop = function() end }" },
       policyB: { name: "b.lua", source: BUILT_IN_POLICIES.naive },
-      scenario: { starterId: "relay", text: starterText("relay") },
+      scenario: starterSource("relay"),
       seed: 9,
     };
     await storage.saveDraft(draft);
@@ -86,6 +87,24 @@ describe("session", () => {
     await second.start();
     expect(second.workbench.getState().policy.source).toBe("-- edited\nreturn {}");
     expect(second.workbench.getState().seed).toBe(12);
+  });
+
+  it("restores a draft from before scenario scripts with its starter as a script", async () => {
+    const storage = memoryStorage();
+    await storage.saveDraft({
+      policy: { name: "draft.lua", source: "return {}" },
+      policyB: { name: "b.lua", source: "return {}" },
+      scenario: { starterId: "relay", text: formerStarterText("relay") } as never,
+      seed: 3,
+    });
+    const { workbench, start } = setup(storage);
+    await start();
+    expect(workbench.getState().scenario).toMatchObject({
+      kind: "script",
+      starterId: "relay",
+      status: "ready",
+    });
+    expect(workbench.getState().scenario.scenario?.id).toBe("relay");
   });
 
   it("tells the player when storage is unavailable", async () => {

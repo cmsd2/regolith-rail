@@ -75,6 +75,10 @@
   background: var(--surface);
 }
 
+.network {
+  height: 360px;
+}
+
 .playback {
   display: flex;
   align-items: center;
@@ -373,4 +377,22 @@
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 600;
+}
+
+.reviewTicks {
+  stroke: var(--accent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.reviewTrack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 7px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }

@@ -139,3 +139,77 @@
 .danger {
   color: var(--bad);
 }
+
+.scenarioToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.segmented {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.segmented button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+}
+
+.segmented button:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.segmented button:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-left: none;
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+
+.segmented button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.note {
+  margin: 0.75rem;
+  color: var(--muted);
+}
+
+.params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  align-items: center;
+  font-size: 13px;
+}
+
+.params input[type="number"] {
+  width: 6em;
+}
+
+.modReady {
+  font-size: 12px;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.modReady[data-ready="true"] {
+  color: var(--good, var(--text));
+  border-color: var(--good, var(--border));
+}

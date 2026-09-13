@@ -29,6 +29,8 @@ export interface ReferenceResult {
 export interface ClassicTemplate {
   /** Name as called in a script, such as `classic.newsvendor`. */
   name: string;
+  /** Title shown in the scenario picker. */
+  title: string;
   /** Parameter defaults in script units, matching the Lua library. */
   defaults: TemplateParams;
   reference(params: TemplateParams): ReferenceResult;
@@ -121,6 +123,7 @@ export function templateCall(name: string, params: TemplateParams): string {
 
 const newsvendor: ClassicTemplate = {
   name: "classic.newsvendor",
+  title: "Newsvendor",
   defaults: {
     demand: {
       discrete: [
@@ -168,6 +171,7 @@ const newsvendor: ClassicTemplate = {
 
 const reorder: ClassicTemplate = {
   name: "classic.reorder",
+  title: "Reorder",
   defaults: {
     demand: 10,
     random: false,
@@ -285,6 +289,7 @@ function baseStockCostPerSol(params: TemplateParams, level: number): number {
 
 const serialChain: ClassicTemplate = {
   name: "classic.serial_chain",
+  title: "Serial supply chain",
   defaults: {
     stages: 4,
     lead_time: 2 * SOL,
@@ -315,6 +320,7 @@ const serialChain: ClassicTemplate = {
 
 const fixedRouteDelivery: ClassicTemplate = {
   name: "classic.fixed_route_delivery",
+  title: "Fixed-route delivery",
   defaults: {
     customers: 3,
     demand: 4,

@@ -1,13 +1,20 @@
 import { POLICY_API_VERSION } from "@regolith-rail/engine";
 import type { NavigateFunction } from "react-router";
+import { findTemplate, starterSource, templateSource } from "../lib/scenario-source.ts";
 import { encodeShare } from "../lib/share.ts";
 import { workbench } from "../state/instance.ts";
-import { starterText, type WorkContent } from "../state/workbench.ts";
+import type { WorkContent } from "../state/workbench.ts";
 
 export interface ExampleToOpen {
   source: string;
   scenario: string;
   seed: number;
+}
+
+/** A starter scenario by id, or a classic template with its defaults. */
+function exampleScenario(id: string) {
+  const template = findTemplate(id);
+  return template ? templateSource(template.name, template.defaults) : starterSource(id);
 }
 
 /** Puts a documentation example in the editor without running it. */
@@ -19,7 +26,7 @@ export async function openExample(
   const content: WorkContent = {
     view: "run",
     policy: { name: "example.lua", source: example.source },
-    scenario: { starterId: example.scenario, text: starterText(example.scenario) },
+    scenario: exampleScenario(example.scenario),
     seed: example.seed,
     saveReloadTest: false,
   };

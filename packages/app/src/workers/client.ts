@@ -1,5 +1,5 @@
 import type { RunOutput, Scenario } from "@regolith-rail/engine";
-import type { Diagnostic } from "@regolith-rail/lua-runtime";
+import type { Diagnostic, ScriptScenario } from "@regolith-rail/lua-runtime";
 import type { ModReadiness } from "../lib/mod-ready.ts";
 import type { RunRequest, SeedResult, SeedsRequest } from "./protocol.ts";
 
@@ -16,6 +16,7 @@ export interface WorkerHandle {
     run(request: RunRequest, progress?: (fraction: number) => void): Promise<RunOutput>;
     runSeeds(request: SeedsRequest, progress?: (done: number) => void): Promise<SeedResult[]>;
     check(source: string): Promise<Diagnostic[]>;
+    loadScript(source: string): Promise<ScriptScenario>;
     modReady(policy: string, scenario: Scenario): Promise<ModReadiness>;
   };
   terminate(): void;
@@ -55,6 +56,10 @@ export class SimulationClient {
 
   check(source: string): Promise<Diagnostic[]> {
     return this.track(this.worker().api.check(source));
+  }
+
+  loadScript(source: string): Promise<ScriptScenario> {
+    return this.track(this.worker().api.loadScript(source));
   }
 
   modReady(policy: string, scenario: Scenario): Promise<ModReadiness> {

@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand/vanilla";
-import { decodeShare, isShareFragment } from "../lib/share.ts";
+import { upgradeScenarioRecord } from "../lib/scenario-source.ts";
+import { decodeShare, isShareFragment, scenarioRecord } from "../lib/share.ts";
 import type { Draft, WorkStorage } from "../lib/storage.ts";
 import type { LibraryState } from "./library.ts";
 import type { WorkbenchState } from "./workbench.ts";
@@ -20,7 +21,7 @@ export interface SessionOptions {
 const draftOf = (s: WorkbenchState): Draft => ({
   policy: s.policy,
   policyB: s.policyB,
-  scenario: { starterId: s.scenario.starterId, text: s.scenario.text },
+  scenario: scenarioRecord(s.scenario),
   seed: s.seed,
 });
 
@@ -53,7 +54,8 @@ export async function startSession(options: SessionOptions): Promise<() => void>
   }
   if (!shared) {
     const draft = await storage.loadDraft().catch(() => undefined);
-    if (draft) restore(draft);
+    const scenario = draft && upgradeScenarioRecord(draft.scenario);
+    if (draft && scenario) restore({ ...draft, scenario });
   }
   if (!storage.available) {
     notify(
@@ -80,8 +82,10 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     if (
       next.policy === last.policy &&
       next.policyB === last.policyB &&
-      next.scenario.text === last.scenario.text &&
+      next.scenario.source === last.scenario.source &&
+      next.scenario.kind === last.scenario.kind &&
       next.scenario.starterId === last.scenario.starterId &&
+      next.scenario.template === last.scenario.template &&
       next.seed === last.seed
     ) {
       return;

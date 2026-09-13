@@ -13,6 +13,7 @@ export const browserWorkerFactory: WorkerFactory = () => {
       runSeeds: (request, progress) =>
         remote.runSeeds(request, progress ? Comlink.proxy(progress) : undefined),
       check: (source) => remote.check(source),
+      loadScript: (source) => remote.loadScript(source),
       modReady: (policy, scenario) => remote.modReady(policy, scenario),
     },
     terminate: () => {

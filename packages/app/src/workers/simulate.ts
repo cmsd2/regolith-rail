@@ -1,5 +1,10 @@
 import { type RunOutput, runSimulation, type Scenario } from "@regolith-rail/engine";
-import { checkPolicySource, type Diagnostic, type LuaRuntime } from "@regolith-rail/lua-runtime";
+import {
+  checkPolicySource,
+  type Diagnostic,
+  type LuaRuntime,
+  type ScriptScenario,
+} from "@regolith-rail/lua-runtime";
 import { type ModReadiness, modReadiness } from "../lib/mod-ready.ts";
 import {
   BATCH_SAMPLE_POINTS,
@@ -82,6 +87,11 @@ export function simulationTasks(runtime: LuaRuntime) {
 
     check(source: string): Diagnostic[] {
       return checkPolicySource(source);
+    },
+
+    /** Evaluates and validates a scenario script. */
+    loadScript(source: string): ScriptScenario {
+      return runtime.loadScript(source);
     },
 
     /** Whether the pairing could run in the game, from the loaded policy's hooks. */

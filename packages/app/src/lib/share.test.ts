@@ -7,7 +7,12 @@ const state: ShareState = {
   view: "batch",
   policy: { name: "naive.lua", source: "return { on_stop = function(ctx) end } -- é ✓" },
   policyB: { name: "b.lua", source: "return ops.policy { target = ops.balance {} }" },
-  scenario: { starterId: "relay", text: '{ "format": 1 }' },
+  scenario: {
+    kind: "script",
+    source: "return classic.reorder {}",
+    starterId: null,
+    template: { name: "classic.reorder", params: { demand: 5 } },
+  },
   seed: 42,
   saveReloadTest: true,
   batch: { seedCount: 50, baseSeed: 7, compare: true },
@@ -19,6 +24,16 @@ describe("share links", () => {
     expect(hash).toMatch(/^#v1\.[A-Za-z0-9_-]+$/);
     const decoded = await decodeShare(hash);
     expect(decoded).toEqual({ ok: true, state, warnings: [] });
+  });
+
+  it("open links made before scenario scripts, with the scenario upgraded", async () => {
+    const old = { ...state, scenario: { starterId: null, text: '{ "format": 2, "id": "x" }' } };
+    const decoded = await decodeShare(await encodeShare(old as unknown as ShareState));
+    expect(decoded.ok && decoded.state.scenario).toEqual({
+      kind: "json",
+      source: '{ "format": 2, "id": "x" }',
+      starterId: null,
+    });
   });
 
   it("report a damaged link", async () => {

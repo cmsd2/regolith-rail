@@ -1576,7 +1576,8 @@
           "type": "integer",
           "summary": "Number of periods in a run.",
           "required": false,
-          "default": "30"
+          "default": "30",
+          "range": [1, 1000]
         },
         {
           "name": "seed",
@@ -1701,7 +1702,8 @@
           "type": "integer",
           "summary": "Number of stages, from 2 to 10.",
           "required": false,
-          "default": "4"
+          "default": "4",
+          "range": [2, 10]
         },
         {
           "name": "lead_time",
@@ -1780,7 +1782,8 @@
           "type": "integer",
           "summary": "Number of customers, from 1 to 20.",
           "required": false,
-          "default": "3"
+          "default": "3",
+          "range": [1, 20]
         },
         {
           "name": "demand",
@@ -1818,7 +1821,8 @@
           "type": "integer",
           "summary": "Number of trucks, from 1 to 10.",
           "required": false,
-          "default": "1"
+          "default": "1",
+          "range": [1, 10]
         },
         {
           "name": "vehicle_capacity",

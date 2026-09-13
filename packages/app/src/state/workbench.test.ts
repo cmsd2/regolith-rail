@@ -1,5 +1,6 @@
 import { batchSeeds } from "@regolith-rail/engine";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
+import { STARTER_SCRIPTS, templateCall } from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   BatchPool,
@@ -9,7 +10,7 @@ import {
 } from "../workers/client.ts";
 import { simulationTasks } from "../workers/simulate.ts";
 import { createPlayhead } from "./playhead.ts";
-import { createWorkbench, DEFAULT_SCENARIO, starterText } from "./workbench.ts";
+import { createWorkbench, DEFAULT_SCENARIO, referencePolicyName } from "./workbench.ts";
 
 let runtime: LuaRuntime;
 beforeAll(async () => {
@@ -34,12 +35,20 @@ function inProcess(options: { hang?: boolean } = {}): WorkerHandle {
           ? never
           : tasks.runSeeds(request, progress && ((n) => later(() => progress(n)))),
       check: async (source) => tasks.check(source),
+      loadScript: async (source) => tasks.loadScript(source),
       modReady: async (policy, scenario) => tasks.modReady(policy, scenario),
     },
     terminate: () => {
       terminated = true;
     },
   };
+}
+
+/** Waits for a scenario script to finish evaluating. */
+async function settled(store: ReturnType<typeof workbench>) {
+  for (let i = 0; i < 200 && store.getState().scenario.status === "evaluating"; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
 }
 
 function workbench(options: { hang?: boolean } = {}) {
@@ -57,22 +66,73 @@ describe("workbench store", () => {
     expect(state.policy.name).toBe("naive.lua");
   });
 
-  it("reports invalid scenario text and clears the parsed scenario", () => {
+  it("reports invalid JSON and clears the parsed scenario", () => {
     const store = workbench();
-    store.getState().setScenarioText('{ "format": 1 }');
+    store.getState().setScenarioKind("json");
+    expect(store.getState().scenario.kind).toBe("json");
+    store.getState().setScenarioSource('{ "format": 1 }');
     expect(store.getState().scenario.scenario).toBeNull();
     expect(store.getState().scenario.errors.length).toBeGreaterThan(0);
-    store.getState().setScenarioText("{ nope");
+    store.getState().setScenarioSource("{ nope");
     expect(store.getState().scenario.errors[0]?.path).toBe("(document)");
   });
 
-  it("remembers the starter only while its text is unedited", () => {
+  it("remembers the starter only while its script is unedited", async () => {
     const store = workbench();
     store.getState().selectStarter("relay");
-    expect(store.getState().scenario.starterId).toBe("relay");
-    store.getState().setScenarioText(starterText("relay").replace('"seed": 1', '"seed": 2'));
-    expect(store.getState().scenario.starterId).toBeNull();
-    expect(store.getState().scenario.scenario?.seed).toBe(2);
+    expect(store.getState().scenario).toMatchObject({ starterId: "relay", status: "ready" });
+    store
+      .getState()
+      .setScenarioSource(
+        (STARTER_SCRIPTS.relay as string).replace("duration = sols(10)", "duration = sols(4)"),
+      );
+    expect(store.getState().scenario).toMatchObject({ starterId: null, status: "evaluating" });
+    expect(store.getState().scenario.scenario).toBeNull();
+    await settled(store);
+    expect(store.getState().scenario.scenario?.durationMs).toBe(4 * 86_400_000);
+  });
+
+  it("reports script errors at their lines and keeps only the latest evaluation", async () => {
+    const store = workbench();
+    store.getState().setScenarioSource("return scenario { id = 5 }");
+    store.getState().setScenarioSource('-- a shop\nreturn scenario { id = "x", colour = 1 }');
+    await settled(store);
+    expect(store.getState().scenario.errors).toEqual([
+      { line: 2, message: "scenario: has no parameter named colour" },
+    ]);
+  });
+
+  it("converts between a script and JSON without changing the scenario", async () => {
+    const store = workbench();
+    const before = store.getState().scenario.scenario;
+    store.getState().setScenarioKind("json");
+    expect(store.getState().scenario.scenario).toEqual(before);
+    store.getState().setScenarioKind("script");
+    expect(store.getState().scenario.source).toContain("return scenario {");
+    store.getState().setScenarioSource(`${store.getState().scenario.source}\n`);
+    await settled(store);
+    expect(store.getState().scenario.scenario).toEqual(before);
+  });
+
+  it("picks a template with its reference policy and rewrites it from parameters", async () => {
+    const store = workbench();
+    store.getState().selectTemplate("classic.serial_chain");
+    expect(store.getState().policy.name).toBe(referencePolicyName("classic.serial_chain"));
+    await settled(store);
+    expect(store.getState().scenario.scenario?.stations).toHaveLength(4);
+    store.getState().setTemplateParams({ stages: 3 });
+    const { scenario } = store.getState();
+    expect(scenario.source).toBe(
+      templateCall("classic.serial_chain", { ...scenario.template?.params, stages: 3 }),
+    );
+    await settled(store);
+    expect(store.getState().scenario.scenario?.stations.map((s) => s.id)).toEqual([
+      "Stage1",
+      "Stage2",
+      "Stage3",
+    ]);
+    store.getState().setScenarioSource(`-- mine\n${store.getState().scenario.source}`);
+    expect(store.getState().scenario.template).toBeUndefined();
   });
 
   it("runs the current policy and scenario", async () => {

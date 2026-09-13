@@ -15,6 +15,8 @@ export interface ConstructParam {
   default?: string;
   /** Unit the value is given in, such as `units` or `units per sol`. */
   unit?: string;
+  /** Smallest and largest values allowed, for whole-number parameters with limits. */
+  range?: [number, number];
   summary: string;
 }
 
@@ -708,7 +710,10 @@ export const classicConstructs: Construct[] = [
         default: "days(1)",
         unit: "ms",
       }),
-      param("periods", "integer", "Number of periods in a run.", { default: "30" }),
+      param("periods", "integer", "Number of periods in a run.", {
+        default: "30",
+        range: [1, 1000],
+      }),
       seedParam,
     ],
   ),
@@ -748,7 +753,10 @@ export const classicConstructs: Construct[] = [
     "serial-chain",
     "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",
     [
-      param("stages", "integer", "Number of stages, from 2 to 10.", { default: "4" }),
+      param("stages", "integer", "Number of stages, from 2 to 10.", {
+        default: "4",
+        range: [2, 10],
+      }),
       param("lead_time", "integer", "Shipping time into each stage.", {
         default: "days(2)",
         unit: "ms",
@@ -785,7 +793,10 @@ export const classicConstructs: Construct[] = [
     "fixed-route-delivery",
     "A depot supplied from outside and customers that trucks visit on a fixed loop, with lost sales when a customer runs dry.",
     [
-      param("customers", "integer", "Number of customers, from 1 to 20.", { default: "3" }),
+      param("customers", "integer", "Number of customers, from 1 to 20.", {
+        default: "3",
+        range: [1, 20],
+      }),
       param("demand", "number", "Demand per sol at each customer.", {
         default: "4",
         unit: "units per sol",
@@ -799,7 +810,10 @@ export const classicConstructs: Construct[] = [
         unit: "units",
       }),
       param("distance", "integer", "Length of each leg of the loop.", { default: "600" }),
-      param("vehicles", "integer", "Number of trucks, from 1 to 10.", { default: "1" }),
+      param("vehicles", "integer", "Number of trucks, from 1 to 10.", {
+        default: "1",
+        range: [1, 10],
+      }),
       param("vehicle_capacity", "number", "What each truck carries.", {
         default: "30",
         unit: "units",

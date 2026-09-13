@@ -123,7 +123,7 @@ classic.reorder = construct("classic.reorder", {
     seed = p.seed,
     stations = {
       station({
-        id = "Store",
+        id = "Shop",
         resources = {
           store({
             resource = "Goods",

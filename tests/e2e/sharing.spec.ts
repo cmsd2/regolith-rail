@@ -66,7 +66,10 @@ test.describe("sharing", () => {
     await expect(page.getByTestId("run")).toBeEnabled();
     expect(await editorText(page, "policy-editor")).toContain("-- shared policy");
     await expect(page.getByTestId("seed")).toHaveValue("7");
-    await expect(page.locator('canvas[data-testid="line-map"]')).toHaveCount(0);
+    await expect(page.locator('canvas[data-testid="line-map"]')).toHaveAttribute(
+      "data-replaying",
+      "false",
+    );
     await expect(page.getByTestId("run-tab-metrics")).toHaveCount(0);
   });
 

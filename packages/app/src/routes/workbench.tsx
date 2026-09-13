@@ -5,6 +5,7 @@ import { LineMap } from "../components/LineMap.tsx";
 import { MetricsSummary } from "../components/MetricsSummary.tsx";
 import { Notices } from "../components/Notices.tsx";
 import { Page } from "../components/Page.tsx";
+import { ReviewInspector } from "../components/ReviewInspector.tsx";
 import { RunCharts } from "../components/RunCharts.tsx";
 import { RunControls } from "../components/RunControls.tsx";
 import { ScenarioControls } from "../components/ScenarioControls.tsx";
@@ -31,12 +32,18 @@ function RunView() {
   const [tab, setTab] = useState<RunTab>("inspector");
   const errors = useRunErrors();
   const selectedStop = useWorkbench((s) => s.selectedStop);
+  const selectedReview = useWorkbench((s) => s.selectedReview);
   const hasOutput = useWorkbench((s) => s.run.output !== null);
+  // Runs without vehicles have only reviews to inspect.
+  const reviewsOnly = useWorkbench(
+    (s) => s.run.output !== null && s.run.output.trains.length === 0,
+  );
+  const showReview = selectedReview !== null || reviewsOnly;
   useEffect(() => {
-    if (selectedStop !== null) setTab("inspector");
-  }, [selectedStop]);
+    if (selectedStop !== null || selectedReview !== null) setTab("inspector");
+  }, [selectedStop, selectedReview]);
   const tabs: { id: RunTab; label: string }[] = [
-    { id: "inspector", label: "Stop" },
+    { id: "inspector", label: showReview ? "Review" : "Stop" },
     { id: "charts", label: "Charts" },
     { id: "metrics", label: "Metrics" },
     { id: "errors", label: errors.length > 0 ? `Errors (${errors.length})` : "Errors" },
@@ -62,7 +69,7 @@ function RunView() {
             ))}
           </div>
           <div className={styles.tabPanel} role="tabpanel">
-            {tab === "inspector" && <StopInspector />}
+            {tab === "inspector" && (showReview ? <ReviewInspector /> : <StopInspector />)}
             {tab === "charts" && <RunCharts />}
             {tab === "metrics" && <MetricsSummary />}
             {tab === "errors" && <ErrorList />}
