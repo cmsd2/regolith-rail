@@ -2,7 +2,7 @@ import type { Metrics } from "@regolith-rail/engine";
 import { formatAmount, formatDuration, formatPercent } from "./format.ts";
 
 export interface MetricDefinition {
-  key: keyof Omit<Metrics, "byResource">;
+  key: keyof Omit<Metrics, "byResource" | "costs">;
   label: string;
   /** Anchor on the metrics documentation page. */
   anchor: string;

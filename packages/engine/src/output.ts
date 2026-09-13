@@ -97,6 +97,17 @@ export interface ResourceMetrics {
   met: number;
 }
 
+/** Costs in thousandths of a cost unit, each component rounded down. */
+export interface CostMetrics {
+  total: number;
+  holding: number;
+  ordering: number;
+  transport: number;
+  lostDemand: number;
+  backorders: number;
+  stalledProduction: number;
+}
+
 export interface Metrics {
   /** Consumption that could not be met, in milli-units. */
   unmetDemand: number;
@@ -128,6 +139,8 @@ export interface Metrics {
   converterStarvedMs: number;
   /** Time, summed over converters, when a due batch had no room for its outputs. */
   converterBlockedMs: number;
+  /** Costs stated by the scenario, all zero when it states none. */
+  costs: CostMetrics;
   byResource: Record<string, ResourceMetrics>;
 }
 

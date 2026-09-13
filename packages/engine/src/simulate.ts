@@ -15,6 +15,7 @@ import {
 import { EventOrder, EventQueue, type Scheduled } from "./queue.ts";
 import { type Random, streamFor } from "./random.ts";
 import {
+  type ConsumerDef,
   type DistributionDef,
   EXTERNAL_SUPPLIER,
   type ProducerDef,
@@ -150,6 +151,8 @@ interface TrainState {
   path: number[];
   /** Position in `path` of the stock point the vehicle is at or last left. */
   pos: number;
+  /** Cost per unit of distance travelled. */
+  costPerDistance: number;
   /** Timetable departure times, and the index of the next one not yet used. */
   departures: number[];
   nextDeparture: number;
@@ -300,6 +303,31 @@ export function runSimulation(
   });
   const flowTotals: Record<string, number> = Object.fromEntries(flows.map((f) => [f.name, 0]));
 
+  // --- Costs ---------------------------------------------------------------------
+  // Exact integer accumulators; costs are converted to thousandths once, at the end.
+  const holdingCost: number[] = [];
+  scenario.stockPoints.forEach((station) => {
+    for (const r of station.resources) holdingCost.push(r.holdingCost ?? 0);
+  });
+  const hasCosts =
+    holdingCost.some((c) => c > 0) ||
+    scenario.vehicles.some((v) => (v.costPerDistance ?? 0) > 0) ||
+    scenario.stockPoints.some(
+      (p) =>
+        p.suppliers.some((s) => (s.orderCost ?? 0) > 0 || (s.unitCost ?? 0) > 0) ||
+        p.producers.some((f) => (f.stallCost ?? 0) > 0) ||
+        p.consumers.some((f) => (f.lostCost ?? 0) > 0 || (f.backorderCost ?? 0) > 0),
+    );
+  /** Cost × milli-units × milliseconds, for holding and backorders. */
+  let holdingNumerator = 0n;
+  let backorderNumerator = 0n;
+  /** Cost × milli-units, for orders, lost demand and stalled production. */
+  let orderingNumerator = 0n;
+  let lostNumerator = 0n;
+  let stallNumerator = 0n;
+  /** Cost × distance. */
+  let transportNumerator = 0n;
+
   // --- Suppliers and reviews ---------------------------------------------------
   const suppliers: SupplierState[][] = scenario.stockPoints.map((station) =>
     station.suppliers.map((def) => ({
@@ -381,6 +409,7 @@ export function runSimulation(
       kind: route.kind,
       path,
       pos,
+      costPerDistance: def.costPerDistance ?? 0,
       departures: route.kind === "timetable" ? route.departuresMs : [],
       nextDeparture: 0,
       speed: def.speed,
@@ -459,6 +488,15 @@ export function runSimulation(
     backorderPeak: 0,
     expired: 0,
     overflow: 0,
+    costs: {
+      total: 0,
+      holding: 0,
+      ordering: 0,
+      transport: 0,
+      lostDemand: 0,
+      backorders: 0,
+      stalledProduction: 0,
+    },
     converterStarvedMs: 0,
     converterBlockedMs: 0,
     byResource,
@@ -793,6 +831,9 @@ export function runSimulation(
     const arriveAt = t + travelMs(distance, train.speed);
     metrics.distance += distance;
     if (train.cargo.every((c) => c === 0)) metrics.emptyDistance += distance;
+    if (hasCosts && train.costPerDistance > 0) {
+      transportNumerator += BigInt(train.costPerDistance) * BigInt(distance);
+    }
     const pending = pendingDwell[event.train];
     events.push({
       t,
@@ -1076,6 +1117,11 @@ export function runSimulation(
       requested,
       amount,
     });
+    if (hasCosts) {
+      orderingNumerator +=
+        BigInt(supplier.def.orderCost ?? 0) * 1000n +
+        BigInt(supplier.def.unitCost ?? 0) * BigInt(amount);
+    }
     if (supplier.from === undefined) {
       ship(t, s, supplier, amount, t);
       return;
@@ -1252,6 +1298,9 @@ export function runSimulation(
           metrics.unmetDemand += unmet;
           metrics.unmetDemandWeighted += unmet * (priority[flow.resource] as number);
           perResource.unmet += unmet;
+          if (hasCosts && unmet > 0) {
+            lostNumerator += BigInt((flow.def as ConsumerDef).lostCost ?? 0) * BigInt(unmet);
+          }
         }
       } else {
         const added = Math.min(amount, (siteCapacity[site] as number) - (stock[site] as number));
@@ -1259,11 +1308,27 @@ export function runSimulation(
         (running.produced[flow.resource] as number) += added;
         metrics.stalledProduction += amount - added;
         perResource.stalled += amount - added;
+        if (hasCosts && amount > added) {
+          stallNumerator += BigInt(flow.def.stallCost ?? 0) * BigInt(amount - added);
+        }
       }
     });
     for (const converter of converters) runConverter(converter, tickStart);
     let backlog = 0;
     for (const flow of flows) backlog += flow.backlog;
+    if (hasCosts) {
+      const tick = BigInt(TICK_MS);
+      stock.forEach((amount, site) => {
+        const cost = holdingCost[site] as number;
+        if (cost > 0 && amount > 0) holdingNumerator += BigInt(cost) * BigInt(amount) * tick;
+      });
+      for (const flow of flows) {
+        const cost = (flow.def as ConsumerDef).backorderCost ?? 0;
+        if (cost > 0 && flow.backlog > 0) {
+          backorderNumerator += BigInt(cost) * BigInt(flow.backlog) * tick;
+        }
+      }
+    }
     backorderSum += backlog;
     backorderTicks++;
     if (backlog > metrics.backorderPeak) metrics.backorderPeak = backlog;
@@ -1406,6 +1471,26 @@ export function runSimulation(
 
   metrics.emptyDistanceShare = metrics.distance > 0 ? metrics.emptyDistance / metrics.distance : 0;
   metrics.backorderAverage = backorderTicks > 0 ? backorderSum / backorderTicks : 0;
+  if (hasCosts) {
+    // Rates are per unit (1000 milli-units) and, for holding and backorders, per sol.
+    const perUnitSol = 1000n * BigInt(SOL_MS);
+    const milli = (numerator: bigint, denominator: bigint) =>
+      Number((numerator * 1000n) / denominator);
+    const costs = metrics.costs;
+    costs.holding = milli(holdingNumerator, perUnitSol);
+    costs.backorders = milli(backorderNumerator, perUnitSol);
+    costs.ordering = milli(orderingNumerator, 1000n);
+    costs.lostDemand = milli(lostNumerator, 1000n);
+    costs.stalledProduction = milli(stallNumerator, 1000n);
+    costs.transport = milli(transportNumerator, 1n);
+    costs.total =
+      costs.holding +
+      costs.backorders +
+      costs.ordering +
+      costs.lostDemand +
+      costs.stalledProduction +
+      costs.transport;
+  }
 
   return {
     apiVersion: POLICY_API_VERSION,

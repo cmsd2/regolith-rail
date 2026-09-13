@@ -27,7 +27,7 @@
 - [x] 4.2 Implement external orders with lead times drawn from supplier streams, order size clamping with warnings, and overflow; verify the delivery-after-lead-time and clamped order tests pass
 - [x] 4.3 Implement stock point suppliers that ship what they hold and backlog the rest; verify the upstream shortage test passes
 - [x] 4.4 Implement expiring stock at reviews; verify the unsold stock expires test passes
-- [ ] 4.5 Implement BigInt cost accounting for every cost component, skipped when no costs are stated; verify the holding cost test, a test for each other component, and that a 100-seed `two-station` batch takes no longer than before
+- [x] 4.5 Implement BigInt cost accounting for every cost component, skipped when no costs are stated; verify the holding cost test, a test for each other component, and that a 100-seed `two-station` batch takes no longer than before
 - [ ] 4.6 Add backorder, expiry, overflow, converter and cost metrics to every run's output and to the metric definitions; verify metric tests, that hashing output without the new fields reproduces the recorded golden file, then regenerate the golden file and verify batch distributions include the new metrics
 
 ## 5. Policy API v2 and ops reviews
