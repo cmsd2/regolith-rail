@@ -222,7 +222,7 @@ function BoxPlots({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined }) {
 function FanChart({ a, b }: { a: SeedResult[]; b: SeedResult[] | undefined }) {
   const scenario = useWorkbench((s) => s.scenario.scenario);
   const sites = useMemo(
-    () => scenario?.stockPoints.flatMap((st) => st.resources.map((r) => `${st.id} ${r.id}`)) ?? [],
+    () => scenario?.stations.flatMap((st) => st.resources.map((r) => `${st.id} ${r.id}`)) ?? [],
     [scenario],
   );
   const [site, setSite] = useState(0);

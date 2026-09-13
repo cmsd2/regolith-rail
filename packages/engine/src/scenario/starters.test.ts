@@ -25,7 +25,7 @@ describe("starter scenarios", () => {
     it(`${starter.id} uses game-sized stations`, () => {
       const result = validateScenario(starter.document);
       if (!result.ok) throw new Error("invalid starter");
-      for (const station of result.scenario.stockPoints) {
+      for (const station of result.scenario.stations) {
         for (const site of station.resources) {
           expect([30_000, 60_000], `${station.id} ${site.id}`).toContain(site.capacity);
         }

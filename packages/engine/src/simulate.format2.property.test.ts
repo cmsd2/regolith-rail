@@ -20,7 +20,7 @@ describe("engine properties for format 2", () => {
           const initial = resources.map(() => 0);
           const capacity: number[] = [];
           const siteResource: number[] = [];
-          for (const point of scenario.stockPoints) {
+          for (const point of scenario.stations) {
             for (const r of point.resources) {
               const k = resources.indexOf(r.id);
               initial[k] = (initial[k] as number) + r.initial;

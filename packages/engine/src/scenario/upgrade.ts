@@ -19,7 +19,7 @@ export function upgradeV1(v1: ScenarioV1): ScenarioV2Input {
     informationLevel: v1.informationLevel,
     sampleIntervalMs: v1.sampleIntervalMs,
     resources: v1.resources.map((r) => ({ id: r.id, priority: r.priority })),
-    stockPoints: v1.stations.map((station) => ({
+    stations: v1.stations.map((station) => ({
       id: station.id,
       resources: station.resources.map((r) => ({
         id: r.id,

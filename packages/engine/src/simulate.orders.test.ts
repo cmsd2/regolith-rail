@@ -11,7 +11,7 @@ const DAY = 24 * HOUR;
 const ofKind = <K extends RunEvent["kind"]>(events: RunEvent[], kind: K) =>
   events.filter((e): e is RunEvent & { kind: K } => e.kind === kind);
 
-type Point = ScenarioV2Input["stockPoints"][number];
+type Point = ScenarioV2Input["stations"][number];
 
 /** A shop reviewed daily, supplied with Beer by an external supplier, with no vehicles. */
 function shop(change: (input: ScenarioV2Input, shop: Point) => void = () => {}) {
@@ -32,7 +32,7 @@ function shop(change: (input: ScenarioV2Input, shop: Point) => void = () => {}) 
     seed: 1,
     informationLevel: "local",
     resources: [{ id: "Beer" }],
-    stockPoints: [point],
+    stations: [point],
   };
   change(input, point);
   return parse(input);
@@ -44,7 +44,7 @@ const orderOnce = (amount: number) =>
   );
 
 describe("reviews and external orders", () => {
-  it("reviews each stock point on its period and records each review", () => {
+  it("reviews each station on its period and records each review", () => {
     const out = runSimulation(shop(), idlePolicy, { detail: "summary" });
     expect(ofKind(out.events, "review").map((e) => [e.t, e.review])).toEqual([
       [0, 1],
@@ -158,7 +158,7 @@ describe("reviews and external orders", () => {
   });
 });
 
-describe("stock point suppliers", () => {
+describe("station suppliers", () => {
   /** Retailer orders from Wholesaler, which orders from an external factory. */
   function chain(wholesalerStock: number) {
     return parse({
@@ -170,7 +170,7 @@ describe("stock point suppliers", () => {
       seed: 1,
       informationLevel: "local",
       resources: [{ id: "Beer" }],
-      stockPoints: [
+      stations: [
         {
           id: "Wholesaler",
           resources: [{ id: "Beer", capacity: 100_000, initial: wholesalerStock }],

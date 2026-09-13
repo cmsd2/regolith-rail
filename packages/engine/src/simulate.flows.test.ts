@@ -9,12 +9,12 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const SOL = 24 * HOUR;
 
-type Point = ScenarioV2Input["stockPoints"][number];
+type Point = ScenarioV2Input["stations"][number];
 
 function scenario(change: (s: ScenarioV2Input, a: Point, b: Point) => void) {
   const input = minimalScenarioV2();
   input.durationMs = HOUR;
-  change(input, input.stockPoints[0] as Point, input.stockPoints[1] as Point);
+  change(input, input.stations[0] as Point, input.stations[1] as Point);
   return parse(input);
 }
 

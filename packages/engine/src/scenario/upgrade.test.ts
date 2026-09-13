@@ -18,12 +18,12 @@ describe("format 1 upgrade", () => {
     }
   });
 
-  it("turns two-station into two stock points, one arc and one shuttle", () => {
+  it("turns two-station into two stations, one arc and one shuttle", () => {
     const starter = starterScenarios.find((s) => s.id === "two-station");
     const result = validateScenario(starter?.document);
     if (!result.ok) throw new Error("two-station should validate");
     const { scenario } = result;
-    expect(scenario.stockPoints.map((p) => p.id)).toEqual(["Mine", "Dome"]);
+    expect(scenario.stations.map((p) => p.id)).toEqual(["Mine", "Dome"]);
     expect(scenario.arcs).toEqual([{ from: "Mine", to: "Dome", distance: 72_000 }]);
     expect(scenario.vehicles).toHaveLength(1);
     expect(scenario.vehicles[0]?.route).toEqual({
@@ -32,17 +32,17 @@ describe("format 1 upgrade", () => {
       start: "Mine",
       direction: "forward",
     });
-    expect(scenario.stockPoints[1]?.consumers[0]).toMatchObject({ unmet: "lost" });
+    expect(scenario.stations[1]?.consumers[0]).toMatchObject({ unmet: "lost" });
   });
 
   it("keeps station, flow and train order and settings", () => {
     const v1 = ScenarioV1.parse(minimalScenario());
     const v2 = ScenarioV2.parse(upgradeV1(v1));
-    expect(v2.stockPoints.map((p) => p.id)).toEqual(v1.stations.map((s) => s.id));
+    expect(v2.stations.map((p) => p.id)).toEqual(v1.stations.map((s) => s.id));
     expect(v2.vehicles.map((v) => [v.id, v.speed, v.dwellMs, v.dwellPerUnitMs])).toEqual(
       v1.trains.map((t) => [t.id, t.speed, t.dwellMs, t.dwellPerUnitMs]),
     );
-    expect(v2.stockPoints[0]?.producers).toEqual([
+    expect(v2.stations[0]?.producers).toEqual([
       { resource: "Metals", rate: 24_000, variability: { kind: "fixed" } },
     ]);
   });

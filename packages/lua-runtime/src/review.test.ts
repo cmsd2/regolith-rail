@@ -36,7 +36,7 @@ const shop = (change: (s: ScenarioV2Input) => void = () => {}) => {
     seed: 1,
     informationLevel: "local",
     resources: [{ id: "Beer" }],
-    stockPoints: [
+    stations: [
       {
         id: "Shop",
         resources: [{ id: "Beer", capacity: 100_000 }],
@@ -63,7 +63,7 @@ const loop = (level: "local" | "line") =>
     seed: 1,
     informationLevel: level,
     resources: [{ id: "Metals" }],
-    stockPoints: [
+    stations: [
       { id: "Depot", resources: [{ id: "Metals" }] },
       { id: "A", resources: [{ id: "Metals" }] },
       { id: "B", resources: [{ id: "Metals" }] },
@@ -102,7 +102,7 @@ describe("review hook", () => {
     ]);
   });
 
-  it("sees the stock point, its orders, suppliers and backorders", () => {
+  it("sees the station, its orders, suppliers and backorders", () => {
     const out = run(
       `return {
         on_review = function(ctx)
@@ -117,7 +117,7 @@ describe("review hook", () => {
       }`,
       // A two-day lead time keeps the first order on its way at the second review.
       shop((input) => {
-        const supplier = input.stockPoints[0]?.suppliers?.[0];
+        const supplier = input.stations[0]?.suppliers?.[0];
         if (supplier) supplier.leadTime = { kind: "fixed", value: 2 * DAY };
       }),
     );
@@ -127,7 +127,7 @@ describe("review hook", () => {
     ]);
   });
 
-  it("keeps stock point memory between reviews", () => {
+  it("keeps station memory between reviews", () => {
     const out = run(
       `return {
         on_review = function(ctx)
@@ -161,7 +161,7 @@ describe("review hook", () => {
   it("rejects a policy with no hooks at all", () => {
     const out = run(
       "return {}",
-      shop((s) => delete s.stockPoints[0]?.review),
+      shop((s) => delete s.stations[0]?.review),
     );
     expect(ofKind(out.events, "error")[0]?.message).toBe(
       "the policy's table has no hook functions; define on_stop, on_review or on_start",

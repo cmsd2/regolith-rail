@@ -19,16 +19,16 @@ const units = (v: number) => formatAmount(v);
 const count = (v: number) => v.toLocaleString("en-GB");
 
 const usesBackorders = (s: Scenario) =>
-  s.stockPoints.some((p) => p.consumers.some((c) => c.unmet === "backorder"));
-const usesExpiry = (s: Scenario) => s.stockPoints.some((p) => p.resources.some((r) => r.expires));
-const usesSuppliers = (s: Scenario) => s.stockPoints.some((p) => p.suppliers.length > 0);
-const usesConverters = (s: Scenario) => s.stockPoints.some((p) => p.converters.length > 0);
+  s.stations.some((p) => p.consumers.some((c) => c.unmet === "backorder"));
+const usesExpiry = (s: Scenario) => s.stations.some((p) => p.resources.some((r) => r.expires));
+const usesSuppliers = (s: Scenario) => s.stations.some((p) => p.suppliers.length > 0);
+const usesConverters = (s: Scenario) => s.stations.some((p) => p.converters.length > 0);
 
 /** Whether a scenario states any cost. */
 export function usesCosts(s: Scenario): boolean {
   return (
     s.vehicles.some((v) => (v.costPerDistance ?? 0) > 0) ||
-    s.stockPoints.some(
+    s.stations.some(
       (p) =>
         p.resources.some((r) => (r.holdingCost ?? 0) > 0) ||
         p.suppliers.some((x) => (x.orderCost ?? 0) > 0 || (x.unitCost ?? 0) > 0) ||

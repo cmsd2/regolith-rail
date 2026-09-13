@@ -35,12 +35,12 @@ export function minimalScenarioV2(): ScenarioV2Input {
     format: 2,
     id: "minimal-v2",
     title: "Minimal",
-    description: "Two stock points joined by an arc and one shuttle.",
+    description: "Two stations joined by an arc and one shuttle.",
     durationMs: 3_600_000,
     seed: 1,
     informationLevel: "line",
     resources: [{ id: "Metals" }],
-    stockPoints: [
+    stations: [
       {
         id: "A",
         resources: [{ id: "Metals" }],
@@ -76,7 +76,7 @@ export function featureScenarioV2(): ScenarioV2Input {
     seed: 3,
     informationLevel: "local",
     resources: [{ id: "Metals" }, { id: "Parts", priority: 2 }],
-    stockPoints: [
+    stations: [
       {
         id: "Depot",
         resources: [{ id: "Metals", capacity: "unlimited", initial: 100_000, holdingCost: 1 }],

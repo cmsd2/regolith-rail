@@ -64,7 +64,7 @@
             "additionalProperties": false
           }
         },
-        "stockPoints": {
+        "stations": {
           "minItems": 1,
           "type": "array",
           "items": {
@@ -1216,7 +1216,7 @@
         "seed",
         "informationLevel",
         "resources",
-        "stockPoints"
+        "stations"
       ],
       "additionalProperties": false
     },

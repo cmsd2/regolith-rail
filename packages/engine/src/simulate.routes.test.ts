@@ -15,7 +15,7 @@ const ofKind = <K extends RunEvent["kind"]>(events: RunEvent[], kind: K) =>
 function triangle(route: unknown, change: (s: ScenarioV2Input) => void = () => {}) {
   const input = minimalScenarioV2();
   input.durationMs = HOUR;
-  input.stockPoints = [
+  input.stations = [
     { id: "Depot", resources: [{ id: "Metals" }] },
     { id: "A", resources: [{ id: "Metals" }] },
     { id: "B", resources: [{ id: "Metals" }] },
@@ -120,7 +120,7 @@ describe("vehicle movement", () => {
       (s) => {
         const vehicle = s.vehicles?.[0];
         if (vehicle) vehicle.dwellPerUnitMs = 60_000;
-        const depot = s.stockPoints[0];
+        const depot = s.stations[0];
         if (depot) depot.resources = [{ id: "Metals", initial: 1000 }];
       },
     );
@@ -154,7 +154,7 @@ describe("vehicle movement", () => {
         vehicle.dwellPerUnitMs = 1_000;
         vehicle.capacity = { shared: 30_000 };
       }
-      const depot = s.stockPoints[0];
+      const depot = s.stations[0];
       if (depot) depot.resources = [{ id: "Metals", initial: 12_000 }];
     });
     const policy = scriptedPolicy((snapshot) =>
@@ -175,7 +175,7 @@ describe("oscillations on routes", () => {
         first,
         { ...first, id: "W", route: { kind: "loop", stops: ["Depot", "A", "B"], start: wStart } },
       ];
-      s.stockPoints = s.stockPoints.map((p) => ({
+      s.stations = s.stations.map((p) => ({
         ...p,
         resources: [{ id: "Metals", initial: p.id === "Depot" ? 1000 : 0 }],
       }));

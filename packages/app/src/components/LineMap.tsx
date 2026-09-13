@@ -147,7 +147,7 @@ export function LineMap() {
   useEffect(() => {
     if (!output || !canvas.current) return;
     playhead.getState().setDuration(output.durationMs);
-    // Distance from each stock point to the next one in order, where an arc joins them.
+    // Distance from each station to the next one in order, where an arc joins them.
     const distances = output.stations.map((id, i) => {
       const next = output.stations[i + 1];
       const arc = scenario?.arcs.find(

@@ -8,13 +8,13 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const SOL = 24 * HOUR;
 
-type Point = ScenarioV2Input["stockPoints"][number];
+type Point = ScenarioV2Input["stations"][number];
 
-/** A stock point alone, or with the minimal line's second stock point, for one sol. */
+/** A station alone, or with the minimal line's second station, for one sol. */
 function single(point: Point, change: (s: ScenarioV2Input) => void = () => {}) {
   const input = minimalScenarioV2();
   input.durationMs = SOL;
-  input.stockPoints = [point];
+  input.stations = [point];
   input.arcs = [];
   input.vehicles = [];
   change(input);

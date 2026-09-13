@@ -59,7 +59,7 @@ export interface FlowTotalsByResource {
   overflow: number[];
   /** Amount removed because it expired. */
   expired: number[];
-  /** Amount shipped between stock points and not yet delivered. */
+  /** Amount shipped between stations and not yet delivered. */
   inTransit: number[];
 }
 
@@ -106,13 +106,13 @@ interface FlowState {
 
 interface SupplierState {
   resource: number;
-  /** Supplying stock point index, or `undefined` for an external supplier. */
+  /** Supplying station index, or `undefined` for an external supplier. */
   from: number | undefined;
   def: SupplierDef;
   rng: Random;
 }
 
-/** An order, or part of one, on its way to the stock point that placed it. */
+/** An order, or part of one, on its way to the station that placed it. */
 interface Shipment {
   point: number;
   resource: number;
@@ -122,7 +122,7 @@ interface Shipment {
   arrivesAt: number;
 }
 
-/** The part of an order a supplying stock point could not yet ship. */
+/** The part of an order a supplying station could not yet ship. */
 interface Backlogged {
   point: number;
   resource: number;
@@ -147,9 +147,9 @@ interface ConverterState {
 interface TrainState {
   id: string;
   kind: "shuttle" | "loop" | "timetable";
-  /** Stock point indices the route visits, in order. */
+  /** Station indices the route visits, in order. */
   path: number[];
-  /** Position in `path` of the stock point the vehicle is at or last left. */
+  /** Position in `path` of the station the vehicle is at or last left. */
   pos: number;
   /** Cost per unit of distance travelled. */
   costPerDistance: number;
@@ -229,14 +229,14 @@ export function runSimulation(
   const resources = scenario.resources.map((r) => r.id);
   const priority = scenario.resources.map((r) => r.priority);
   const resourceIndex = new Map(resources.map((id, i) => [id, i]));
-  const stations = scenario.stockPoints.map((s) => s.id);
+  const stations = scenario.stations.map((s) => s.id);
   const stationIndex = new Map(stations.map((id, i) => [id, i]));
 
   const sites: Site[] = [];
-  const siteOf: number[][] = scenario.stockPoints.map(() => resources.map(() => -1));
+  const siteOf: number[][] = scenario.stations.map(() => resources.map(() => -1));
   const stock: number[] = [];
   const siteCapacity: number[] = [];
-  scenario.stockPoints.forEach((station, s) => {
+  scenario.stations.forEach((station, s) => {
     for (const r of station.resources) {
       const ri = resourceIndex.get(r.id) as number;
       const capacity = r.capacity === "unlimited" ? UNLIMITED_CAPACITY : r.capacity;
@@ -247,7 +247,7 @@ export function runSimulation(
     }
   });
 
-  // Arc distances between stock points, in both directions.
+  // Arc distances between stations, in both directions.
   const arcDistance = new Map<string, number>();
   for (const arc of scenario.arcs) {
     arcDistance.set(`${arc.from}:${arc.to}`, arc.distance);
@@ -258,7 +258,7 @@ export function runSimulation(
 
   // --- Flows ----------------------------------------------------------------
   const flows: FlowState[] = [];
-  scenario.stockPoints.forEach((station, s) => {
+  scenario.stations.forEach((station, s) => {
     for (const consumer of [false, true]) {
       const defs = consumer ? station.consumers : station.producers;
       const seen = new Map<string, number>();
@@ -306,13 +306,13 @@ export function runSimulation(
   // --- Costs ---------------------------------------------------------------------
   // Exact integer accumulators; costs are converted to thousandths once, at the end.
   const holdingCost: number[] = [];
-  scenario.stockPoints.forEach((station) => {
+  scenario.stations.forEach((station) => {
     for (const r of station.resources) holdingCost.push(r.holdingCost ?? 0);
   });
   const hasCosts =
     holdingCost.some((c) => c > 0) ||
     scenario.vehicles.some((v) => (v.costPerDistance ?? 0) > 0) ||
-    scenario.stockPoints.some(
+    scenario.stations.some(
       (p) =>
         p.suppliers.some((s) => (s.orderCost ?? 0) > 0 || (s.unitCost ?? 0) > 0) ||
         p.producers.some((f) => (f.stallCost ?? 0) > 0) ||
@@ -329,7 +329,7 @@ export function runSimulation(
   let transportNumerator = 0n;
 
   // --- Suppliers and reviews ---------------------------------------------------
-  const suppliers: SupplierState[][] = scenario.stockPoints.map((station) =>
+  const suppliers: SupplierState[][] = scenario.stations.map((station) =>
     station.suppliers.map((def) => ({
       resource: resourceIndex.get(def.resource) as number,
       from: def.from === EXTERNAL_SUPPLIER ? undefined : (stationIndex.get(def.from) as number),
@@ -337,19 +337,19 @@ export function runSimulation(
       rng: streamFor(seed, `supplier:${station.id}:${def.resource}`),
     })),
   );
-  const expiring: number[][] = scenario.stockPoints.map((station, s) =>
+  const expiring: number[][] = scenario.stations.map((station, s) =>
     station.resources
       .filter((r) => r.expires)
       .map((r) => (siteOf[s] as number[])[resourceIndex.get(r.id) as number] as number),
   );
-  /** Orders on their way, and orders waiting at each supplying stock point, oldest first. */
+  /** Orders on their way, and orders waiting at each supplying station, oldest first. */
   const shipments: Shipment[] = [];
-  const backlogs: Backlogged[][] = scenario.stockPoints.map(() => []);
+  const backlogs: Backlogged[][] = scenario.stations.map(() => []);
   let reviewCount = 0;
 
   // --- Converters -------------------------------------------------------------
   const converters: ConverterState[] = [];
-  scenario.stockPoints.forEach((station, s) => {
+  scenario.stations.forEach((station, s) => {
     station.converters.forEach((def, k) => {
       const at = (amount: { resource: string; amount: number }) => {
         const resource = resourceIndex.get(amount.resource) as number;
@@ -543,7 +543,7 @@ export function runSimulation(
   };
 
   // Snapshot pieces that never change during a run.
-  const staticStations: StationSnapshot[] = scenario.stockPoints.map((station, i) => {
+  const staticStations: StationSnapshot[] = scenario.stations.map((station, i) => {
     const next = stations[i + 1];
     const distance = next === undefined ? undefined : arcDistance.get(`${station.id}:${next}`);
     return {
@@ -556,13 +556,13 @@ export function runSimulation(
   const resourceSnapshots = scenario.resources.map((r) => ({ id: r.id, priority: r.priority }));
 
   // Backorders appear in snapshots only for scenarios that have backordering consumers.
-  const hasBackorders = scenario.stockPoints.some((p) =>
+  const hasBackorders = scenario.stations.some((p) =>
     p.consumers.some((c) => c.unmet === "backorder"),
   );
   const stationQuantities = (s: number) => {
     const stockOut: Quantities = {};
     const capacityOut: Quantities = {};
-    for (const r of scenario.stockPoints[s]?.resources ?? []) {
+    for (const r of scenario.stations[s]?.resources ?? []) {
       const site = (siteOf[s] as number[])[resourceIndex.get(r.id) as number] as number;
       stockOut[r.id] = stock[site] as number;
       capacityOut[r.id] = siteCapacity[site] as number;
@@ -1008,10 +1008,10 @@ export function runSimulation(
     else if (blocked) metrics.converterBlockedMs += TICK_MS;
   };
 
-  /** Backorders waiting at a stock point for a resource, summed over its consumers. */
+  /** Backorders waiting at a station for a resource, summed over its consumers. */
   const backordersAt = (s: number) => {
     const out: Quantities = {};
-    for (const r of scenario.stockPoints[s]?.resources ?? []) out[r.id] = 0;
+    for (const r of scenario.stations[s]?.resources ?? []) out[r.id] = 0;
     for (const flow of flows) {
       if (flow.station !== s || !flow.backorder) continue;
       const id = resources[flow.resource] as string;
@@ -1022,7 +1022,7 @@ export function runSimulation(
 
   const leadTime = (supplier: SupplierState) => draw(supplier.def.leadTime, supplier.rng);
 
-  /** Sends an amount from a supplier to the stock point that ordered it. */
+  /** Sends an amount from a supplier to the station that ordered it. */
   const ship = (
     t: number,
     point: number,
@@ -1063,7 +1063,7 @@ export function runSimulation(
     });
   };
 
-  /** Ships what supplying stock points now hold towards the orders waiting there. */
+  /** Ships what supplying stations now hold towards the orders waiting there. */
   const shipBacklogs = (t: number) => {
     backlogs.forEach((waiting, from) => {
       while (waiting.length > 0) {
@@ -1266,7 +1266,7 @@ export function runSimulation(
       recordOutcome(outcome, t, { station, review });
       if (!outcome.error) for (const action of outcome.actions) placeOrder(action, s, t, review);
     }
-    const next = t + ((scenario.stockPoints[s]?.review?.periodMs as number) ?? duration);
+    const next = t + ((scenario.stations[s]?.review?.periodMs as number) ?? duration);
     if (next < duration) {
       queue.push({ kind: "review", time: next, order: EventOrder.review, entity: s, point: s });
     }
@@ -1436,7 +1436,7 @@ export function runSimulation(
       informationLevel: level,
       hooks: {
         stop: scenario.vehicles.length > 0,
-        review: scenario.stockPoints.some((p) => p.review !== undefined),
+        review: scenario.stations.some((p) => p.review !== undefined),
       },
     },
   );
@@ -1448,7 +1448,7 @@ export function runSimulation(
       const time = world.schedule.kind === "fixed" ? world.schedule.startMs : 0;
       queue.push({ kind: "event-check", time, order: EventOrder.eventCheck, entity: i, world: i });
     });
-    scenario.stockPoints.forEach((station, s) => {
+    scenario.stations.forEach((station, s) => {
       if (station.review && station.review.offsetMs < duration) {
         queue.push({
           kind: "review",

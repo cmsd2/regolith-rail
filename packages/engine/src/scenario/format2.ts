@@ -21,7 +21,7 @@ import {
  */
 export const UNLIMITED_CAPACITY = 2_000_000_000;
 
-/** Id that names an external supplier; no stock point may use it. */
+/** Id that names an external supplier; no station may use it. */
 export const EXTERNAL_SUPPLIER = "external";
 
 const MAX_MULTIPLIER_PERMILLE = 100_000;
@@ -116,7 +116,7 @@ export const Converter = z.strictObject({
 
 export const Supplier = z.strictObject({
   resource: id,
-  /** `external` for an unlimited outside supplier, or the id of a stock point. */
+  /** `external` for an unlimited outside supplier, or the id of a station. */
   from: id,
   leadTime: DurationDistribution.default({ kind: "fixed", value: 0 }),
   minOrder: quantity.optional(),
@@ -127,24 +127,24 @@ export const Supplier = z.strictObject({
 
 export const Review = z.strictObject({ periodMs: wholeMinutes, offsetMs: offset.default(0) });
 
-export const StockResource = z.strictObject({
+export const StationResource = z.strictObject({
   id,
   capacity: z.union([quantity, z.literal("unlimited")]).default(DEFAULT_CAPACITY),
   initial: quantity.default(0),
-  /** Stock of this resource is removed at each review of its stock point. */
+  /** Stock of this resource is removed at each review of its station. */
   expires: z.boolean().default(false),
   holdingCost: quantity.optional(),
 });
 
-export const StockPoint = z.strictObject({
+export const Station = z.strictObject({
   id,
-  resources: z.array(StockResource).min(1),
+  resources: z.array(StationResource).min(1),
   producers: z.array(Producer).default([]),
   consumers: z.array(Consumer).default([]),
   converters: z.array(Converter).default([]),
   suppliers: z.array(Supplier).default([]),
   review: Review.optional(),
-  /** Where to draw the stock point on the map. */
+  /** Where to draw the station on the map. */
   position: z.strictObject({ x: z.number(), y: z.number() }).optional(),
 });
 
@@ -195,7 +195,7 @@ export const ScenarioV2 = z
     informationLevel: z.enum(INFORMATION_LEVELS),
     sampleIntervalMs: wholeMinutes.default(3_600_000),
     resources: z.array(Resource).min(1),
-    stockPoints: z.array(StockPoint).min(1),
+    stations: z.array(Station).min(1),
     arcs: z.array(Arc).default([]),
     vehicles: z.array(Vehicle).default([]),
     events: z.array(WorldEvent).default([]),
@@ -218,11 +218,11 @@ export const ScenarioV2 = z
       resourceIds.add(resource.id);
     });
 
-    // Stock points and what each stores.
+    // Stations and what each stores.
     const stored = new Map<string, Set<string>>();
-    scenario.stockPoints.forEach((point, i) => {
-      const at = ["stockPoints", i];
-      if (stored.has(point.id)) issue([...at, "id"], `duplicate stock point id ${point.id}`);
+    scenario.stations.forEach((point, i) => {
+      const at = ["stations", i];
+      if (stored.has(point.id)) issue([...at, "id"], `duplicate station id ${point.id}`);
       if (point.id === EXTERNAL_SUPPLIER) {
         issue([...at, "id"], `${EXTERNAL_SUPPLIER} is reserved for external suppliers`);
       }
@@ -246,11 +246,11 @@ export const ScenarioV2 = z
 
     const storedAt = (point: string, resource: string) => stored.get(point)?.has(resource) ?? false;
 
-    scenario.stockPoints.forEach((point, i) => {
-      const at = ["stockPoints", i];
+    scenario.stations.forEach((point, i) => {
+      const at = ["stations", i];
       const needs = (path: (string | number)[], resource: string) => {
         if (!storedAt(point.id, resource)) {
-          issue(path, `stock point ${point.id} does not store resource ${resource}`);
+          issue(path, `station ${point.id} does not store resource ${resource}`);
         }
       };
       for (const kind of ["producers", "consumers"] as const) {
@@ -281,15 +281,15 @@ export const ScenarioV2 = z
         if (supplied.has(supplier.resource)) {
           issue(
             [...where, "resource"],
-            `stock point ${point.id} already has a supplier for ${supplier.resource}`,
+            `station ${point.id} already has a supplier for ${supplier.resource}`,
           );
         }
         supplied.add(supplier.resource);
         if (supplier.from !== EXTERNAL_SUPPLIER) {
           if (supplier.from === point.id) {
-            issue([...where, "from"], `stock point ${point.id} cannot supply itself`);
+            issue([...where, "from"], `station ${point.id} cannot supply itself`);
           } else if (!stored.has(supplier.from)) {
-            issue([...where, "from"], `unknown stock point ${supplier.from}`);
+            issue([...where, "from"], `unknown station ${supplier.from}`);
           } else if (!storedAt(supplier.from, supplier.resource)) {
             issue(
               [...where, "from"],
@@ -309,11 +309,11 @@ export const ScenarioV2 = z
 
     // Supplier cycles, per resource.
     const resourcesWithSuppliers = new Set(
-      scenario.stockPoints.flatMap((p) => p.suppliers.map((s) => s.resource)),
+      scenario.stations.flatMap((p) => p.suppliers.map((s) => s.resource)),
     );
     for (const resource of resourcesWithSuppliers) {
       const next = new Map<string, string>();
-      for (const point of scenario.stockPoints) {
+      for (const point of scenario.stations) {
         const supplier = point.suppliers.find((s) => s.resource === resource);
         if (supplier && supplier.from !== EXTERNAL_SUPPLIER) next.set(point.id, supplier.from);
       }
@@ -330,11 +330,11 @@ export const ScenarioV2 = z
         const key = [...cycle].sort().join(",");
         if (reported.has(key)) continue;
         reported.add(key);
-        const index = scenario.stockPoints.findIndex((p) => p.id === cycle[0]);
+        const index = scenario.stations.findIndex((p) => p.id === cycle[0]);
         const supplierIndex =
-          scenario.stockPoints[index]?.suppliers.findIndex((s) => s.resource === resource) ?? 0;
+          scenario.stations[index]?.suppliers.findIndex((s) => s.resource === resource) ?? 0;
         issue(
-          ["stockPoints", index, "suppliers", supplierIndex, "from"],
+          ["stations", index, "suppliers", supplierIndex, "from"],
           `suppliers of ${resource} form a cycle: ${[...cycle, cycle[0]].join(" → ")}`,
         );
       }
@@ -345,11 +345,11 @@ export const ScenarioV2 = z
     scenario.arcs.forEach((arc, i) => {
       const at = ["arcs", i];
       for (const end of ["from", "to"] as const) {
-        if (!stored.has(arc[end])) issue([...at, end], `unknown stock point ${arc[end]}`);
+        if (!stored.has(arc[end])) issue([...at, end], `unknown station ${arc[end]}`);
       }
-      if (arc.from === arc.to) issue([...at, "to"], "an arc must join two different stock points");
+      if (arc.from === arc.to) issue([...at, "to"], "an arc must join two different stations");
       const key = arcKey(arc.from, arc.to);
-      if (arcs.has(key)) issue(at, `stock points ${arc.from} and ${arc.to} are already joined`);
+      if (arcs.has(key)) issue(at, `stations ${arc.from} and ${arc.to} are already joined`);
       arcs.set(key, arc.distance);
     });
 
@@ -371,7 +371,7 @@ export const ScenarioV2 = z
       let known = true;
       route.stops.forEach((stop, k) => {
         if (!stored.has(stop)) {
-          issue([...where, "stops", k], `unknown stock point ${stop}`);
+          issue([...where, "stops", k], `unknown station ${stop}`);
           known = false;
         }
       });
@@ -432,7 +432,7 @@ export const ScenarioV2 = z
         if (effect.stations !== "all") {
           effect.stations.forEach((station, k) => {
             if (!stored.has(station))
-              issue([...where, "stations", k], `unknown stock point ${station}`);
+              issue([...where, "stations", k], `unknown station ${station}`);
           });
         }
         if (effect.resources !== "all") {
@@ -450,8 +450,8 @@ export type ScenarioV2Input = z.input<typeof ScenarioV2>;
 export type ScenarioV2 = z.output<typeof ScenarioV2>;
 /** A validated scenario: always format 2. */
 export type Scenario = ScenarioV2;
-export type StockPointDef = z.output<typeof StockPoint>;
-export type StockResourceDef = z.output<typeof StockResource>;
+export type StationDef = z.output<typeof Station>;
+export type StationResourceDef = z.output<typeof StationResource>;
 export type ProducerDef = z.output<typeof Producer>;
 export type ConsumerDef = z.output<typeof Consumer>;
 export type ConverterDef = z.output<typeof Converter>;

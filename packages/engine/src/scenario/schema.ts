@@ -53,26 +53,26 @@ export const Variability = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const Flow = z.strictObject({
+export const FlowV1 = z.strictObject({
   resource: id,
   /** Milli-units per sol. */
   rate: quantity,
   variability: Variability.default({ kind: "fixed" }),
 });
 
-export const StationResource = z.strictObject({
+export const StationResourceV1 = z.strictObject({
   id,
   capacity: quantity.default(DEFAULT_CAPACITY),
   initial: quantity.default(0),
 });
 
-export const Station = z.strictObject({
+export const StationV1 = z.strictObject({
   id,
-  resources: z.array(StationResource).min(1),
+  resources: z.array(StationResourceV1).min(1),
   /** Distance to the next station on the line. Omitted on the last station. */
   distanceToNext: positive.optional(),
-  producers: z.array(Flow).default([]),
-  consumers: z.array(Flow).default([]),
+  producers: z.array(FlowV1).default([]),
+  consumers: z.array(FlowV1).default([]),
 });
 
 export const TrainCapacity = z.union([
@@ -80,7 +80,7 @@ export const TrainCapacity = z.union([
   z.strictObject({ perResource: z.record(id, quantity) }),
 ]);
 
-export const Train = z.strictObject({
+export const TrainV1 = z.strictObject({
   id,
   start: id,
   direction: z.enum(["forward", "backward"]).default("forward"),
@@ -148,8 +148,8 @@ export const ScenarioV1 = z
     informationLevel: z.enum(INFORMATION_LEVELS),
     sampleIntervalMs: wholeMinutes.default(GAME_HOUR_MS),
     resources: z.array(Resource).min(1),
-    stations: z.array(Station),
-    trains: z.array(Train).min(1),
+    stations: z.array(StationV1),
+    trains: z.array(TrainV1).min(1),
     events: z.array(WorldEvent).default([]),
   })
   .superRefine((scenario, ctx) => {
@@ -270,9 +270,9 @@ export const ScenarioV1 = z
 
 export type ScenarioV1Input = z.input<typeof ScenarioV1>;
 export type ScenarioV1 = z.output<typeof ScenarioV1>;
-export type StationDef = z.output<typeof Station>;
-export type TrainDef = z.output<typeof Train>;
-export type FlowDef = z.output<typeof Flow>;
+export type StationV1Def = z.output<typeof StationV1>;
+export type TrainV1Def = z.output<typeof TrainV1>;
+export type FlowV1Def = z.output<typeof FlowV1>;
 export type VariabilityDef = z.output<typeof Variability>;
 export type WorldEventDef = z.output<typeof WorldEvent>;
 export type EffectDef = z.output<typeof Effect>;

@@ -3,7 +3,7 @@ import { minimalScenarioV2 } from "../testing/fixtures.ts";
 import { ScenarioV2, type ScenarioV2Input } from "./format2.ts";
 import { formatPath } from "./validate.ts";
 
-type Point = ScenarioV2Input["stockPoints"][number];
+type Point = ScenarioV2Input["stations"][number];
 
 function parse(input: unknown) {
   const result = ScenarioV2.safeParse(input);
@@ -21,7 +21,7 @@ function errorsOf(input: unknown) {
   return result.errors;
 }
 
-const point = (input: ScenarioV2Input, i: number) => input.stockPoints[i] as Point;
+const point = (input: ScenarioV2Input, i: number) => input.stations[i] as Point;
 
 describe("format 2 document", () => {
   it("accepts a minimal network with a shuttle and applies defaults", () => {
@@ -36,16 +36,16 @@ describe("format 2 document", () => {
       stops: ["A", "B"],
       direction: "forward",
     });
-    const a = scenario.stockPoints[0];
+    const a = scenario.stations[0];
     expect(a?.resources[0]).toEqual({ id: "Metals", capacity: 30_000, initial: 0, expires: false });
     expect(a?.converters).toEqual([]);
     expect(a?.suppliers).toEqual([]);
-    expect(scenario.stockPoints[1]?.consumers[0]).toMatchObject({ unmet: "lost" });
+    expect(scenario.stations[1]?.consumers[0]).toMatchObject({ unmet: "lost" });
   });
 
   it("gives a stored resource 30000 milli-units of capacity by default", () => {
     const result = parse(minimalScenarioV2());
-    expect(result.ok && result.scenario.stockPoints[1]?.resources[0]?.capacity).toBe(30_000);
+    expect(result.ok && result.scenario.stations[1]?.resources[0]?.capacity).toBe(30_000);
   });
 
   it("accepts unlimited capacity", () => {
@@ -53,12 +53,12 @@ describe("format 2 document", () => {
     point(input, 0).resources = [{ id: "Metals", capacity: "unlimited", initial: 5_000_000 }];
     const result = parse(input);
     expect(result.errors).toEqual([]);
-    expect(result.ok && result.scenario.stockPoints[0]?.resources[0]?.capacity).toBe("unlimited");
+    expect(result.ok && result.scenario.stations[0]?.resources[0]?.capacity).toBe("unlimited");
   });
 
-  it("accepts a single stock point with no arcs or vehicles", () => {
+  it("accepts a single station with no arcs or vehicles", () => {
     const input = minimalScenarioV2();
-    input.stockPoints = [point(input, 1)];
+    input.stations = [point(input, 1)];
     input.arcs = [];
     input.vehicles = [];
     expect(parse(input).errors).toEqual([]);
@@ -71,9 +71,9 @@ describe("format 2 document", () => {
 });
 
 describe("network topology", () => {
-  it("treats a line as stock points joined in order", () => {
+  it("treats a line as stations joined in order", () => {
     const input = minimalScenarioV2();
-    input.stockPoints.push({ id: "C", resources: [{ id: "Metals" }] });
+    input.stations.push({ id: "C", resources: [{ id: "Metals" }] });
     input.arcs = [
       { from: "A", to: "B", distance: 400 },
       { from: "B", to: "C", distance: 600 },
@@ -82,9 +82,9 @@ describe("network topology", () => {
     expect(parse(input).errors).toEqual([]);
   });
 
-  it("rejects a route between stock points no arc joins", () => {
+  it("rejects a route between stations no arc joins", () => {
     const input = minimalScenarioV2();
-    input.stockPoints.push({ id: "C", resources: [{ id: "Metals" }] });
+    input.stations.push({ id: "C", resources: [{ id: "Metals" }] });
     (input.vehicles?.[0] as { route: unknown }).route = { kind: "shuttle", stops: ["A", "C"] };
     expect(errorsOf(input)).toContainEqual({
       path: "vehicles[0].route.stops[1]",
@@ -102,16 +102,16 @@ describe("network topology", () => {
     const errors = errorsOf(input);
     expect(errors).toContainEqual({
       path: "arcs[1]",
-      message: "stock points B and A are already joined",
+      message: "stations B and A are already joined",
     });
-    expect(errors).toContainEqual({ path: "arcs[2].to", message: "unknown stock point Z" });
+    expect(errors).toContainEqual({ path: "arcs[2].to", message: "unknown station Z" });
   });
 
   it("reserves the external supplier id", () => {
     const input = minimalScenarioV2();
     point(input, 0).id = "external";
     expect(errorsOf(input)).toContainEqual({
-      path: "stockPoints[0].id",
+      path: "stations[0].id",
       message: "external is reserved for external suppliers",
     });
   });
@@ -120,7 +120,7 @@ describe("network topology", () => {
 describe("vehicles and routes", () => {
   const loopScenario = () => {
     const input = minimalScenarioV2();
-    input.stockPoints = [
+    input.stations = [
       { id: "Depot", resources: [{ id: "Metals" }] },
       { id: "A", resources: [{ id: "Metals" }] },
       { id: "B", resources: [{ id: "Metals" }] },
@@ -214,12 +214,12 @@ describe("converters, suppliers and reviews", () => {
     expect(parse(factory()).errors).toEqual([]);
   });
 
-  it("rejects a converter output the stock point does not store", () => {
+  it("rejects a converter output the station does not store", () => {
     const input = factory();
     point(input, 1).resources = [{ id: "Metals" }];
     expect(errorsOf(input)).toContainEqual({
-      path: "stockPoints[1].converters[0].outputs[0].resource",
-      message: "stock point B does not store resource MachineParts",
+      path: "stations[1].converters[0].outputs[0].resource",
+      message: "station B does not store resource MachineParts",
     });
   });
 
@@ -232,7 +232,7 @@ describe("converters, suppliers and reviews", () => {
     input.durationMs = 30 * 86_400_000;
     const result = parse(input);
     expect(result.errors).toEqual([]);
-    expect(result.ok && result.scenario.stockPoints[1]?.review).toEqual({
+    expect(result.ok && result.scenario.stations[1]?.review).toEqual({
       periodMs: 604_800_000,
       offsetMs: 0,
     });
@@ -243,7 +243,7 @@ describe("converters, suppliers and reviews", () => {
     point(input, 0).suppliers = [{ resource: "Metals", from: "B" }];
     point(input, 1).suppliers = [{ resource: "Metals", from: "A" }];
     expect(errorsOf(input)).toContainEqual({
-      path: "stockPoints[0].suppliers[0].from",
+      path: "stations[0].suppliers[0].from",
       message: "suppliers of Metals form a cycle: A → B → A",
     });
   });
@@ -254,7 +254,7 @@ describe("converters, suppliers and reviews", () => {
     point(input, 1).resources.push({ id: "Food" });
     point(input, 1).suppliers = [{ resource: "Food", from: "A" }];
     expect(errorsOf(input)).toContainEqual({
-      path: "stockPoints[1].suppliers[0].from",
+      path: "stations[1].suppliers[0].from",
       message: "supplier A does not store resource Food",
     });
   });
@@ -267,7 +267,7 @@ describe("converters, suppliers and reviews", () => {
     point(input, 1).resources = [{ id: "Metals", holdingCost: 1 }];
     const result = parse(input);
     expect(result.errors).toEqual([]);
-    expect(result.ok && result.scenario.stockPoints[1]?.consumers[0]).toMatchObject({
+    expect(result.ok && result.scenario.stations[1]?.consumers[0]).toMatchObject({
       unmet: "backorder",
       backorderCost: 5,
     });
@@ -327,7 +327,7 @@ describe("demand processes", () => {
       profile: [{ atMs: 0, multiplierPermille: 200_000 }],
     });
     expect(errorsOf(input).map((e) => e.path)).toContain(
-      "stockPoints[1].consumers[0].profile[0].multiplierPermille",
+      "stations[1].consumers[0].profile[0].multiplierPermille",
     );
   });
 
@@ -341,7 +341,7 @@ describe("demand processes", () => {
       ],
     });
     expect(errorsOf(input)).toContainEqual({
-      path: "stockPoints[1].consumers[0].profile[1].atMs",
+      path: "stations[1].consumers[0].profile[1].atMs",
       message: "profile points must be in time order",
     });
   });
@@ -353,7 +353,7 @@ describe("demand processes", () => {
       trace: { periodMs: 3_600_000, amounts: [1] },
     });
     expect(errorsOf(input)).toContainEqual({
-      path: "stockPoints[1].consumers[0]",
+      path: "stations[1].consumers[0]",
       message: "a flow needs exactly one of rate, poisson, perPeriod or trace",
     });
   });

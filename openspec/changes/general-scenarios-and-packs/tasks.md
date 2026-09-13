@@ -10,7 +10,7 @@
 - [x] 2.3 Add the Poisson, discrete per-period, trace and profile processes to the schema; verify validation tests for each process, including an out-of-range profile error with its document path
 - [x] 2.4 Implement the format 1 to format 2 upgrade at validation time, keeping station ids, flow order and train ids; verify all five starter scenarios upgrade and validate, and a property test shows that any valid format 1 document upgrades to a valid format 2 document
 - [x] 2.5 Regenerate the published JSON Schema for format 2 with format 1 still accepted; verify every test scenario that passes validation also validates against the published schema
-- [ ] 2.6 Rename `stockPoints` to `stations` in scenario format 2 and throughout the engine, tests, app and documentation; verify the full check and golden tests pass
+- [x] 2.6 Rename `stockPoints` to `stations` in scenario format 2 and throughout the engine, tests, app and documentation; verify the full check and golden tests pass
 
 ## 3. Engine on format 2 with unchanged format 1 results
 

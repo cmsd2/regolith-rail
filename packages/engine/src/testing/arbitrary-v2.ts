@@ -7,7 +7,7 @@ import { chaoticPolicy } from "./arbitrary.ts";
 const HOUR = 3_600_000;
 const RESOURCE_NAMES = ["Metals", "Food", "Polymers"];
 
-type Point = ScenarioV2Input["stockPoints"][number];
+type Point = ScenarioV2Input["stations"][number];
 type Producer = NonNullable<Point["producers"]>[number];
 
 const distribution = fc.oneof(
@@ -126,7 +126,7 @@ export const arbitraryScenarioV2: fc.Arbitrary<ScenarioV2Input> = fc
         .map((p): Point => {
           const pickResource = (k: number) => p.enabled[(p.pick + k) % p.enabled.length] as string;
           const capacity = p.unlimited ? ("unlimited" as const) : p.capacity;
-          // Stock points supply only resources they store, and only from earlier stock points
+          // Stations supply only resources they store, and only from earlier stations
           // that store them, so suppliers never form a cycle.
           const supplied = new Set<string>();
           const suppliers = p.suppliers.flatMap((s, k) => {
@@ -247,9 +247,9 @@ export const arbitraryScenarioV2: fc.Arbitrary<ScenarioV2Input> = fc
             distance: distances[pointCount - 1] as number,
           });
         }
-        // Stock points are generated independently, so a supplier upstream may not store the
+        // Stations are generated independently, so a supplier upstream may not store the
         // resource; such suppliers become external.
-        const stockPoints = points.map((p) => ({
+        const stations = points.map((p) => ({
           ...p,
           suppliers: (p.suppliers ?? []).map((sup) => {
             const upstream = points.find((q) => q.id === sup.from);
@@ -266,9 +266,9 @@ export const arbitraryScenarioV2: fc.Arbitrary<ScenarioV2Input> = fc
           seed,
           informationLevel,
           resources: resources.map((id, k) => ({ id, priority: k + 1 })),
-          stockPoints,
+          stations,
           arcs,
-          // A single stock point has no route to run.
+          // A single station has no route to run.
           vehicles: pointCount >= 2 ? vehicles : [],
         };
       });

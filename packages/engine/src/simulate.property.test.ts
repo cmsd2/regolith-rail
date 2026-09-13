@@ -19,14 +19,14 @@ describe("engine properties", () => {
           const resources = scenario.resources.map((r) => r.id);
           const initial = resources.map(() => 0);
           const capacity: number[] = [];
-          for (const station of scenario.stockPoints) {
+          for (const station of scenario.stations) {
             for (const r of station.resources) {
               const k = resources.indexOf(r.id);
               initial[k] = (initial[k] as number) + r.initial;
               capacity.push(r.capacity === "unlimited" ? UNLIMITED_CAPACITY : r.capacity);
             }
           }
-          const siteResource = scenario.stockPoints.flatMap((s) =>
+          const siteResource = scenario.stations.flatMap((s) =>
             s.resources.map((r) => resources.indexOf(r.id)),
           );
           const trainLimit = scenario.vehicles.map(({ capacity: c }) =>

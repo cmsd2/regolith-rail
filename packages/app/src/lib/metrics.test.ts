@@ -18,7 +18,7 @@ describe("metrics shown for a scenario", () => {
 
   it("includes backorder, supplier and cost metrics when a scenario uses them", () => {
     const scenario = starter("two-station");
-    const dome = scenario.stockPoints[1];
+    const dome = scenario.stations[1];
     if (!dome) throw new Error("two-station has a dome");
     const consumer = dome.consumers[0];
     if (consumer) Object.assign(consumer, { unmet: "backorder", backorderCost: 2 });
