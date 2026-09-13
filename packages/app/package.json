@@ -8,11 +8,13 @@
   },
   "scripts": {
     "typecheck": "react-router typegen && tsc -p .",
-    "dev": "react-router dev",
-    "build": "react-router build && node scripts/postbuild.ts"
+    "dev": "pnpm search-index && react-router dev",
+    "build": "pnpm search-index && react-router build && node scripts/postbuild.ts",
+    "search-index": "node ../docs/scripts/search-index.ts src/docs/search-index.json"
   },
   "devDependencies": {
     "@react-router/dev": "8.3.1",
+    "@types/mdx": "2.0.14",
     "@types/node": "^24.13.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -27,7 +29,9 @@
     "@codemirror/lint": "6.9.7",
     "@codemirror/state": "^6.7.4",
     "@codemirror/view": "^6.43.11",
+    "@mdx-js/rollup": "3.1.1",
     "@observablehq/plot": "0.6.17",
+    "@regolith-rail/docs": "workspace:*",
     "@regolith-rail/engine": "workspace:*",
     "@regolith-rail/lua-runtime": "workspace:*",
     "@regolith-rail/policy-api": "workspace:*",
@@ -36,6 +40,8 @@
     "idb-keyval": "6.3.0",
     "isbot": "^5",
     "jsonc-parser": "^3.3.1",
+    "katex": "0.18.7",
+    "minisearch": "7.2.0",
     "radix-ui": "1.6.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",

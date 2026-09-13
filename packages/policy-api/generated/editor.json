@@ -7,7 +7,7 @@
       "type": "integer",
       "summary": "Number of this stop within the run, starting at 1.",
       "level": "local",
-      "docs": "api/context#stop",
+      "docs": "api/context#stopcontext-stop",
       "kind": "field"
     },
     {
@@ -16,7 +16,7 @@
       "type": "integer",
       "summary": "Game time in milliseconds since the run started.",
       "level": "local",
-      "docs": "api/context#now",
+      "docs": "api/context#stopcontext-now",
       "kind": "field"
     },
     {
@@ -25,7 +25,7 @@
       "type": "\"local\"|\"line\"",
       "summary": "How much of the line this scenario lets the policy see.",
       "level": "local",
-      "docs": "api/context#information-level",
+      "docs": "api/context#stopcontext-information-level",
       "kind": "field"
     },
     {
@@ -34,7 +34,7 @@
       "type": "Train",
       "summary": "The train that has stopped.",
       "level": "local",
-      "docs": "api/context#train",
+      "docs": "api/context#stopcontext-train",
       "kind": "field"
     },
     {
@@ -43,7 +43,7 @@
       "type": "string",
       "summary": "Train id, as written in the scenario.",
       "level": "local",
-      "docs": "api/train#id",
+      "docs": "api/train#train-id",
       "kind": "field"
     },
     {
@@ -52,7 +52,7 @@
       "type": "\"forward\"|\"backward\"",
       "summary": "Direction the train will leave in. `forward` runs towards the last station; trains reverse at either end.",
       "level": "local",
-      "docs": "api/train#direction",
+      "docs": "api/train#train-direction",
       "kind": "field"
     },
     {
@@ -61,7 +61,7 @@
       "type": "integer",
       "summary": "Distance travelled per second.",
       "level": "local",
-      "docs": "api/train#speed",
+      "docs": "api/train#train-speed",
       "kind": "field"
     },
     {
@@ -70,7 +70,7 @@
       "type": "TrainCapacity",
       "summary": "How much the train can carry.",
       "level": "local",
-      "docs": "api/train#capacity",
+      "docs": "api/train#train-capacity",
       "kind": "field"
     },
     {
@@ -79,7 +79,7 @@
       "type": "integer",
       "summary": "Total milli-units across all resources, when capacity is shared.",
       "level": "local",
-      "docs": "api/train#shared",
+      "docs": "api/train#traincapacity-shared",
       "kind": "field"
     },
     {
@@ -88,7 +88,7 @@
       "type": "table<string, integer>",
       "summary": "Milli-units per resource id, when capacity is per resource.",
       "level": "local",
-      "docs": "api/train#per-resource",
+      "docs": "api/train#traincapacity-per-resource",
       "kind": "field"
     },
     {
@@ -97,7 +97,7 @@
       "type": "table<string, integer>",
       "summary": "Milli-units carried, by resource id. Every scenario resource is present.",
       "level": "local",
-      "docs": "api/train#cargo",
+      "docs": "api/train#train-cargo",
       "kind": "field"
     },
     {
@@ -106,7 +106,7 @@
       "type": "table<string, integer>",
       "summary": "Milli-units more the train could load, by resource id.",
       "level": "local",
-      "docs": "api/train#space",
+      "docs": "api/train#train-space",
       "kind": "field"
     },
     {
@@ -115,7 +115,7 @@
       "type": "table",
       "summary": "Persistent table for this train, under the same rules as `ctx.memory`.",
       "level": "local",
-      "docs": "api/train#memory",
+      "docs": "api/train#train-memory",
       "kind": "field"
     },
     {
@@ -124,7 +124,7 @@
       "type": "Station",
       "summary": "The station the train has stopped at. Its stock and capacity are always readable.",
       "level": "local",
-      "docs": "api/context#station",
+      "docs": "api/context#stopcontext-station",
       "kind": "field"
     },
     {
@@ -133,7 +133,7 @@
       "type": "string",
       "summary": "Station id, as written in the scenario.",
       "level": "local",
-      "docs": "api/station#id",
+      "docs": "api/station#station-id",
       "kind": "field"
     },
     {
@@ -142,7 +142,7 @@
       "type": "integer",
       "summary": "Position on the line, starting at 1.",
       "level": "local",
-      "docs": "api/station#index",
+      "docs": "api/station#station-index",
       "kind": "field"
     },
     {
@@ -151,7 +151,7 @@
       "type": "string[]",
       "summary": "Ids of the resources this station stores, in scenario order.",
       "level": "local",
-      "docs": "api/station#resources",
+      "docs": "api/station#station-resources",
       "kind": "field"
     },
     {
@@ -160,7 +160,7 @@
       "type": "integer",
       "summary": "Distance to the next station; `nil` on the last station.",
       "level": "local",
-      "docs": "api/station#distance-to-next",
+      "docs": "api/station#station-distance-to-next",
       "kind": "field"
     },
     {
@@ -169,7 +169,7 @@
       "type": "table<string, integer>",
       "summary": "Milli-units stored, by resource id. Readable for other stations only at the `line` level.",
       "level": "line",
-      "docs": "api/station#stock",
+      "docs": "api/station#station-stock",
       "kind": "field"
     },
     {
@@ -178,7 +178,7 @@
       "type": "table<string, integer>",
       "summary": "Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.",
       "level": "line",
-      "docs": "api/station#capacity",
+      "docs": "api/station#station-capacity",
       "kind": "field"
     },
     {
@@ -187,7 +187,7 @@
       "type": "table",
       "summary": "Persistent table for this station, under the same rules as `ctx.memory`. Present on `ctx.station`.",
       "level": "local",
-      "docs": "api/station#memory",
+      "docs": "api/station#station-memory",
       "kind": "field"
     },
     {
@@ -196,7 +196,7 @@
       "type": "Line",
       "summary": "The stations on the line, in order.",
       "level": "local",
-      "docs": "api/context#line",
+      "docs": "api/context#stopcontext-line",
       "kind": "field"
     },
     {
@@ -205,7 +205,7 @@
       "type": "Station[]",
       "summary": "Stations in line order.",
       "level": "local",
-      "docs": "api/line#stations",
+      "docs": "api/line#line-stations",
       "kind": "field"
     },
     {
@@ -214,7 +214,7 @@
       "type": "string",
       "summary": "Station id, as written in the scenario.",
       "level": "local",
-      "docs": "api/station#id",
+      "docs": "api/station#station-id",
       "kind": "field"
     },
     {
@@ -223,7 +223,7 @@
       "type": "integer",
       "summary": "Position on the line, starting at 1.",
       "level": "local",
-      "docs": "api/station#index",
+      "docs": "api/station#station-index",
       "kind": "field"
     },
     {
@@ -232,7 +232,7 @@
       "type": "string[]",
       "summary": "Ids of the resources this station stores, in scenario order.",
       "level": "local",
-      "docs": "api/station#resources",
+      "docs": "api/station#station-resources",
       "kind": "field"
     },
     {
@@ -241,7 +241,7 @@
       "type": "integer",
       "summary": "Distance to the next station; `nil` on the last station.",
       "level": "local",
-      "docs": "api/station#distance-to-next",
+      "docs": "api/station#station-distance-to-next",
       "kind": "field"
     },
     {
@@ -250,7 +250,7 @@
       "type": "table<string, integer>",
       "summary": "Milli-units stored, by resource id. Readable for other stations only at the `line` level.",
       "level": "line",
-      "docs": "api/station#stock",
+      "docs": "api/station#station-stock",
       "kind": "field"
     },
     {
@@ -259,7 +259,7 @@
       "type": "table<string, integer>",
       "summary": "Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.",
       "level": "line",
-      "docs": "api/station#capacity",
+      "docs": "api/station#station-capacity",
       "kind": "field"
     },
     {
@@ -268,7 +268,7 @@
       "type": "table",
       "summary": "Persistent table for this station, under the same rules as `ctx.memory`. Present on `ctx.station`.",
       "level": "local",
-      "docs": "api/station#memory",
+      "docs": "api/station#station-memory",
       "kind": "field"
     },
     {
@@ -277,7 +277,7 @@
       "type": "fun(from: string, to: string): integer",
       "summary": "Distance along the line between two stations.",
       "level": "local",
-      "docs": "api/line#distance",
+      "docs": "api/line#line-distance",
       "kind": "function",
       "params": [
         {
@@ -302,7 +302,7 @@
       "type": "fun(from: string, to: string, speed?: integer): integer",
       "summary": "Milliseconds a train takes between two stations, not counting stops. Uses the stopped train's speed when `speed` is omitted.",
       "level": "local",
-      "docs": "api/line#travel-time",
+      "docs": "api/line#line-travel-time",
       "kind": "function",
       "params": [
         {
@@ -332,7 +332,7 @@
       "type": "Resource[]",
       "summary": "Every resource in the scenario, in scenario order.",
       "level": "local",
-      "docs": "api/context#resources",
+      "docs": "api/context#stopcontext-resources",
       "kind": "field"
     },
     {
@@ -341,7 +341,7 @@
       "type": "string",
       "summary": "Resource id, such as `Metals`.",
       "level": "local",
-      "docs": "api/context#id",
+      "docs": "api/context#resource-id",
       "kind": "field"
     },
     {
@@ -350,7 +350,7 @@
       "type": "integer",
       "summary": "Weight used when scoring unmet demand; higher is more important.",
       "level": "local",
-      "docs": "api/context#priority",
+      "docs": "api/context#resource-priority",
       "kind": "field"
     },
     {
@@ -359,7 +359,7 @@
       "type": "table",
       "summary": "Table kept between calls for the whole run. It may hold only booleans, numbers, strings and tables of those, without cycles.",
       "level": "local",
-      "docs": "api/context#memory",
+      "docs": "api/context#stopcontext-memory",
       "kind": "field"
     },
     {
@@ -368,7 +368,7 @@
       "type": "fun(): number",
       "summary": "A number from 0 up to but not including 1, repeatable for the same seed.",
       "level": "local",
-      "docs": "api/context#rand",
+      "docs": "api/context#stopcontext-rand",
       "kind": "function",
       "returns": {
         "lua": "number",
@@ -381,7 +381,7 @@
       "type": "fun(resource: string, amount: integer)",
       "summary": "Move `amount` milli-units of `resource` from the station onto the train. Clamped to what the station holds and the train can carry.",
       "level": "local",
-      "docs": "api/context#load",
+      "docs": "api/context#stopcontext-load",
       "kind": "function",
       "params": [
         {
@@ -402,7 +402,7 @@
       "type": "fun(resource: string, amount: integer)",
       "summary": "Move `amount` milli-units of `resource` from the train into the station. Clamped to what the train carries and the station can store.",
       "level": "local",
-      "docs": "api/context#unload",
+      "docs": "api/context#stopcontext-unload",
       "kind": "function",
       "params": [
         {
@@ -423,7 +423,7 @@
       "type": "fun(...: any)",
       "summary": "Attach a message to this stop. Arguments are converted to text and joined with spaces.",
       "level": "local",
-      "docs": "api/context#log",
+      "docs": "api/context#stopcontext-log",
       "kind": "function",
       "params": [
         {
@@ -439,7 +439,7 @@
       "type": "fun(name: string, value: number)",
       "summary": "Add a point to a named series that is charted after the run.",
       "level": "local",
-      "docs": "api/context#record",
+      "docs": "api/context#stopcontext-record",
       "kind": "function",
       "params": [
         {

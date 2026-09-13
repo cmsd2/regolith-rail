@@ -506,5 +506,12 @@ export const apiTypes: ApiType[] = [
   },
 ];
 
+/** Anchor of a type on its documentation page. */
+export const typeAnchor = (type: Pick<ApiType, "name">) => type.name.toLowerCase();
+
+/** Anchor of a field on its type's documentation page; unique when types share a page. */
+export const fieldAnchor = (type: Pick<ApiType, "name">, field: Pick<Field, "name">) =>
+  `${typeAnchor(type)}-${field.name.replace(/_/g, "-")}`;
+
 /** The types the engine builds, as their generated TypeScript names. */
 export const snapshotTypes = apiTypes.filter((t) => t.ts !== undefined);

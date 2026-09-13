@@ -1,5 +1,5 @@
 import { opsBlocks } from "./ops-spec.ts";
-import { type ApiType, apiTypes, type Field, POLICY_API_VERSION } from "./spec.ts";
+import { type ApiType, apiTypes, type Field, fieldAnchor, POLICY_API_VERSION } from "./spec.ts";
 
 const HEADER = "Generated from packages/policy-api/src/spec.ts. Do not edit.";
 
@@ -90,7 +90,7 @@ export function editorEntries(): EditorEntry[] {
         type: field.lua,
         summary: field.summary,
         level: field.level,
-        docs: `${type.docs}#${field.name.replace(/_/g, "-")}`,
+        docs: `${type.docs}#${fieldAnchor(type, field)}`,
         kind: field.lua.startsWith("fun(") ? "function" : "field",
         ...(field.params ? { params: field.params } : {}),
         ...(field.returns ? { returns: field.returns } : {}),

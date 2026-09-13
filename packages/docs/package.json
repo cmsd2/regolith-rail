@@ -4,12 +4,42 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./node": "./src/node.ts",
+    "./mdx": "./src/mdx-options.ts",
+    "./content": "./src/content.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p .",
+    "check": "node scripts/check.ts",
+    "links": "node scripts/links.ts",
+    "search-index": "node scripts/search-index.ts"
   },
   "devDependencies": {
+    "@types/hast": "^3.0.5",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "24.13.4",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@regolith-rail/engine": "workspace:*",
+    "@regolith-rail/lua-runtime": "workspace:*",
+    "@regolith-rail/policy-api": "workspace:*",
+    "@shikijs/rehype": "4.4.3",
+    "github-slugger": "2.0.0",
+    "htmlparser2": "12.0.0",
+    "mdast-util-to-string": "4.0.0",
+    "minisearch": "7.2.0",
+    "rehype-katex": "7.0.1",
+    "remark-frontmatter": "5.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-math": "6.0.0",
+    "remark-mdx": "3.1.1",
+    "remark-mdx-frontmatter": "5.2.0",
+    "remark-parse": "11.0.0",
+    "shiki": "4.4.3",
+    "unified": "11.0.5",
+    "unist-util-visit": "5.1.0",
+    "yaml": "2.9.1"
   }
 }
