@@ -81,7 +81,7 @@ export type RunEvent =
     })
   | (At & {
       kind: "shipment";
-      /** The supplying stock point, or `external`. */
+      /** The supplying station, or `external`. */
       station: string;
       to: string;
       resource: string;
@@ -133,7 +133,7 @@ export interface Metrics {
   backorderPeak: number;
   /** Stock removed because it expired at a review. */
   expired: number;
-  /** Deliveries that did not fit at the stock point they arrived at. */
+  /** Deliveries that did not fit at the station they arrived at. */
   overflow: number;
   /** Time, summed over converters, when a due batch lacked its inputs. */
   converterStarvedMs: number;

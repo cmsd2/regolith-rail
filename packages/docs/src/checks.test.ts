@@ -9,7 +9,7 @@ import { extractExamples, runExample } from "./examples.ts";
 import { checkLinks } from "./links.ts";
 import { assignHeadingIds, parseMdx } from "./markdown.ts";
 import { parseCodeMeta } from "./meta.ts";
-import { checkConstructs, checkReference } from "./reference.ts";
+import { checkConstructs, checkReference, checkTemplatePages } from "./reference.ts";
 
 describe("reference check", () => {
   it("passes for the current Policy API and ops library", () => {
@@ -81,11 +81,21 @@ describe("construct reference check", () => {
   });
 });
 
+describe("classic template pages", () => {
+  it("name a template without a page", () => {
+    const pages = new Set(["classic/newsvendor", "classic/reorder", "classic/serial-chain"]);
+    expect(checkTemplatePages(constructs, pages)).toEqual([
+      "classic.fixed_route_delivery has no page at classic/fixed-route-delivery",
+    ]);
+  });
+});
+
 describe("code meta", () => {
   it("reads runnable options", () => {
     expect(parseCodeMeta("runnable scenario=relay seed=4")).toEqual({
       runnable: true,
       output: false,
+      script: false,
       scenario: "relay",
       seed: 4,
     });
@@ -128,6 +138,37 @@ describe("runnable examples", () => {
       ].join("\n"),
     );
     expect(example).toMatchObject({ scenario: "relay", output: ["hello 2"] });
+    expect(runExample(runtime, example as never)).toEqual([]);
+  });
+
+  it("evaluate scenario script examples and report their errors at script lines", () => {
+    const [good, bad] = page(
+      [
+        "```lua runnable script",
+        "return classic.serial_chain { stages = 2 }",
+        "```",
+        "",
+        "```lua runnable script",
+        "-- a typo",
+        'return scenario { id = "x", duration = sols(1), colour = 1 }',
+        "```",
+      ].join("\n"),
+    );
+    expect(good).toMatchObject({ script: true });
+    expect(runExample(runtime, good as never)).toEqual([]);
+    expect(runExample(runtime, bad as never)).toEqual([
+      "guides/example example 2 (line 5): the script failed on line 2: scenario: has no parameter named colour",
+    ]);
+  });
+
+  it("run policy examples on a classic template", () => {
+    const [example] = page(
+      [
+        "```lua runnable scenario=classic.newsvendor",
+        "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }",
+        "```",
+      ].join("\n"),
+    );
     expect(runExample(runtime, example as never)).toEqual([]);
   });
 

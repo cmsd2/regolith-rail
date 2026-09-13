@@ -7,6 +7,8 @@ import type { WorkContent } from "../state/workbench.ts";
 
 export interface ExampleToOpen {
   source: string;
+  /** A policy, or a scenario script that opens in the scenario editor. */
+  kind: "policy" | "script";
   scenario: string;
   seed: number;
 }
@@ -23,18 +25,22 @@ export async function openExample(
   mode: "page" | "panel",
   navigate: NavigateFunction,
 ): Promise<void> {
+  const state = workbench.getState();
+  const script = example.kind === "script";
   const content: WorkContent = {
     view: "run",
-    policy: { name: "example.lua", source: example.source },
-    scenario: exampleScenario(example.scenario),
+    // A script example keeps the policy in the editor.
+    policy: script ? state.policy : { name: "example.lua", source: example.source },
+    scenario: script
+      ? { kind: "script", source: example.source, starterId: null }
+      : exampleScenario(example.scenario),
     seed: example.seed,
     saveReloadTest: false,
   };
-  const state = workbench.getState();
   if (state.loaded) {
     // The workbench is already open in this tab, so change it directly.
     state.restore(content);
-    state.setEditorTab("policy");
+    state.setEditorTab(script ? "scenario" : "policy");
     if (mode === "page") await navigate("/");
     return;
   }

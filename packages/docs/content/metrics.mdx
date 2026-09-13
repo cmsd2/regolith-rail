@@ -65,8 +65,9 @@ dwell per unit for every whole unit moved. **Lower is better** for the same deli
 ## Oscillations
 
 The number of loads at a station, for a resource, within one round trip of the last
-unload of that resource there. A round trip is the time the loading train takes to
-travel the whole line and back. **Lower is better.** High counts mean stock is being
+unload of that resource there. A round trip is the time the loading vehicle takes to go
+once round its route: out and back for a shuttle, one circuit for a loop, one trip for a
+timetable. **Lower is better.** High counts mean stock is being
 carried back the way it came; see [ping-pong](/docs/failure-modes/ping-pong).
 
 ## Stops
@@ -154,7 +155,7 @@ Cost per unit of backordered demand per sol, charged every minute.
 
 ## Stalled production cost
 
-Cost per unit of production that did not fit at its stock point.
+Cost per unit of production that did not fit at its station.
 
 ## Comparing policies
 

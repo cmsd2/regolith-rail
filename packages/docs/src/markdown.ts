@@ -75,6 +75,7 @@ export function remarkExamples() {
           attribute("source", node.value),
           attribute("scenario", meta.scenario),
           attribute("seed", String(meta.seed)),
+          attribute("kind", meta.script ? "script" : "policy"),
         ],
         children: output ? [node, output] : [node],
       } as unknown as RootContent;

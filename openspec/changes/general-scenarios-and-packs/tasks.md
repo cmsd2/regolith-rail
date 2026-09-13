@@ -77,9 +77,9 @@
 ## 10. Documentation
 
 - [x] 10.1 Generate the scenario construct reference for the core, Mars and classic libraries and extend the completeness check to constructs; verify the check fails on an undocumented construct parameter
-- [ ] 10.2 Write the Writing scenario scripts guide with runnable examples; verify the documentation check runs its examples
-- [ ] 10.3 Write a page per classic template with the problem, assumptions, reference result and policy, differences from the textbook setting and references; verify the page-per-classic-template scenario
-- [ ] 10.4 Update the scenario format reference for format 2 and the metrics page for the new metrics, including the Poisson approximation; verify the link and anchor check passes
+- [x] 10.2 Write the Writing scenario scripts guide with runnable examples; verify the documentation check runs its examples
+- [x] 10.3 Write a page per classic template with the problem, assumptions, reference result and policy, differences from the textbook setting and references; verify the page-per-classic-template scenario
+- [x] 10.4 Update the scenario format reference for format 2 and the metrics page for the new metrics, including the Poisson approximation; verify the link and anchor check passes
 
 ## 11. Release
 

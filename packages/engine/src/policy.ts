@@ -47,7 +47,7 @@ export interface RunContext {
 export interface Policy {
   start(snapshot: StartSnapshot, run: RunContext): PolicyOutcome;
   stop(snapshot: StopSnapshot): PolicyOutcome;
-  /** Decides what a stock point orders at a review. Without it, reviews place no orders. */
+  /** Decides what a station orders at a review. Without it, reviews place no orders. */
   review?(snapshot: ReviewSnapshot): PolicyOutcome;
 }
 

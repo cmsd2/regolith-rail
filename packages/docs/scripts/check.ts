@@ -5,6 +5,7 @@ import {
   checkConstructs,
   checkFrontmatter,
   checkReference,
+  checkTemplatePages,
   extractExamples,
   readContentPages,
   runExample,
@@ -18,6 +19,7 @@ const runtime = await LuaRuntime.load();
 const problems = [
   ...checkReference(apiTypes, opsBlocks),
   ...checkConstructs(constructs, runtime.libraryConstructs()),
+  ...checkTemplatePages(constructs, new Set(pages.map((p) => p.slug))),
   ...checkFrontmatter(pages),
 ];
 

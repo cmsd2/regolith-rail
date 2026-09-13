@@ -1,23 +1,25 @@
 ---
 title: Scenario format
-description: The JSON that describes a line, its stations, trains and world events.
+description: The JSON document that describes stations, arcs, vehicles, flows, suppliers, costs and events.
 section: Reference
 order: 2
 ---
 
-Scenarios are JSON documents. Pick a starter in the workbench and open the
-**Scenario** tab to edit one; errors appear next to the field they refer to.
+A scenario is a JSON document. Most scenarios are written as
+[scenario scripts](/docs/scenarios/writing), which build this document for you; the
+**Scenario** tab can show any script's evaluated document, or edit a document directly
+in **JSON** mode. Errors appear next to the field they refer to.
 
-All quantities are integers in milli-units (`1000` is one unit), rates are
-milli-units per sol, and times are milliseconds of game time (a game hour is
-`3600000`, a sol is `86400000`). Ids start with a letter and use letters, digits,
-`_` or `-`.
+All quantities are integers in milli-units (`1000` is one unit), rates are milli-units
+per sol, and times are milliseconds of game time (a game hour is `3600000`, a sol is
+`86400000`). Ids start with a letter and use letters, digits, `_` or `-`. This version
+writes format `2` and reads formats `1` and `2`.
 
 ## Top level
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `format` | yes | Format version. This build reads version `1`. |
+| `format` | yes | `2`. |
 | `id` | yes | Scenario id. |
 | `title` | yes | Name shown in the workbench. |
 | `description` | yes | What the scenario is about. |
@@ -26,9 +28,10 @@ milli-units per sol, and times are milliseconds of game time (a game hour is
 | `seed` | yes | Default seed. |
 | `informationLevel` | yes | `local` or `line`; see [information levels](/docs/language#information-levels). |
 | `sampleIntervalMs` | no | How often charts sample stock. Whole game minutes; default one game hour. |
-| `resources` | yes | Resources on the line. |
-| `stations` | yes | At least two stations, in line order. |
-| `trains` | yes | At least one train. |
+| `resources` | yes | At least one resource. |
+| `stations` | yes | At least one station. |
+| `arcs` | no | Connections between stations. |
+| `vehicles` | no | Vehicles and their routes. |
 | `events` | no | World events such as storms. |
 
 ## Resources
@@ -36,37 +39,148 @@ milli-units per sol, and times are milliseconds of game time (a game hour is
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `id` | yes | Resource id, such as `Metals`. |
-| `priority` | no | Weight in [unmet demand (weighted)](/docs/metrics#unmet-demand-weighted); default `1`. |
+| `priority` | no | Weight in [unmet demand (weighted)](/docs/metrics#unmet-demand-weighted) and in priority allocation; default `1`. |
 
 ## Stations
 
+A station is a place that stores resources.
+
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | Station id. |
-| `resources` | yes | Resources the station stores: `id`, `capacity` (default `30000`) and `initial` stock (default `0`). |
-| `distanceToNext` | all but the last | Distance to the next station. |
+| `id` | yes | Station id. `external` is reserved for outside suppliers. |
+| `resources` | yes | Resources the station stores, below. |
 | `producers` | no | Flows that add stock. |
-| `consumers` | no | Flows that take stock. |
+| `consumers` | no | Flows that take stock as demand. |
+| `converters` | no | Batches that turn some resources into others. |
+| `suppliers` | no | Where the station orders resources from. |
+| `review` | no | When the station reviews its orders: `{ "periodMs": 86400000, "offsetMs": 0 }`. Periods are whole game minutes. |
+| `position` | no | Where to draw the station on the map: `{ "x": 0, "y": 0 }`. |
 
-A flow has a `resource`, a `rate` and an optional `variability`:
-
-- `{ "kind": "fixed" }`, the default: the rate never changes.
-- `{ "kind": "uniform", "rangePercent": 20, "periodMs": 3600000 }`: the rate is drawn
-  within 20% either side of the base rate, and redrawn every period.
-- `{ "kind": "bursts", "onPpm": 5000, "offPpm": 20000, "startsOn": true }`: the flow
-  switches on and off at random. Chances are per game minute, in parts per million.
-
-## Trains
+Each stored resource has:
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `id` | yes | Train id. |
-| `start` | yes | Station the train starts at. |
-| `direction` | no | `forward` (default) or `backward`. Trains reverse at the ends of the line. |
+| `id` | yes | Resource id. |
+| `capacity` | no | Most the station holds, or `"unlimited"`; default `30000`. |
+| `initial` | no | Stock at the start; default `0`. |
+| `expires` | no | Whether stock is removed at each review, as in the newsvendor problem; default `false`. |
+| `holdingCost` | no | Cost per unit held per sol. |
+
+## Demand processes
+
+Producers and consumers are flows. Each has a `resource` and exactly one way of
+producing or demanding amounts:
+
+- **Rate:** `"rate": 36000`, milli-units a sol spread evenly over each minute, with an
+  optional `variability`:
+  - `{ "kind": "fixed" }`, the default: the rate never changes.
+  - `{ "kind": "uniform", "rangePercent": 20, "periodMs": 3600000 }`: the rate is drawn
+    within 20% either side of the base rate, and redrawn every period.
+  - `{ "kind": "bursts", "onPpm": 5000, "offPpm": 20000, "startsOn": true }`: the flow
+    switches on and off at random. Chances are per game minute, in parts per million.
+- **Poisson arrivals:** `"poisson": { "arrivalsPerSol": 24000, "size": { "kind": "fixed", "value": 1000 } }`.
+  Arrivals a sol are in thousandths, so `24000` is 24 a sol, and each arrival's size is
+  fixed or drawn from a distribution.
+- **Per period:** `"perPeriod": { "periodMs": 86400000, "amount": { ... } }`: an amount
+  drawn at the start of each period and spread evenly over it.
+- **Trace:** `"trace": { "periodMs": 86400000, "amounts": [2000, 5000, 3000] }`: recorded
+  amounts, one per period.
+
+A distribution is `{ "kind": "fixed", "value": 1000 }` or
+`{ "kind": "discrete", "values": [{ "value": 1000, "weight": 3 }, { "value": 2000, "weight": 1 }] }`,
+drawn with chance proportional to the whole-number weights.
+
+Any flow can also carry a `profile`, multipliers in thousandths at times in the run,
+interpolated linearly between points, for ramps and seasons:
+`"profile": [{ "atMs": 0, "multiplierPermille": 1000 }, { "atMs": 864000000, "multiplierPermille": 2000 }]`.
+
+### The Poisson approximation
+
+Exact Poisson sampling needs floating-point functions that are not identical in every
+browser, so arrivals are drawn as a binomial count: each minute is split into at least
+eight sub-steps, and more at high rates, so that each sub-step has at most a one-in-eight
+chance of an arrival. The mean is exact. The variance is lower than a true Poisson
+process by a factor of one minus the chance per sub-step, which at the rates in the
+classic templates is less than one part in a thousand.
+
+### Unmet demand and flow costs
+
+| Field | On | Meaning |
+| --- | --- | --- |
+| `unmet` | consumers | `lost` (default): demand that finds no stock is gone. `backorder`: it waits and is served first when stock arrives. |
+| `lostCost` | consumers | Cost per unit of lost demand. |
+| `backorderCost` | consumers | Cost per unit backordered per sol. |
+| `stallCost` | producers | Cost per unit of production that does not fit. |
+
+## Converters
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `inputs` | no | `[{ "resource": "Metals", "amount": 2000 }]` taken for each batch. |
+| `outputs` | no | `[{ "resource": "MachineParts", "amount": 1000 }]` made by each batch. |
+| `rate` | yes | Batches per sol, in thousandths. |
+| `variability` | no | As for flows. |
+
+A batch runs only when all its inputs are in stock and all its outputs fit. Otherwise
+the time counts as [starved](/docs/metrics#converters-starved) or
+[blocked](/docs/metrics#converters-blocked).
+
+## Suppliers and orders
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `resource` | yes | Resource ordered. |
+| `from` | yes | `external`, an unlimited outside supplier, or the id of a station that ships from its own stock. |
+| `leadTime` | no | A distribution of milliseconds from order to delivery; default no delay. |
+| `minOrder` | no | Smallest order; smaller orders are raised to it. |
+| `maxOrder` | no | Largest order; larger orders are cut to it. |
+| `orderCost` | no | Fixed cost per order. |
+| `unitCost` | no | Cost per unit ordered. |
+
+Orders are placed by the policy's [`on_review`](/docs/api/review) hook at a station's
+reviews. A station supplier ships what it holds at once and the rest as its stock
+arrives. Deliveries that do not fit are lost as [overflow](/docs/metrics#delivery-overflow).
+Suppliers may not form a cycle for the same resource.
+
+At a review time, deliveries arrive first, then the review, then that minute's
+production and demand. A review at the very start of a period therefore sees one
+minute of the previous period still to come; the classic templates review a minute into
+each period.
+
+## Arcs
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `from` | yes | Station at one end. |
+| `to` | yes | Station at the other end. |
+| `distance` | yes | Length, a whole number. |
+
+Arcs work in both directions, and a pair of stations has at most one.
+
+## Vehicles
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Vehicle id. |
+| `route` | yes | The fixed route it follows, below. |
 | `speed` | yes | Distance per second. |
 | `dwellMs` | no | Time at every stop; default `10000`. |
 | `dwellPerUnitMs` | no | Extra time per whole unit moved; default `1000`. |
 | `capacity` | yes | `{ "shared": 30000 }` for one limit across resources, or `{ "perResource": { "Metals": 30000 } }`. |
+| `costPerDistance` | no | Transport cost per unit of distance. |
+
+Each consecutive pair of stops must be joined by an arc. A route is one of:
+
+- `{ "kind": "shuttle", "stops": ["Mine", "Dome"], "start": "Mine", "direction": "forward" }`:
+  back and forth, reversing at each end. `start` defaults to the first stop and
+  `direction` to `forward`.
+- `{ "kind": "loop", "stops": ["Depot", "A", "B"], "start": "Depot" }`: round the stops and
+  back to the first, which must also be joined by an arc.
+- `{ "kind": "timetable", "stops": ["Depot", "A"], "departuresMs": [0, 43200000] }`: out
+  along the stops and back from the first stop at each listed time. A departure listed
+  before the previous trip can finish is an error.
+
+Vehicles never choose their own destinations.
 
 ## Events
 
@@ -95,6 +209,15 @@ An effect scales flows:
 | `durationMs` | no | How long the effect lasts; default the event's duration. |
 
 Effects that overlap on the same flow multiply together.
+
+## Format 1
+
+Format 1 described one line: `stations` in line order, each with a `distanceToNext`, and
+`trains` that shuttle along the whole line from a `start` station. Format 1 documents,
+including links and saves from earlier releases, still open. They are upgraded on load:
+consecutive stations are joined by arcs of those distances, and each train becomes a
+vehicle on a shuttle route along the line with the same start, direction, speed, dwell
+and capacity. Upgraded scenarios give exactly the same results as before.
 
 ## Example
 

@@ -1,4 +1,9 @@
-import { runSimulation, starterScenarios, validateScenario } from "@regolith-rail/engine";
+import {
+  runSimulation,
+  type Scenario,
+  starterScenarios,
+  validateScenario,
+} from "@regolith-rail/engine";
 import type { LuaRuntime } from "@regolith-rail/lua-runtime";
 import type { Root } from "mdast";
 import { visit } from "unist-util-visit";
@@ -10,6 +15,8 @@ export interface Example {
   index: number;
   line: number;
   source: string;
+  /** Whether the example is a scenario script rather than a policy. */
+  script: boolean;
   scenario: string;
   seed: number;
   /** Log lines the run must begin with, when the page states them. */
@@ -31,6 +38,7 @@ export function extractExamples(page: string, tree: Root): Example[] {
       index: examples.length + 1,
       line: node.position?.start.line ?? 0,
       source: node.value,
+      script: meta.script,
       scenario: meta.scenario,
       seed: meta.seed,
       ...(output ? { output } : {}),
@@ -42,17 +50,44 @@ export function extractExamples(page: string, tree: Root): Example[] {
 export const exampleName = (example: Example) =>
   `${example.page || "index"} example ${example.index} (line ${example.line})`;
 
+/** A policy with every hook doing nothing, for running script examples. */
+const IDLE_POLICY = "return { on_stop = function(ctx) end, on_review = function(ctx) end }";
+
+/** A starter scenario by id, or a classic template with its defaults. */
+function exampleScenario(runtime: LuaRuntime, id: string): Scenario | string {
+  if (id.includes(".")) {
+    const loaded = runtime.loadScript(`return ${id} {}`);
+    return loaded.ok ? loaded.scenario : `template ${id} does not evaluate`;
+  }
+  const starter = starterScenarios.find((s) => s.id === id);
+  if (!starter) return `unknown scenario ${id}`;
+  const result = validateScenario(starter.document);
+  return result.ok ? result.scenario : `scenario ${id} is invalid`;
+}
+
 /** Runs an example and describes anything wrong with it. */
 export function runExample(runtime: LuaRuntime, example: Example): string[] {
   const name = exampleName(example);
-  const starter = starterScenarios.find((s) => s.id === example.scenario);
-  if (!starter) return [`${name}: unknown scenario ${example.scenario}`];
-  const scenario = validateScenario(starter.document);
-  if (!scenario.ok) return [`${name}: scenario ${example.scenario} is invalid`];
-  const policy = runtime.createPolicy(example.source);
+  let scenario: Scenario;
+  let source = example.source;
+  if (example.script) {
+    const loaded = runtime.loadScript(example.source);
+    if (!loaded.ok) {
+      return loaded.errors.map(
+        (e) => `${name}: the script failed${e.line ? ` on line ${e.line}` : ""}: ${e.message}`,
+      );
+    }
+    scenario = loaded.scenario;
+    source = IDLE_POLICY;
+  } else {
+    const found = exampleScenario(runtime, example.scenario);
+    if (typeof found === "string") return [`${name}: ${found}`];
+    scenario = found;
+  }
+  const policy = runtime.createPolicy(source);
   try {
     if (policy.error) return [`${name}: ${policy.error.message}`];
-    const run = runSimulation(scenario.scenario, policy, {
+    const run = runSimulation(scenario, policy, {
       seed: example.seed,
       detail: "summary",
     });

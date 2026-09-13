@@ -44,6 +44,13 @@ export function checkReference(types: ApiType[], blocks: OpsBlock[]): string[] {
   return problems;
 }
 
+/** Names every classic template whose documentation page does not exist. */
+export function checkTemplatePages(described: Construct[], pages: Set<string>): string[] {
+  return described
+    .filter((c) => c.kind === "template" && !pages.has(c.docs))
+    .map((c) => `${c.name} has no page at ${c.docs}`);
+}
+
 /**
  * Names every scenario construct and construct parameter that has no reference documentation:
  * blank in the description, or declared by a construct library without being described.
