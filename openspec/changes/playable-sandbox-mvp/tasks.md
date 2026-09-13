@@ -34,8 +34,8 @@
 
 ## 5. Policy API definition
 
-- [ ] 5.1 Describe every Policy API v1 `ctx` member with type, information level, summary and documentation slug in `policy-api`, and verify the engine's snapshot types are generated from it and type-check
-- [ ] 5.2 Generate the LuaLS annotation file, editor completion and hover data, and reference documentation data, and verify generation is reproducible and checked in CI for staleness
+- [x] 5.1 Describe every Policy API v1 `ctx` member with type, information level, summary and documentation slug in `policy-api`, and verify the engine's snapshot types are generated from it and type-check
+- [x] 5.2 Generate the LuaLS annotation file, editor completion and hover data, and reference documentation data, and verify generation is reproducible and checked in CI for staleness
 
 ## 6. Lua runtime
 

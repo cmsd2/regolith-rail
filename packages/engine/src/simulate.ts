@@ -174,7 +174,7 @@ export function runSimulation(
       perResource,
       capacitySnapshot:
         shared === undefined
-          ? { perResource: Object.fromEntries(resources.map((r, i) => [r, perResource[i] ?? 0])) }
+          ? { per_resource: Object.fromEntries(resources.map((r, i) => [r, perResource[i] ?? 0])) }
           : { shared },
       cargo: resources.map(() => 0),
       direction,
@@ -257,7 +257,7 @@ export function runSimulation(
     id: station.id,
     index: i + 1,
     resources: station.resources.map((r) => r.id),
-    ...(station.distanceToNext === undefined ? {} : { distanceToNext: station.distanceToNext }),
+    ...(station.distanceToNext === undefined ? {} : { distance_to_next: station.distanceToNext }),
   }));
   const resourceSnapshots = scenario.resources.map((r) => ({ id: r.id, priority: r.priority }));
 
@@ -426,7 +426,7 @@ export function runSimulation(
     const snapshot: StopSnapshot = {
       stop,
       now: t,
-      informationLevel: level,
+      information_level: level,
       train: {
         id: train.id,
         direction: directionName(train.direction),
@@ -605,7 +605,7 @@ export function runSimulation(
   const startOutcome = policy.start(
     {
       now: 0,
-      informationLevel: level,
+      information_level: level,
       line: { stations: staticStations },
       resources: resourceSnapshots,
       trains: trains.map((train) => ({
