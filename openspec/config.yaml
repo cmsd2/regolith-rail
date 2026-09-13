@@ -1,13 +1,72 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context, shown to AI when creating artifacts.
+context: |
+  Product: dustline is a static browser sandbox for designing, simulating and
+  sharing freight dispatch policies for the shuttle rail lines in Surviving
+  Mars: Relaunched. It demonstrates why the game's apparent stock-balancing
+  dispatch fails (half capacity, operating at the edge, no flow control, dead
+  stock at relays, ping-pong, double dispatch, no priorities, bullwhip), lets
+  players write better policies, scores them against a frozen benchmark, and
+  later runs the same policies in the game as a mod. docs/roadmap.md is the
+  source of truth for scope, stage order (M0-M12) and open questions; cite the
+  stage a change belongs to.
+
+  Domain model: a scenario is one line of stations with per-resource capacity
+  (30 units per enabled resource in game terms), shuttling trains with
+  capacity, speed and per-unit dwell time, and a catchment behind each station
+  (producers, consumers, depots, rate-limited drones) with randomised rates and
+  shocks. A policy is called when a train stops, receives a snapshot of the
+  world limited by the scenario's information level (local, line,
+  line+history, colony), and issues load, unload, log and record actions.
+  Categories: Vanilla (local, line) and Extended. A site is one station and one
+  resource. Inventory position is on hand plus inbound minus promised. The
+  baseline is the naive policy reproducing the game for a stated game version.
+  The bound is the hindsight-optimal result for a scenario and seed.
+
+  Policy language: a sandboxed Lua subset matching the Lua version the game
+  embeds (to be confirmed in M1), with an instruction budget, no io/os/load/
+  debug/require/math.random, persistent state only via serialisable
+  ctx.memory, and pairs order shuffled per seed. The ops library, written in
+  Lua and shipped to both simulator and mod, provides operations research
+  building blocks in a pipeline (observe, estimate, classify, target, control,
+  plan, allocate, execute); custom Lua is the escape hatch. The Policy API is
+  versioned and defined once in policy-api, which generates TS types, LuaLS
+  annotations, docs and shared test cases.
+
+  Tech stack: TypeScript (strict), pnpm workspaces, Vite, React, Zustand, Radix
+  UI with CSS Modules, CodeMirror 6, Canvas 2D, uPlot, Observable Plot, Comlink
+  over module Web Workers, Zod, a Lua VM in the browser (wasmoon or Fengari),
+  MDX docs prerendered with React Router 7, KaTeX, Shiki, MiniSearch. Tests:
+  Vitest, fast-check, Playwright on Chromium, Firefox and WebKit. Biome for
+  lint and format. GitHub Actions; static hosting on GitHub Pages or
+  Cloudflare Pages. No backend, no accounts. Licence Apache-2.0.
+
+  Packages: engine (simulation core, no DOM), policy-api (API spec and ops),
+  lua-runtime, bench (suites, bounds, scoring), cli (Node runner), app (web
+  UI), docs (content), mod (game adapter, later).
+
+  Non-negotiable constraints:
+  - Determinism: the same scenario, policy and seed give identical results in
+    Node and every supported browser. Integer stock, cargo and ticks;
+    fixed-point rates; own seeded PRNG with a separate stream per source; no
+    Math.random, Date, or engine-dependent Math functions (exp, log, pow,
+    trig) in simulation paths.
+  - One policy file runs unchanged in the simulator and in the game.
+  - The simulation never runs on the main thread; high-frequency rendering
+    bypasses React state.
+  - Benchmarks, baselines and the Policy API are versioned and never edited in
+    place; changes ship as new versions.
+  - Every claim about game behaviour is documented with game version and
+    evidence (observed, shadow-mode, game-code).
+  - A feature is done only when documented: API symbols and ops blocks need a
+    doc page, and ops blocks also need a live example and a demonstrating
+    scenario.
+  - IP: no game assets, no copied game code, no game trademarks in names or
+    branding; include a non-affiliation notice on public surfaces.
+
+  Out of scope: backend or leaderboard, passengers, networks of connected
+  lines, colony simulation beyond catchments, other games.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
