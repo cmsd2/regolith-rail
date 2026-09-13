@@ -218,3 +218,59 @@ describe("demand processes", () => {
     expect(before - after).toBe(1500);
   });
 });
+
+describe("converters", () => {
+  /** Factory B turns 2000 Metals into 1000 Parts, 60 batches a sol (one every 24 minutes). */
+  function factory(metals: number, parts: { capacity?: number; initial?: number } = {}) {
+    return scenario((input, a, b) => {
+      input.durationMs = 2 * HOUR;
+      input.vehicles = [];
+      input.resources.push({ id: "Parts" });
+      a.producers = [];
+      b.consumers = [];
+      b.resources = [
+        { id: "Metals", initial: metals },
+        { id: "Parts", ...parts },
+      ];
+      b.converters = [
+        {
+          inputs: [{ resource: "Metals", amount: 2000 }],
+          outputs: [{ resource: "Parts", amount: 1000 }],
+          rate: 60_000,
+        },
+      ];
+    });
+  }
+
+  it("runs batches that turn inputs into outputs", () => {
+    const out = runSimulation(factory(20_000), idlePolicy);
+    // Five batches are due in two hours: at 24, 48, 72, 96 and 120 minutes.
+    expect(stateAt(out, 2 * HOUR).stock.slice(1)).toEqual([10_000, 5000]);
+    expect(out.metrics.converterStarvedMs).toBe(0);
+    expect(out.metrics.converterBlockedMs).toBe(0);
+  });
+
+  it("does not run a batch without its inputs and records starved time", () => {
+    const out = runSimulation(factory(1000), idlePolicy);
+    expect(stateAt(out, 2 * HOUR).stock.slice(1)).toEqual([1000, 0]);
+    expect(out.metrics.converterStarvedMs).toBe(5 * MINUTE);
+  });
+
+  it("does not run a batch without room for its outputs and records blocked time", () => {
+    const out = runSimulation(factory(20_000, { capacity: 2500 }), idlePolicy);
+    // Two batches fit; the other three due batches are blocked.
+    expect(stateAt(out, 2 * HOUR).stock.slice(1)).toEqual([16_000, 2000]);
+    expect(out.metrics.converterBlockedMs).toBe(3 * MINUTE);
+  });
+
+  it("counts conversion in the conservation totals", () => {
+    let converted: number[] = [];
+    runSimulation(factory(20_000), idlePolicy, {
+      detail: "summary",
+      inspect: (_state, totals) => {
+        converted = totals.converted;
+      },
+    });
+    expect(converted).toEqual([-10_000, 5000]);
+  });
+});

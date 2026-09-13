@@ -21,7 +21,12 @@ import {
   travelMs,
   UNLIMITED_CAPACITY,
 } from "./scenario/format2.ts";
-import { type InformationLevel, SOL_MS, type WorldEventDef } from "./scenario/schema.ts";
+import {
+  type InformationLevel,
+  SOL_MS,
+  type VariabilityDef,
+  type WorldEventDef,
+} from "./scenario/schema.ts";
 
 export type Detail = "full" | "summary";
 
@@ -42,6 +47,8 @@ export interface FlowTotalsByResource {
   produced: number[];
   /** Amount taken from stations by consumers. */
   consumed: number[];
+  /** Amount converters added (outputs) minus the amount they took (inputs). */
+  converted: number[];
 }
 
 type SimEvent = Scheduled &
@@ -76,6 +83,19 @@ interface FlowState {
   /** Consumers only: unmet demand is carried in `backlog` instead of being lost. */
   backorder: boolean;
   backlog: number;
+  rng: Random;
+  accumulator: number;
+  effective: number;
+  periodEnd: number;
+  on: boolean;
+}
+
+interface ConverterState {
+  station: number;
+  inputs: { site: number; resource: number; amount: number }[];
+  outputs: { site: number; resource: number; amount: number }[];
+  rate: number;
+  variability: VariabilityDef;
   rng: Random;
   accumulator: number;
   effective: number;
@@ -240,6 +260,33 @@ export function runSimulation(
   });
   const flowTotals: Record<string, number> = Object.fromEntries(flows.map((f) => [f.name, 0]));
 
+  // --- Converters -------------------------------------------------------------
+  const converters: ConverterState[] = [];
+  scenario.stockPoints.forEach((station, s) => {
+    station.converters.forEach((def, k) => {
+      const at = (amount: { resource: string; amount: number }) => {
+        const resource = resourceIndex.get(amount.resource) as number;
+        return {
+          site: (siteOf[s] as number[])[resource] as number,
+          resource,
+          amount: amount.amount,
+        };
+      };
+      converters.push({
+        station: s,
+        inputs: def.inputs.map(at),
+        outputs: def.outputs.map(at),
+        rate: def.rate,
+        variability: def.variability,
+        rng: streamFor(seed, `converter:${station.id}:${k}`),
+        accumulator: 0,
+        effective: def.rate,
+        periodEnd: 0,
+        on: def.variability.kind === "bursts" ? def.variability.startsOn : true,
+      });
+    });
+  });
+
   // --- Vehicles -------------------------------------------------------------
   const legTime = (path: number[], speed: number, closed: boolean) => {
     let total = 0;
@@ -351,6 +398,8 @@ export function runSimulation(
     budgetOverruns: 0,
     backorderAverage: 0,
     backorderPeak: 0,
+    converterStarvedMs: 0,
+    converterBlockedMs: 0,
     byResource,
   };
   let backorderTicks = 0;
@@ -421,6 +470,7 @@ export function runSimulation(
   const running: FlowTotalsByResource = {
     produced: resources.map(() => 0),
     consumed: resources.map(() => 0),
+    converted: resources.map(() => 0),
   };
   const moving: (LineState["trains"][number] | undefined)[] = trains.map(() => undefined);
   const lastUnload: (number | undefined)[] = sites.map(() => undefined);
@@ -736,6 +786,61 @@ export function runSimulation(
     return amount;
   };
 
+  /**
+   * Runs the batches a converter is due this tick. A batch runs only with all its inputs in
+   * stock and room for all its outputs; otherwise the tick counts as starved or blocked.
+   */
+  const runConverter = (converter: ConverterState, tickStart: number) => {
+    const variability = converter.variability;
+    if (variability.kind === "uniform") {
+      if (tickStart >= converter.periodEnd) {
+        const bound = Math.floor((converter.rate * variability.rangePercent) / 100);
+        converter.effective = converter.rate - bound + converter.rng.int(0, 2 * bound);
+        converter.periodEnd = tickStart - (tickStart % variability.periodMs) + variability.periodMs;
+      }
+    } else if (variability.kind === "bursts") {
+      const flip = converter.on
+        ? converter.rng.chancePpm(variability.offPpm)
+        : converter.rng.chancePpm(variability.onPpm);
+      if (flip) converter.on = !converter.on;
+      converter.effective = converter.on ? converter.rate : 0;
+    }
+    // Rates are thousandths of a batch per sol.
+    converter.accumulator += converter.effective;
+    const batches = Math.floor(converter.accumulator / RATE_DIVISOR);
+    converter.accumulator -= batches * RATE_DIVISOR;
+    let starved = false;
+    let blocked = false;
+    for (let b = 0; b < batches; b++) {
+      if (converter.inputs.some((input) => (stock[input.site] as number) < input.amount)) {
+        starved = true;
+        break;
+      }
+      const after = stock.slice();
+      for (const input of converter.inputs) {
+        after[input.site] = (after[input.site] as number) - input.amount;
+      }
+      const fits = converter.outputs.every((output) => {
+        after[output.site] = (after[output.site] as number) + output.amount;
+        return (after[output.site] as number) <= (siteCapacity[output.site] as number);
+      });
+      if (!fits) {
+        blocked = true;
+        break;
+      }
+      for (const input of converter.inputs) {
+        stock[input.site] = (stock[input.site] as number) - input.amount;
+        (running.converted[input.resource] as number) -= input.amount;
+      }
+      for (const output of converter.outputs) {
+        stock[output.site] = (stock[output.site] as number) + output.amount;
+        (running.converted[output.resource] as number) += output.amount;
+      }
+    }
+    if (starved) metrics.converterStarvedMs += TICK_MS;
+    else if (blocked) metrics.converterBlockedMs += TICK_MS;
+  };
+
   const handleTick = (event: Extract<SimEvent, { kind: "tick" }>) => {
     const t = event.time;
     const tickStart = t - TICK_MS;
@@ -816,6 +921,7 @@ export function runSimulation(
         perResource.stalled += amount - added;
       }
     });
+    for (const converter of converters) runConverter(converter, tickStart);
     let backlog = 0;
     for (const flow of flows) backlog += flow.backlog;
     backorderSum += backlog;
@@ -931,6 +1037,7 @@ export function runSimulation(
       options.inspect?.(liveState(event.time), {
         produced: running.produced.slice(),
         consumed: running.consumed.slice(),
+        converted: running.converted.slice(),
       });
     }
   }

@@ -75,6 +75,10 @@ export interface Metrics {
   backorderAverage: number;
   /** The largest total backorder at the end of any tick. */
   backorderPeak: number;
+  /** Time, summed over converters, when a due batch lacked its inputs. */
+  converterStarvedMs: number;
+  /** Time, summed over converters, when a due batch had no room for its outputs. */
+  converterBlockedMs: number;
   byResource: Record<string, ResourceMetrics>;
 }
 

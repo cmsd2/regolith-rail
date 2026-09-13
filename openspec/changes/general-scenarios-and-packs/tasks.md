@@ -18,7 +18,7 @@
 - [x] 3.3 Generalise the oscillation metric to one full round of the loading vehicle's route; verify the golden matrix passes unchanged and a loop oscillation test passes
 - [x] 3.4 Implement unlimited capacities and backordering consumers with backlogs served first; verify the backorders-served-first and unchanged lost-sales tests pass and backorder metrics are reported
 - [x] 3.5 Implement the discrete per-period, trace and profile processes and the binomial-substep Poisson process using integer arithmetic only; verify the determinism lint passes, the Poisson mean test passes over many sols, and the demand ramp test passes
-- [ ] 3.6 Implement converters with starved and blocked time; verify the starved converter test and conservation for converter scenarios pass
+- [x] 3.6 Implement converters with starved and blocked time; verify the starved converter test and conservation for converter scenarios pass
 - [ ] 3.7 Extend the fast-check scenario generators to format 2 features and the conservation invariant to deliveries, conversion, expiry and overflow; verify the property tests pass
 
 ## 4. Reviews, orders and costs
