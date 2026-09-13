@@ -453,6 +453,186 @@
           "summary": "Finite number to record."
         }
       ]
+    },
+    {
+      "path": "ops.policy",
+      "name": "policy",
+      "type": "fun({ classify?: Block|function, target: Block|function|table<string, Block|function>, plan?: Block|function, allocate?: Block|function })",
+      "summary": "Builds a policy from stages: classify, target, plan and allocate. Only target is required. Returns a policy module.",
+      "level": "local",
+      "docs": "ops/policy",
+      "kind": "function",
+      "params": [
+        {
+          "name": "classify",
+          "lua": "Block|function",
+          "summary": "Gives each site a role. Without it every site has the role any."
+        },
+        {
+          "name": "target",
+          "lua": "Block|function|table<string, Block|function>",
+          "summary": "The stock each site should have, as one block or a table of blocks by role."
+        },
+        {
+          "name": "plan",
+          "lua": "Block|function",
+          "summary": "Keeps cargo for stations further along and reserves it."
+        },
+        {
+          "name": "allocate",
+          "lua": "Block|function",
+          "summary": "Shares limited train space between resources. Without it actions go out site by site."
+        }
+      ]
+    },
+    {
+      "path": "ops.roles.manual",
+      "name": "roles.manual",
+      "type": "fun({ assignments: table<string, string|table<string, string>> })",
+      "summary": "Assigns the roles supply, demand, relay or any by station, for every resource or per resource.",
+      "level": "local",
+      "docs": "ops/roles-manual",
+      "kind": "function",
+      "params": [
+        {
+          "name": "assignments",
+          "lua": "table<string, string|table<string, string>>",
+          "summary": "Roles by station id, such as { Mine = \"supply\", Dome = { Food = \"demand\" } }."
+        }
+      ]
+    },
+    {
+      "path": "ops.balance",
+      "name": "balance",
+      "type": "fun({  })",
+      "summary": "Targets the average stock of the resource across the stations that store it, as the naive baseline does.",
+      "level": "line",
+      "docs": "ops/balance",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.order_up_to",
+      "name": "order_up_to",
+      "type": "fun({ level: integer })",
+      "summary": "Targets a fixed level.",
+      "level": "local",
+      "docs": "ops/order-up-to",
+      "kind": "function",
+      "params": [
+        {
+          "name": "level",
+          "lua": "integer",
+          "summary": "Stock to aim for, in milli-units."
+        }
+      ]
+    },
+    {
+      "path": "ops.min_max",
+      "name": "min_max",
+      "type": "fun({ min: integer, max: integer })",
+      "summary": "Raises the site to max when its inventory position falls below min, and otherwise leaves it alone.",
+      "level": "local",
+      "docs": "ops/min-max",
+      "kind": "function",
+      "params": [
+        {
+          "name": "min",
+          "lua": "integer",
+          "summary": "Inventory position below which the site is refilled, in milli-units."
+        },
+        {
+          "name": "max",
+          "lua": "integer",
+          "summary": "Level to refill to, in milli-units."
+        }
+      ]
+    },
+    {
+      "path": "ops.drain",
+      "name": "drain",
+      "type": "fun({  })",
+      "summary": "Targets zero, so trains take everything they can.",
+      "level": "local",
+      "docs": "ops/drain",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.fill",
+      "name": "fill",
+      "type": "fun({  })",
+      "summary": "Targets the site's capacity, so trains leave everything they can.",
+      "level": "local",
+      "docs": "ops/fill",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.pass_through",
+      "name": "pass_through",
+      "type": "fun({  })",
+      "summary": "Makes no transfers at the site.",
+      "level": "local",
+      "docs": "ops/pass-through",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.lookahead",
+      "name": "lookahead",
+      "type": "fun({  })",
+      "summary": "Serves the station a train is at first, then keeps and reserves cargo for shortfalls further along. At supply sites, loads only what is needed ahead.",
+      "level": "line",
+      "docs": "ops/lookahead",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.priority",
+      "name": "priority",
+      "type": "fun({  })",
+      "summary": "Gives limited train space to higher priority resources first.",
+      "level": "local",
+      "docs": "ops/priority",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.proportional",
+      "name": "proportional",
+      "type": "fun({  })",
+      "summary": "Shares limited train space in proportion to what each resource asks for.",
+      "level": "local",
+      "docs": "ops/proportional",
+      "kind": "function",
+      "params": []
+    },
+    {
+      "path": "ops.inventory_position",
+      "name": "inventory_position",
+      "type": "fun(ctx: StopContext, station: string, resource: string)",
+      "summary": "Stock at a station plus cargo other trains have reserved for it. For use in custom functions.",
+      "level": "line",
+      "docs": "ops/inventory-position",
+      "kind": "function",
+      "params": [
+        {
+          "name": "ctx",
+          "lua": "StopContext",
+          "summary": "The context passed to on_stop."
+        },
+        {
+          "name": "station",
+          "lua": "string",
+          "summary": "Station id."
+        },
+        {
+          "name": "resource",
+          "lua": "string",
+          "summary": "Resource id."
+        }
+      ]
     }
   ]
 }

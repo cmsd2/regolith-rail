@@ -1,3 +1,4 @@
+import { opsBlocks } from "./ops-spec.ts";
 import { type ApiType, apiTypes, type Field, POLICY_API_VERSION } from "./spec.ts";
 
 const HEADER = "Generated from packages/policy-api/src/spec.ts. Do not edit.";
@@ -77,7 +78,7 @@ export interface EditorEntry {
   returns?: Field["returns"];
 }
 
-/** Completion and hover data, rooted at `ctx` for `on_stop`. */
+/** Completion and hover data: members of `ctx` in `on_stop`, and the ops library. */
 export function editorEntries(): EditorEntry[] {
   const entries: EditorEntry[] = [];
   const visit = (type: ApiType, prefix: string, seen: Set<string>) => {
@@ -103,6 +104,21 @@ export function editorEntries(): EditorEntry[] {
   };
   const stop = typeByName.get("StopContext");
   if (stop) visit(stop, "ctx", new Set([stop.name]));
+  for (const block of opsBlocks) {
+    const params = block.params
+      .map((p) => `${p.name}${p.required ? "" : "?"}: ${p.lua}`)
+      .join(", ");
+    entries.push({
+      path: `ops.${block.name}`,
+      name: block.name,
+      type: block.stage === "helper" ? `fun(${params})` : `fun({ ${params} })`,
+      summary: block.summary,
+      level: block.level,
+      docs: block.docs,
+      kind: "function",
+      params: block.params.map((p) => ({ name: p.name, lua: p.lua, summary: p.summary })),
+    });
+  }
   return entries;
 }
 

@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./editor.json": "./generated/editor.json"
   },
   "scripts": {
     "typecheck": "tsc -p . && tsc -p tsconfig.test.json",
