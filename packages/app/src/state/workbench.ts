@@ -55,6 +55,9 @@ export interface WorkbenchState {
   };
   selectedStop: number | null;
   batch: BatchState;
+  editorTab: "policy" | "scenario";
+  /** Asks the policy editor to scroll to and highlight a line. */
+  reveal: { line: number; nonce: number } | null;
 
   setView(view: WorkbenchState["view"]): void;
   setPolicySource(source: string): void;
@@ -65,6 +68,8 @@ export interface WorkbenchState {
   setSeed(seed: number): void;
   setSaveReloadTest(enabled: boolean): void;
   selectStop(stop: number | null): void;
+  setEditorTab(tab: WorkbenchState["editorTab"]): void;
+  revealPolicyLine(line: number): void;
   startRun(): Promise<void>;
   cancelRun(): void;
   setBatchOptions(options: Partial<Pick<BatchState, "seedCount" | "baseSeed" | "compare">>): void;
@@ -111,6 +116,8 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
     saveReloadTest: false,
     run: { status: "idle", progress: 0, output: null, error: null },
     selectedStop: null,
+    editorTab: "policy",
+    reveal: null,
     batch: {
       seedCount: 100,
       baseSeed: 1,
@@ -139,6 +146,9 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
     setSeed: (seed) => set({ seed }),
     setSaveReloadTest: (saveReloadTest) => set({ saveReloadTest }),
     selectStop: (selectedStop) => set({ selectedStop }),
+    setEditorTab: (editorTab) => set({ editorTab }),
+    revealPolicyLine: (line) =>
+      set((s) => ({ editorTab: "policy", reveal: { line, nonce: (s.reveal?.nonce ?? 0) + 1 } })),
 
     async startRun() {
       const { scenario, policy, seed, saveReloadTest } = get();

@@ -1,0 +1,279 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 40%) 1fr;
+  grid-template-rows: auto 1fr;
+  height: calc(100vh - 90px);
+  min-height: 560px;
+}
+
+.toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.views {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.runControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.35rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: var(--bad);
+}
+
+.warning {
+  color: var(--warn);
+}
+
+.muted {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  height: 220px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: 220px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.playback {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.timeline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 0.75rem;
+  padding: 0.25rem 1rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.markers {
+  grid-column: 1 / -1;
+  position: relative;
+  width: 100%;
+  height: 24px;
+}
+
+.markerLayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 24px;
+}
+
+.stopTicks {
+  stroke: var(--muted);
+  stroke-width: 0.6;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.6;
+}
+
+.eventBand {
+  fill: color-mix(in srgb, var(--focus) 18%, transparent);
+}
+
+.eventLabel {
+  position: absolute;
+  top: 0;
+  height: 24px;
+}
+
+.warningMarker,
+.errorMarker {
+  position: absolute;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+}
+
+.warningMarker {
+  top: 17px;
+  width: 6px;
+  height: 6px;
+  background: var(--warn);
+}
+
+.errorMarker {
+  top: 1px;
+  width: 10px;
+  height: 10px;
+  background: var(--bad);
+}
+
+.scrubber {
+  width: 100%;
+}
+
+.time {
+  font-family: var(--mono);
+  font-size: 12px;
+  min-width: 9em;
+  text-align: right;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabs button {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: none;
+  color: var(--text);
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius) var(--radius) 0 0;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected="true"] {
+  border-color: var(--border);
+  background: var(--surface);
+  font-weight: 600;
+}
+
+.tabPanel {
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  flex: 1;
+}
+
+.charts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.chart {
+  min-width: 0;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  padding: 0.2rem 0.75rem 0.2rem 0;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.table td {
+  text-align: right;
+}
+
+.current {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.inspector h3 {
+  margin: 0 0 0.5rem;
+  font-size: 15px;
+}
+
+.inspector h4 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 13px;
+}
+
+.inspector ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.link {
+  margin-left: 0.75rem;
+  background: none;
+  border: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.errorList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.errorItem {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.35rem 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.errorItem:hover {
+  background: var(--surface-2);
+}
+
+.unsupported {
+  max-width: 40rem;
+  margin: 4rem auto;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 420px auto;
+    height: auto;
+  }
+}

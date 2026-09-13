@@ -13,6 +13,8 @@
     "test": "vitest run",
     "check": "biome ci --error-on-warnings . && pnpm typecheck && vitest run",
     "test:determinism": "vite build -c tests/determinism/vite.config.ts && playwright test tests/determinism",
+    "build": "pnpm --filter @regolith-rail/app build",
+    "test:e2e": "pnpm build && playwright test tests/e2e",
     "golden": "pnpm --filter @regolith-rail/cli start golden"
   },
   "devDependencies": {

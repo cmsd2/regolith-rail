@@ -64,3 +64,23 @@ a {
 button {
   font: inherit;
 }
+
+.api-hover {
+  max-width: 28rem;
+  padding: 0.5rem 0.75rem;
+  font: 13px / 1.4 var(--font);
+}
+
+.api-hover-title {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.api-hover p {
+  margin: 0.25rem 0;
+}
+
+.api-hover ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+}

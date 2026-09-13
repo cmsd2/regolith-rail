@@ -76,23 +76,23 @@
 
 - [x] 9.1 Set up the React Router 7 app with prerendering, the base path build variable, CSS Modules, Radix UI and the footer with non-affiliation notice and build version, and verify the built site loads at `/` and under `/regolith-rail/`
 - [x] 9.2 Add Zustand stores for policies, scenario, run results, playhead and batch state, and verify store unit tests pass
-- [ ] 9.3 Add the worker layer with Comlink for single runs and a batch pool, with progress and cancellation, and verify cancelling a long run keeps the previous result and the interface responsive in a Playwright test
-- [ ] 9.4 Add the unsupported-browser check for WebAssembly, module workers and `CompressionStream`, and verify the message appears when those features are stubbed out in a test
+- [x] 9.3 Add the worker layer with Comlink for single runs and a batch pool, with progress and cancellation, and verify cancelling a long run keeps the previous result and the interface responsive in a Playwright test
+- [x] 9.4 Add the unsupported-browser check for WebAssembly, module workers and `CompressionStream`, and verify the message appears when those features are stubbed out in a test
 
 ## 10. Policy editor and scenario controls
 
-- [ ] 10.1 Embed CodeMirror 6 with Lua highlighting and a lint source using the subset checker in a worker, and verify the violation-while-typing scenario in a component test
-- [ ] 10.2 Add completion and hover from the generated API data with documentation links, and verify the hover help scenario
-- [ ] 10.3 Add the scenario picker, JSON scenario editor with in-place validation errors, seed and run options including save and reload test mode, and verify the invalid edit scenario disables Run
-- [ ] 10.4 Load `two-station` and `naive.lua` on first visit, and verify the first visit scenario in Playwright
+- [x] 10.1 Embed CodeMirror 6 with Lua highlighting and a lint source using the subset checker in a worker, and verify the violation-while-typing scenario in a component test
+- [x] 10.2 Add completion and hover from the generated API data with documentation links, and verify the hover help scenario
+- [x] 10.3 Add the scenario picker, JSON scenario editor with in-place validation errors, seed and run options including save and reload test mode, and verify the invalid edit scenario disables Run
+- [x] 10.4 Load `two-station` and `naive.lua` on first visit, and verify the first visit scenario in Playwright
 
 ## 11. Run views
 
-- [ ] 11.1 Build the Canvas 2D line map with stock bars, trains, direction and cargo, driven from the playhead without React re-renders, and verify playback in a Playwright test and that React render counts stay flat during playback
-- [ ] 11.2 Build uPlot charts for station stock, train cargo and recorded series with a cursor synced to the playhead, plus the metrics summary with definition links, and verify the recorded series scenario
-- [ ] 11.3 Build the timeline with stop, warning, error and event markers, and verify moving the playhead updates map and charts without a new run
-- [ ] 11.4 Build the stop inspector showing snapshot, requested and applied actions, warnings, traces with block links, logs, records and errors, and verify the clamped action scenario
-- [ ] 11.5 Build the error list linking to timeline and editor line, and verify the error-to-source scenario
+- [x] 11.1 Build the Canvas 2D line map with stock bars, trains, direction and cargo, driven from the playhead without React re-renders, and verify playback in a Playwright test and that React render counts stay flat during playback
+- [x] 11.2 Build uPlot charts for station stock, train cargo and recorded series with a cursor synced to the playhead, plus the metrics summary with definition links, and verify the recorded series scenario
+- [x] 11.3 Build the timeline with stop, warning, error and event markers, and verify moving the playhead updates map and charts without a new run
+- [x] 11.4 Build the stop inspector showing snapshot, requested and applied actions, warnings, traces with block links, logs, records and errors, and verify the clamped action scenario
+- [x] 11.5 Build the error list linking to timeline and editor line, and verify the error-to-source scenario
 
 ## 12. Batch comparison
 
