@@ -4,8 +4,9 @@ export {
   type GoldenEntry,
   goldenMatrix,
   runGoldenMatrix,
+  runGoldenMatrixWith,
 } from "./golden.ts";
-export { hashRun } from "./hash.ts";
+export { FORMAT1_METRICS, hashRun, hashRunFormat1 } from "./hash.ts";
 export * from "./output.ts";
 export * from "./policy.ts";
 export { batchSeeds, hashString32, Random, streamFor } from "./random.ts";

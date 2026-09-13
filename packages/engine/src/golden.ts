@@ -1,4 +1,5 @@
 import { hashRun } from "./hash.ts";
+import type { RunOutput } from "./output.ts";
 import type { Policy } from "./policy.ts";
 import { starterScenarios } from "./scenario/starters.ts";
 import { validateScenario } from "./scenario/validate.ts";
@@ -35,7 +36,19 @@ export function goldenMatrix(
 
 /** Runs the whole matrix and returns result hashes by key. */
 export function runGoldenMatrix(makePolicy: (name: string) => Policy): Record<string, string> {
-  const hashes: Record<string, string> = {};
+  return runGoldenMatrixWith(makePolicy, { hash: hashRun }).hash as Record<string, string>;
+}
+
+/** Runs the matrix once and hashes every result with each of several hash functions. */
+export function runGoldenMatrixWith<Name extends string>(
+  makePolicy: (name: string) => Policy,
+  hashers: Record<Name, (output: RunOutput) => string>,
+): Record<Name, Record<string, string>> {
+  const names = Object.keys(hashers) as Name[];
+  const hashes = Object.fromEntries(names.map((name) => [name, {}])) as Record<
+    Name,
+    Record<string, string>
+  >;
   const policies = new Map<string, Policy>();
   for (const entry of goldenMatrix(
     starterScenarios.map((s) => s.id),
@@ -49,7 +62,11 @@ export function runGoldenMatrix(makePolicy: (name: string) => Policy): Record<st
       policy = makePolicy(entry.policy);
       policies.set(entry.policy, policy);
     }
-    hashes[entry.key] = hashRun(runSimulation(result.scenario, policy, { seed: entry.seed }));
+    const output = runSimulation(result.scenario, policy, { seed: entry.seed });
+    for (const name of names) {
+      const table: Record<string, string> = hashes[name];
+      table[entry.key] = hashers[name](output);
+    }
   }
   return hashes;
 }
