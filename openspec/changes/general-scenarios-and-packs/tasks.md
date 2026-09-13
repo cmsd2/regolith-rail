@@ -1,7 +1,7 @@
 ## 1. Planning documents
 
-- [ ] 1.1 Update `docs/roadmap.md`: add the principle of a general core with domain packs and Surviving Mars as the flagship, add stage M7a for this change before M8, allow networks of stock points in §9 while keeping Surviving Mars colonies to one line, move free vehicle routing to the research track, and point §8 techniques at their classic templates; verify every stage reference in the document still resolves
-- [ ] 1.2 Update the project context in `openspec/config.yaml` to describe the core model, packs and scenario scripts, and verify `openspec validate --specs --strict` still passes
+- [x] 1.1 Update `docs/roadmap.md`: add the principle of a general core with domain packs and Surviving Mars as the flagship, add stage M7a for this change before M8, allow networks of stock points in §9 while keeping Surviving Mars colonies to one line, move free vehicle routing to the research track, and point §8 techniques at their classic templates; verify every stage reference in the document still resolves
+- [x] 1.2 Update the project context in `openspec/config.yaml` to describe the core model, packs and scenario scripts, and verify `openspec validate --specs --strict` still passes
 
 ## 2. Format 2 schema and upgrade
 
