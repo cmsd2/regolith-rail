@@ -31,6 +31,18 @@ export function formatPercent(fraction: number): string {
   return `${(fraction * 100).toLocaleString("en-GB", { maximumFractionDigits: 1 })}%`;
 }
 
+/** The documentation section that explains a policy diagnostic or error message. */
+export function diagnosticDocs(message: string): string {
+  if (/budget/i.test(message)) return "language#instruction-budget";
+  if (/information level/i.test(message)) return "language#information-levels";
+  if (/Lua 5\.1/.test(message)) return "language#lua-51-subset";
+  if (/not available to policies|reserved/.test(message)) return "language#sandbox";
+  if (/memory/i.test(message)) return "language#memory";
+  const block = /ops\.([a-z_.]+)/.exec(message)?.[1];
+  if (block) return `ops/${block.replace(/[._]/g, "-")}`;
+  return "language";
+}
+
 /** Link to a documentation page, respecting the base path. */
 export function docsHref(slug: string): string {
   return `${import.meta.env.BASE_URL}docs/${slug}`;

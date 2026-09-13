@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { formatGameTime } from "../lib/format.ts";
+import { diagnosticDocs, docsHref, formatGameTime } from "../lib/format.ts";
 import { playhead, useWorkbench, workbench } from "../state/instance.ts";
 import styles from "./Workbench.module.css";
 
@@ -42,7 +42,14 @@ export function ErrorList() {
               {error.train && `${error.train} at ${error.station}, `}
               {formatGameTime(error.t)}
             </span>
-          </button>
+          </button>{" "}
+          <a
+            href={docsHref(diagnosticDocs(error.message))}
+            data-docs={diagnosticDocs(error.message)}
+            className={styles.muted}
+          >
+            Help
+          </a>
         </li>
       ))}
       {errors.length > shown.length && (

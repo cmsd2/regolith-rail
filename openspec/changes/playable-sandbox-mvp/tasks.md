@@ -112,15 +112,15 @@
 
 ## 14. Documentation
 
-- [ ] 14.1 Set up MDX pages under `/docs`, the in-app documentation panel, KaTeX, Shiki and the MiniSearch index, and verify the direct link and panel scenarios
-- [ ] 14.2 Render generated Policy API and `ops` reference pages from the API data, and verify the documentation check fails on an undocumented parameter
-- [ ] 14.3 Implement the runnable example checker with an "Open in editor" action, and verify the check fails on a broken example
-- [ ] 14.4 Implement the internal link and anchor checker against the built output, and verify it fails on a deliberately broken link
-- [ ] 14.5 Write Getting started, Language and sandbox rules, metric definitions and scenario format reference pages, and verify their runnable examples pass
-- [ ] 14.6 Write one failure-mode page per starter scenario and link each scenario to it, and verify the failure-mode-per-scenario scenario
-- [ ] 14.7 Write the game mechanics assumptions page with game version and evidence labels, and verify the evidence label scenario
-- [ ] 14.8 Write the About page with licence, non-affiliation statement and build version, and verify the notice appears on every documentation page and application view
-- [ ] 14.9 Wire links from diagnostics, hover help, traces, metrics and scenarios into the documentation, and verify the trace-to-block-page scenario and the search-for-a-block scenario
+- [x] 14.1 Set up MDX pages under `/docs`, the in-app documentation panel, KaTeX, Shiki and the MiniSearch index, and verify the direct link and panel scenarios
+- [x] 14.2 Render generated Policy API and `ops` reference pages from the API data, and verify the documentation check fails on an undocumented parameter
+- [x] 14.3 Implement the runnable example checker with an "Open in editor" action, and verify the check fails on a broken example
+- [x] 14.4 Implement the internal link and anchor checker against the built output, and verify it fails on a deliberately broken link
+- [x] 14.5 Write Getting started, Language and sandbox rules, metric definitions and scenario format reference pages, and verify their runnable examples pass
+- [x] 14.6 Write one failure-mode page per starter scenario and link each scenario to it, and verify the failure-mode-per-scenario scenario
+- [x] 14.7 Write the game mechanics assumptions page with game version and evidence labels, and verify the evidence label scenario
+- [x] 14.8 Write the About page with licence, non-affiliation statement and build version, and verify the notice appears on every documentation page and application view
+- [x] 14.9 Wire links from diagnostics, hover help, traces, metrics and scenarios into the documentation, and verify the trace-to-block-page scenario and the search-for-a-block scenario
 
 ## 15. Static build and deployment
 

@@ -2,11 +2,12 @@ import { batchSeeds } from "@regolith-rail/engine";
 import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatAmount, PALETTE } from "../lib/format.ts";
+import { METRICS, type MetricDefinition } from "../lib/metrics.ts";
 import { type PairedDifference, pairedDifference, type Summary, summarise } from "../lib/stats.ts";
 import { useWorkbench, workbench } from "../state/instance.ts";
 import type { SeedResult } from "../workers/protocol.ts";
 import styles from "./BatchView.module.css";
-import { METRICS, type MetricDefinition, MetricLink } from "./MetricsSummary.tsx";
+import { MetricLink } from "./MetricsSummary.tsx";
 
 const MAX_SEEDS = 1000;
 

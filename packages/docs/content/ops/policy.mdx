@@ -1,0 +1,59 @@
+## How a stop is decided
+
+At each stop, for every resource the station stores:
+
+1. **Classify** gives the site a role: `supply`, `demand`, `relay` or `any`.
+2. **Target** decides the stock the site should have. When `target` is a table of
+   blocks by role, the site's role picks the block; a role without an entry is left
+   alone.
+3. **Plan**, when present, looks at stations further along in the train's direction
+   and keeps cargo for them.
+4. **Allocate**, when present, shares limited train space between resources.
+5. The difference between each target and the site's inventory position becomes a
+   load or unload action.
+
+Targets are compared with the *inventory position*: stock plus cargo other trains have
+reserved for the site. See [double dispatch](/docs/failure-modes/double-dispatch).
+
+## The simplest policy
+
+One target for every site reproduces the naive baseline:
+
+```lua runnable
+return ops.policy { target = ops.balance {} }
+```
+
+## Custom functions
+
+Any stage can be a Lua function instead of a block. Classify and target functions
+receive the site and the stop context:
+
+| Field | Meaning |
+| --- | --- |
+| `site.station` | Station id. |
+| `site.resource` | Resource id. |
+| `site.stock` | Stock at the station. |
+| `site.capacity` | Capacity for the resource at the station. |
+| `site.position` | Inventory position: stock plus cargo reserved for the site. |
+| `site.role` | Role from classify, in target functions. |
+
+A classify function returns a role; a target function returns a number, or `nil` to
+leave the site alone. An error inside a custom function names the stage it happened in.
+
+```lua runnable scenario=relay
+return ops.policy {
+  classify = function(site, ctx)
+    if site.station == "Mine" then return "supply" end
+    if site.station == "Dome" then return "demand" end
+    return "relay"
+  end,
+  target = {
+    supply = ops.drain {},
+    relay = ops.pass_through {},
+    demand = function(site, ctx)
+      -- Keep the dome two thirds full.
+      return math.floor(site.capacity * 2 / 3)
+    end,
+  },
+}
+```

@@ -5,6 +5,7 @@ import { type Diagnostic as LintDiagnostic, linter } from "@codemirror/lint";
 import type { Extension, Text } from "@codemirror/state";
 import { type EditorView, hoverTooltip } from "@codemirror/view";
 import type { Diagnostic } from "@regolith-rail/lua-runtime";
+import { diagnosticDocs, docsHref } from "../lib/format.ts";
 import { completionsFor, documentationHref, entryFor } from "./api-data.ts";
 
 const EXPRESSION = /[\w.[\]]/;
@@ -27,8 +28,20 @@ export function toLintDiagnostics(doc: Text, diagnostics: Diagnostic[]): LintDia
       to: Math.max(to, Math.min(from + 1, lineEnd)),
       severity: "error",
       message: d.message,
+      renderMessage: () => diagnosticMessage(d.message),
     };
   });
+}
+
+function diagnosticMessage(message: string): Node {
+  const dom = document.createElement("span");
+  const target = diagnosticDocs(message);
+  const link = document.createElement("a");
+  link.href = docsHref(target);
+  link.dataset.docs = target;
+  link.textContent = "Help";
+  dom.append(`${message} `, link);
+  return dom;
 }
 
 function expressionAround(

@@ -1,0 +1,26 @@
+## How it works
+
+Lookahead first serves the station the train is stopped at. Then it walks the stations
+ahead in the train's direction, nearest first, and adds up the shortfall of each one:
+how far its inventory position is below its target, limited by its free space.
+
+- At a site that wants to give stock away, it loads only what is needed ahead, so a
+  supply station is not emptied onto a train with nowhere to take it.
+- At a site that wants stock, it does not unload cargo that is needed further along.
+- Cargo kept for a station is reserved in `ctx.memory.ops`, so other trains see it in
+  that station's inventory position and do not answer the same shortage.
+
+A train's reservations are rebuilt from its cargo at every stop.
+
+## Example
+
+```lua runnable scenario=two-trains
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+  plan = ops.lookahead {},
+}
+```
+
+Lookahead needs the **line** [information level](/docs/language#information-levels),
+because it reads the stock of stations ahead.

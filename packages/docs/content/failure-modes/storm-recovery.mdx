@@ -1,0 +1,45 @@
+---
+title: Storm recovery
+description: Why a line that runs its stations close to empty has nothing to fall back on in a storm.
+section: Failure modes
+order: 5
+---
+
+Scenario: **Storm shock**. The two-station line with a dust storm that arrives after three sols.
+
+## What happens
+
+For one sol the storm stops the mine's extractors: a supply shock. Half a sol after it
+starts, repairs to storm damage send the dome's metal use up to two and a half times
+normal for a sol and a half: a demand shock. The dome's station empties quickly, and
+shortages carry on well after the storm has passed.
+
+## Why
+
+Under balancing, the dome's station already hovers near empty in normal operation (see
+[half capacity](/docs/failure-modes/half-capacity)). It has no buffer to draw on when
+supply stops, and when demand jumps there is no stock to meet it. Balancing does not
+react to the shock either: it keeps aiming for the line average, which falls as the
+mine's stock is used up.
+
+Storms are *states of the world*: while a storm is active, rates change. The timeline
+shows each event as a band, so you can see what your policy did during it.
+
+## What helps
+
+A buffer at the demand end, kept topped up in normal operation, absorbs the first part
+of a shock. [ops.min_max](/docs/ops/min-max) refills a site when it falls below a
+minimum:
+
+```lua runnable scenario=storm-shock
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = {
+    supply = ops.drain {},
+    demand = ops.min_max { min = 20000, max = 30000 },
+  },
+}
+```
+
+Compare recovery with a batch: [unmet demand](/docs/metrics#unmet-demand) over many
+seeds shows how much of the storm each policy rides out.

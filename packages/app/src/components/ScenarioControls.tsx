@@ -1,4 +1,5 @@
 import { starterScenarios } from "@regolith-rail/engine";
+import { docsHref } from "../lib/format.ts";
 import { useWorkbench, workbench } from "../state/instance.ts";
 import styles from "./EditorPanel.module.css";
 
@@ -7,6 +8,9 @@ export function ScenarioControls() {
   const seed = useWorkbench((s) => s.seed);
   const saveReloadTest = useWorkbench((s) => s.saveReloadTest);
   const { selectStarter, setSeed, setSaveReloadTest } = workbench.getState();
+  const starter = starterScenarios.find((s) => s.id === starterId)?.document as
+    | { description?: string; docs?: string }
+    | undefined;
   return (
     <div className={styles.controls}>
       <label>
@@ -24,6 +28,16 @@ export function ScenarioControls() {
           ))}
         </select>
       </label>
+      {starter?.docs && (
+        <a
+          href={docsHref(starter.docs)}
+          data-docs={starter.docs}
+          title={starter.description}
+          data-testid="scenario-docs"
+        >
+          Why it fails
+        </a>
+      )}
       <label>
         Seed{" "}
         <input

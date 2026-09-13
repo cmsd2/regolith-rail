@@ -78,6 +78,8 @@ export interface WorkbenchState {
   selectedStop: number | null;
   batch: BatchState;
   editorTab: "policy" | "scenario";
+  /** Documentation pages opened in the panel, most recent last; empty when closed. */
+  docs: string[];
   /** Asks the policy editor to scroll to and highlight a line. */
   reveal: { line: number; nonce: number } | null;
 
@@ -86,6 +88,10 @@ export interface WorkbenchState {
   dismissNotice(id: number): void;
   /** Replaces the work in progress, clearing results. Nothing runs. */
   restore(content: WorkContent): void;
+  /** Opens a documentation page, such as `ops/min-max#param-low`, in the panel. */
+  openDocs(target: string): void;
+  docsBack(): void;
+  closeDocs(): void;
   setView(view: WorkbenchState["view"]): void;
   setPolicySource(source: string): void;
   setPolicy(policy: PolicyDraft): void;
@@ -152,6 +158,7 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
     run: { status: "idle", progress: 0, output: null, error: null },
     selectedStop: null,
     editorTab: "policy",
+    docs: [],
     reveal: null,
     batch: {
       seedCount: 100,
@@ -200,6 +207,10 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       }));
     },
 
+    openDocs: (target) =>
+      set((s) => (s.docs.at(-1) === target ? {} : { docs: [...s.docs, target].slice(-50) })),
+    docsBack: () => set((s) => ({ docs: s.docs.slice(0, -1) })),
+    closeDocs: () => set({ docs: [] }),
     setView: (view) => set({ view }),
     setPolicySource: (source) => set((s) => ({ policy: { ...s.policy, source } })),
     setPolicy: (policy) => set({ policy }),

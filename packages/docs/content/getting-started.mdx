@@ -1,0 +1,84 @@
+---
+title: Getting started
+description: A first run, a first edit and a first comparison.
+section: Getting started
+order: 1
+---
+
+## The workbench
+
+The [workbench](/) opens with the *Two stations* scenario and `naive.lua`, a policy
+that imitates how trains in the game appear to balance stock. The editor is on the
+left; the line map, timeline and results are on the right.
+
+## Run the baseline
+
+Press **Run**. The simulation plays ten sols of game time in a moment, then the line
+map replays it. Drag along the timeline, or press play, to watch stock move. Select a
+stop marker to see what the policy saw and what it did in the stop inspector.
+
+Open the **Metrics** tab. The number to watch is
+[unmet demand (weighted)](/docs/metrics#unmet-demand-weighted): how much the dome
+wanted to consume but could not, because its station was empty.
+
+## Write a policy
+
+Replace the editor contents with a policy built from [ops blocks](/docs/ops):
+
+```lua runnable
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = {
+    supply = ops.drain {},
+    demand = ops.fill {},
+  },
+}
+```
+
+The mine's station is a supply site, so trains take everything they can; the dome's
+station is a demand site, so trains leave everything they carry. Press **Run** again
+and compare the metrics.
+
+Policies can also be plain Lua. A policy is a table with an `on_stop` function, and
+optionally `on_start`:
+
+```lua runnable
+local policy = {}
+
+function policy.on_start(ctx)
+  ctx.log("stations on the line:", #ctx.line.stations)
+end
+
+function policy.on_stop(ctx)
+  if ctx.station.id == "Mine" then
+    ctx.load("Metals", ctx.station.stock.Metals)
+  else
+    ctx.unload("Metals", ctx.train.cargo.Metals)
+  end
+end
+
+return policy
+```
+
+```text output
+stations on the line: 2
+```
+
+Amounts are in milli-units: 1 unit of metal is `1000`. Requests the train or station
+cannot satisfy are clamped and counted as [warnings](/docs/metrics#warnings).
+
+## Compare over many seeds
+
+One run is one roll of the dice. Switch to **Batch**, tick **Compare**, choose a
+second policy and press **Run**. Each metric shows its distribution for both policies
+and the paired difference with a 95% confidence interval. A difference is only called
+better or worse when the interval leaves out zero.
+
+## Share it
+
+**Share link** makes a link holding your policies, scenario and settings. Nothing is
+uploaded: the contents live in the part of the link after `#`. Whoever opens it sees
+your code before anything runs.
+
+Your work is also kept in the browser as a draft, and you can save named policies and
+scenarios under the editor.

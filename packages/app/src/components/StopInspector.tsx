@@ -101,7 +101,8 @@ export function StopInspector() {
               <li key={i}>
                 <a
                   href={docsHref(blockDocs.get(trace.block) ?? "ops")}
-                  data-docs={blockDocs.get(trace.block)}
+                  data-docs={blockDocs.get(trace.block) ?? "ops"}
+                  data-testid="trace-block"
                 >
                   {trace.block}
                 </a>{" "}

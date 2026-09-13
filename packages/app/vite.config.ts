@@ -1,5 +1,7 @@
 import { execSync } from "node:child_process";
+import mdx from "@mdx-js/rollup";
 import { reactRouter } from "@react-router/dev/vite";
+import { mdxOptions } from "@regolith-rail/docs/mdx";
 import { luaBrowserAliases } from "@regolith-rail/lua-runtime/vite";
 import { defineConfig } from "vite";
 import packageJson from "./package.json" with { type: "json" };
@@ -16,7 +18,7 @@ function commit(): string {
 
 export default defineConfig({
   base: basePath,
-  plugins: [reactRouter()],
+  plugins: [{ enforce: "pre", ...mdx(mdxOptions) }, reactRouter()],
   resolve: { alias: luaBrowserAliases },
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),

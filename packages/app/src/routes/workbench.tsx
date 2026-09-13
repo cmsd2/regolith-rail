@@ -12,10 +12,12 @@ import { ShareControls } from "../components/ShareControls.tsx";
 import { StopInspector } from "../components/StopInspector.tsx";
 import { PlaybackControls, Timeline } from "../components/Timeline.tsx";
 import styles from "../components/Workbench.module.css";
-import { startWorkbenchSession, useWorkbench } from "../state/instance.ts";
+import { startWorkbenchSession, useWorkbench, workbench } from "../state/instance.ts";
 
 // The editors bring in CodeMirror, so they load separately from the rest of the page.
 const EditorPanel = lazy(() => import("../components/EditorPanel.tsx"));
+// Documentation pages come with their own bundle, loaded when the panel first opens.
+const DocsPanel = lazy(() => import("../components/DocsPanel.tsx"));
 // Batch charts use Observable Plot, which only loads when the batch view opens.
 const BatchView = lazy(() => import("../components/BatchView.tsx"));
 
@@ -102,7 +104,22 @@ export default function Workbench() {
   // Editors and views wait for shared or draft work, so nothing is edited before it loads.
   const mounted = useWorkbench((s) => s.loaded);
   const view = useWorkbench((s) => s.view);
+  const docsOpen = useWorkbench((s) => s.docs.length > 0);
   useEffect(() => startWorkbenchSession(), []);
+  useEffect(() => {
+    // Documentation links anywhere in the workbench, including editor tooltips, open
+    // in the panel. Modified clicks still open a new tab.
+    const open = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element | null)?.closest?.("a[data-docs]");
+      if (!(link instanceof HTMLAnchorElement) || link.target === "_blank") return;
+      event.preventDefault();
+      workbench.getState().openDocs(link.dataset.docs ?? "");
+    };
+    document.addEventListener("click", open, true);
+    return () => document.removeEventListener("click", open, true);
+  }, []);
   return (
     <Page>
       <BrowserSupport>
@@ -123,8 +140,13 @@ export default function Workbench() {
             <div />
           )}
           <div className={styles.views}>
-            {mounted && view === "run" && <RunView />}
-            {mounted && view === "batch" && (
+            {mounted && docsOpen && (
+              <Suspense fallback={<p className={styles.muted}>Loading documentation…</p>}>
+                <DocsPanel />
+              </Suspense>
+            )}
+            {mounted && !docsOpen && view === "run" && <RunView />}
+            {mounted && !docsOpen && view === "batch" && (
               <Suspense fallback={<p className={styles.muted}>Loading…</p>}>
                 <BatchView />
               </Suspense>

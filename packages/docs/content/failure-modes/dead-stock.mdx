@@ -1,0 +1,39 @@
+---
+title: Dead stock
+description: Why a relay station between supply and demand ends up holding metal nobody uses.
+section: Failure modes
+order: 2
+---
+
+Scenario: **Relay station**. A mine, a junction station with no producers or
+consumers, and a dome, served by one train.
+
+## What happens
+
+The junction's station fills with metal and stays full, while the dome at the end of
+the line runs short.
+
+## Why
+
+Balancing counts the junction as one more station to even out. Every pass tops it up
+towards the line average, so about a third of the stock on the line sits at a station where
+nothing consumes it. That metal is dead stock: it was produced and moved, but it does
+nothing except make the dome's share smaller.
+
+## What helps
+
+Give the junction the relay role, so trains pass it by and carry cargo on to where it
+is needed. [Lookahead](/docs/ops/lookahead) keeps the cargo on board for the dome
+rather than unloading it at the first station with room.
+
+```lua runnable scenario=relay
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Junction = "relay", Dome = "demand" },
+  target = {
+    supply = ops.drain {},
+    relay = ops.pass_through {},
+    demand = ops.fill {},
+  },
+  plan = ops.lookahead {},
+}
+```

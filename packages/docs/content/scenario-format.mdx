@@ -1,0 +1,120 @@
+---
+title: Scenario format
+description: The JSON that describes a line, its stations, trains and world events.
+section: Reference
+order: 2
+---
+
+Scenarios are JSON documents. Pick a starter in the workbench and open the
+**Scenario** tab to edit one; errors appear next to the field they refer to.
+
+All quantities are integers in milli-units (`1000` is one unit), rates are
+milli-units per sol, and times are milliseconds of game time (a game hour is
+`3600000`, a sol is `86400000`). Ids start with a letter and use letters, digits,
+`_` or `-`.
+
+## Top level
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `format` | yes | Format version. This build reads version `1`. |
+| `id` | yes | Scenario id. |
+| `title` | yes | Name shown in the workbench. |
+| `description` | yes | What the scenario is about. |
+| `docs` | no | Documentation page that explains it, such as `failure-modes/dead-stock`. |
+| `durationMs` | yes | How long a run lasts, up to 100 sols. |
+| `seed` | yes | Default seed. |
+| `informationLevel` | yes | `local` or `line`; see [information levels](/docs/language#information-levels). |
+| `sampleIntervalMs` | no | How often charts sample stock. Whole game minutes; default one game hour. |
+| `resources` | yes | Resources on the line. |
+| `stations` | yes | At least two stations, in line order. |
+| `trains` | yes | At least one train. |
+| `events` | no | World events such as storms. |
+
+## Resources
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Resource id, such as `Metals`. |
+| `priority` | no | Weight in [unmet demand (weighted)](/docs/metrics#unmet-demand-weighted); default `1`. |
+
+## Stations
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Station id. |
+| `resources` | yes | Resources the station stores: `id`, `capacity` (default `30000`) and `initial` stock (default `0`). |
+| `distanceToNext` | all but the last | Distance to the next station. |
+| `producers` | no | Flows that add stock. |
+| `consumers` | no | Flows that take stock. |
+
+A flow has a `resource`, a `rate` and an optional `variability`:
+
+- `{ "kind": "fixed" }`, the default: the rate never changes.
+- `{ "kind": "uniform", "rangePercent": 20, "periodMs": 3600000 }`: the rate is drawn
+  within 20% either side of the base rate, and redrawn every period.
+- `{ "kind": "bursts", "onPpm": 5000, "offPpm": 20000, "startsOn": true }`: the flow
+  switches on and off at random. Chances are per game minute, in parts per million.
+
+## Trains
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Train id. |
+| `start` | yes | Station the train starts at. |
+| `direction` | no | `forward` (default) or `backward`. Trains reverse at the ends of the line. |
+| `speed` | yes | Distance per second. |
+| `dwellMs` | no | Time at every stop; default `10000`. |
+| `dwellPerUnitMs` | no | Extra time per whole unit moved; default `1000`. |
+| `capacity` | yes | `{ "shared": 30000 }` for one limit across resources, or `{ "perResource": { "Metals": 30000 } }`. |
+
+## Events
+
+World events are states of the world: while one is active, it changes flow rates.
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `id` | yes | Event id. |
+| `label` | yes | Name shown on the timeline. |
+| `schedule` | yes | When the event is active. |
+| `effects` | yes | At least one effect. |
+
+A schedule is either fixed, `{ "kind": "fixed", "startMs": 259200000, "durationMs": 86400000 }`,
+or random: `{ "kind": "random", "probabilityPpm": 10000, "checkIntervalMs": 3600000, "durationMs": 86400000 }`
+starts the event with that chance at each check while it is not active.
+
+An effect scales flows:
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `type` | yes | `supply` scales producers; `demand` scales consumers. |
+| `stations` | yes | `"all"` or a list of station ids. |
+| `resources` | yes | `"all"` or a list of resource ids. |
+| `multiplierPermille` | yes | Rate multiplier in thousandths: `0` stops the flow, `1000` leaves it, `2500` is two and a half times. |
+| `startOffsetMs` | no | Delay after the event starts; default `0`. |
+| `durationMs` | no | How long the effect lasts; default the event's duration. |
+
+Effects that overlap on the same flow multiply together.
+
+## Example
+
+The dust storm from the **Storm shock** starter:
+
+```json
+{
+  "id": "dust-storm",
+  "label": "Dust storm",
+  "schedule": { "kind": "fixed", "startMs": 259200000, "durationMs": 86400000 },
+  "effects": [
+    { "type": "supply", "stations": "all", "resources": "all", "multiplierPermille": 0 },
+    {
+      "type": "demand",
+      "stations": ["Dome"],
+      "resources": ["Metals"],
+      "multiplierPermille": 2500,
+      "startOffsetMs": 43200000,
+      "durationMs": 129600000
+    }
+  ]
+}
+```

@@ -1,0 +1,109 @@
+import { EVIDENCE_LEVELS, GAME, GAME_VERSION, isEvidenceLevel } from "@regolith-rail/docs";
+import { POLICY_API_VERSION, starterScenarios } from "@regolith-rail/engine";
+import type { MDXComponents } from "mdx/types";
+import { type ReactNode, useContext, useState } from "react";
+import { useNavigate } from "react-router";
+import { DocLink, DocsMode } from "./DocLink.tsx";
+import styles from "./docs.module.css";
+import { openExample } from "./open-example.ts";
+
+const scenarioTitle = (id: string) =>
+  (starterScenarios.find((s) => s.id === id)?.document as { title?: string } | undefined)?.title ??
+  id;
+
+/** A runnable example, wrapped around its highlighted code by the MDX build. */
+export function Example({
+  source,
+  scenario,
+  seed,
+  children,
+}: {
+  source: string;
+  scenario: string;
+  seed: string;
+  children?: ReactNode;
+}) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const [opened, setOpened] = useState(false);
+  return (
+    <figure className={styles.example} data-testid="example">
+      {children}
+      <figcaption>
+        <span>
+          Runs on <em>{scenarioTitle(scenario)}</em>, seed {seed}
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            void openExample({ source, scenario, seed: Number(seed) }, mode, navigate).then(() =>
+              setOpened(true),
+            )
+          }
+          data-testid="open-example"
+        >
+          {opened && mode === "panel" ? "Opened in editor" : "Open in editor"}
+        </button>
+      </figcaption>
+    </figure>
+  );
+}
+
+/** States which game version a statement about game behaviour refers to, and how it is known. */
+export function Evidence({ level }: { level: string }) {
+  const known = isEvidenceLevel(level);
+  return (
+    <p className={styles.evidence} data-testid="evidence" data-level={level}>
+      <span>
+        {GAME} {GAME_VERSION}
+      </span>
+      <span>
+        Evidence:{" "}
+        <DocLink
+          href="/docs/game-mechanics#evidence-levels"
+          title={known ? EVIDENCE_LEVELS[level] : undefined}
+        >
+          {known ? level : `unknown (${level})`}
+        </DocLink>
+      </span>
+    </p>
+  );
+}
+
+export function Callout({ children, kind = "note" }: { children: ReactNode; kind?: string }) {
+  return <aside className={`${styles.callout} ${styles[kind] ?? ""}`}>{children}</aside>;
+}
+
+/** The version and commit of the site being read. */
+export function BuildInfo() {
+  return (
+    <p data-testid="docs-build-version">
+      Version {__APP_VERSION__}, built from commit <code>{__APP_COMMIT__}</code>, Policy API version{" "}
+      {POLICY_API_VERSION}.
+    </p>
+  );
+}
+
+export const mdxComponents: MDXComponents = {
+  a: DocLink,
+  BuildInfo,
+  Example,
+  Evidence,
+  Callout,
+};
+
+/** Renders text with `code` spans, as used in reference summaries. */
+export function InlineCode({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(`[^`]+`)/).map((part, i) =>
+        part.startsWith("`") && part.endsWith("`") ? (
+          // biome-ignore lint/suspicious/noArrayIndexKey: parts of a fixed string never reorder.
+          <code key={i}>{part.slice(1, -1)}</code>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}

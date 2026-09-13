@@ -1,0 +1,100 @@
+---
+title: Language and sandbox rules
+description: The Lua subset policies are written in, and what the sandbox allows.
+section: Getting started
+order: 2
+---
+
+Policies are written in Lua. The sandbox runs Lua 5.4, but policies are checked
+against a Lua 5.1 subset so that the same code can later run inside the game.
+
+## Lua 5.1 subset
+
+The editor underlines anything outside the subset as you type, and a policy with
+violations does not run. Not available:
+
+- `goto` and labels; use loops with `break`, or `if` statements.
+- Integer division `//`; use `math.floor(a / b)`.
+- Bitwise operators `&`, `|`, `~`, `<<` and `>>`; use arithmetic.
+- Variable attributes such as `<const>` and `<close>`.
+- Names starting with `__rr`, which the runtime reserves.
+
+## Sandbox
+
+Policies can use `assert`, `error`, `ipairs`, `pairs`, `next`, `pcall`, `xpcall`,
+`select`, `tonumber`, `tostring`, `type`, `unpack`, `rawequal`, `rawget`, `rawset`,
+`rawlen`, `setmetatable`, `getmetatable`, and the `math`, `string`, `table`, `utf8` and
+`coroutine` libraries. `print` writes to the log, like `ctx.log`.
+
+Not available: `io`, `os`, `debug`, `package`, `require`, `load`, `loadstring`,
+`dofile`, `loadfile`, `collectgarbage`, `setfenv`, `getfenv`, `string.dump`,
+`math.random` and `math.randomseed`. Using one raises an error that says what to use
+instead. The [ops library](/docs/ops) is always available as `ops`.
+
+`string.rep` refuses to build strings longer than a million bytes.
+
+## Instruction budget
+
+Every loop iteration and function call counts towards a budget for each call to
+`on_start` or `on_stop`. A policy that runs out, for example in an endless loop, stops
+with a [budget overrun](/docs/metrics#budget-overruns) for that stop, and the train
+leaves without transfers. The `ops` library counts towards the same budget.
+
+## Memory
+
+`ctx.memory`, `ctx.train.memory` and `ctx.station.memory` are tables kept for the whole
+run. Anything else, including variables at the top of the policy file, should be
+treated as lost between stops, because a saved game only keeps memory.
+
+Memory may hold only booleans, numbers, strings and tables of those, keyed by strings
+or numbers, without cycles or metatables. Copy values out of the snapshot rather than
+storing snapshot tables themselves.
+
+```lua runnable
+local policy = {}
+
+function policy.on_stop(ctx)
+  local visits = (ctx.train.memory.visits or 0) + 1
+  ctx.train.memory.visits = visits
+  if visits <= 2 then
+    ctx.log(ctx.train.id, "visit", visits, "at", ctx.station.id)
+  end
+end
+
+return policy
+```
+
+```text output
+T1 visit 1 at Mine
+T1 visit 2 at Dome
+```
+
+### Save and reload test
+
+The **Save and reload test** option reloads the policy at random stops, keeping only
+memory, as loading a saved game would. A policy that relies on anything else behaves
+differently with the option on.
+
+## Information levels
+
+A scenario sets how much of the line a policy may see:
+
+- **local**: the train, the station it is stopped at, and the layout of the line.
+  Other stations' stock is hidden.
+- **line**: also the stock of every station on the line.
+
+Reading something the level hides raises an error naming the level it needs. Reference
+pages mark each member and block with the level it needs.
+
+## Determinism
+
+The same policy, scenario and seed always give the same result, in any browser. To keep
+it that way, use `ctx.rand()` for randomness. `pairs` visits keys in an order that
+changes between seeds, so do not rely on it; sort the keys first, or use `ipairs` on
+arrays.
+
+## Units and time
+
+- Quantities are integers in milli-units: `1000` is one unit.
+- Time is in milliseconds of game time. A game hour is `3600000`; a sol is 24 game hours.
+- Rates in scenarios are milli-units per sol.
