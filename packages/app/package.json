@@ -13,22 +13,33 @@
   },
   "devDependencies": {
     "@react-router/dev": "8.3.1",
+    "@testing-library/react": "^16.3.3",
     "@types/node": "^24.13.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "^19.3.0",
+    "happy-dom": "^20.14.5",
     "typescript": "7.0.2",
     "vite": "8.3.0"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "6.20.3",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/legacy-modes": "6.5.4",
+    "@codemirror/lint": "6.9.7",
+    "@observablehq/plot": "0.6.17",
     "@regolith-rail/engine": "workspace:*",
     "@regolith-rail/lua-runtime": "workspace:*",
     "@regolith-rail/policy-api": "workspace:*",
+    "codemirror": "6.0.2",
     "comlink": "4.4.2",
+    "idb-keyval": "6.3.0",
+    "isbot": "^5",
+    "jsonc-parser": "^3.3.1",
     "radix-ui": "1.6.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-router": "8.3.1",
-    "zustand": "5.0.15",
-    "isbot": "^5"
+    "uplot": "1.6.32",
+    "zustand": "5.0.15"
   }
 }

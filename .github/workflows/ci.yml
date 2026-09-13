@@ -23,7 +23,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec biome ci .
+      - run: pnpm exec biome ci --error-on-warnings .
 
   typecheck:
     runs-on: ubuntu-latest

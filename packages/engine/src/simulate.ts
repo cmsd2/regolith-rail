@@ -30,6 +30,8 @@ export interface RunOptions {
   detail?: Detail;
   /** Test hook: called after every handled event with the live state. */
   inspect?: (state: LineState, totals: FlowTotalsByResource) => void;
+  /** Called with the fraction of the run completed, at most once per percent. */
+  progress?: (fraction: number) => void;
 }
 
 /** Running totals by resource index, for checking conservation. */
@@ -270,6 +272,7 @@ export function runSimulation(
     cargo: [],
   };
   let nextRowTime = 0;
+  let reportedPercent = -1;
 
   const writeRowsBefore = (time: number, inclusive: boolean) => {
     while (inclusive ? nextRowTime <= time : nextRowTime < time) {
@@ -279,6 +282,13 @@ export function runSimulation(
         trains.forEach((train, i) => {
           cargoRows.set(train.cargo, (row * trains.length + i) * resources.length);
         });
+      }
+      if (options.progress) {
+        const percent = Math.floor((nextRowTime * 100) / duration);
+        if (percent > reportedPercent) {
+          reportedPercent = percent;
+          options.progress(percent / 100);
+        }
       }
       if (nextRowTime % scenario.sampleIntervalMs === 0) {
         samples.t.push(nextRowTime);

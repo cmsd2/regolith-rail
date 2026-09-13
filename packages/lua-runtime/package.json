@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./wasm-url": "./browser/wasm-url.ts",
+    "./vite": "./browser/vite.ts"
   },
   "scripts": {
     "typecheck": "tsc -p . && tsc -p tsconfig.test.json"

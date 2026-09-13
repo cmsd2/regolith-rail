@@ -7,11 +7,11 @@
     "node": ">=24"
   },
   "scripts": {
-    "lint": "biome check .",
+    "lint": "biome check --error-on-warnings .",
     "format": "biome check --write .",
     "typecheck": "tsc -p tests && tsc -p tools && pnpm -r --no-bail typecheck",
     "test": "vitest run",
-    "check": "biome ci . && pnpm typecheck && vitest run",
+    "check": "biome ci --error-on-warnings . && pnpm typecheck && vitest run",
     "test:determinism": "vite build -c tests/determinism/vite.config.ts && playwright test tests/determinism",
     "golden": "pnpm --filter @regolith-rail/cli start golden"
   },

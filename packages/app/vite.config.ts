@@ -1,7 +1,7 @@
 import { execSync } from "node:child_process";
 import { reactRouter } from "@react-router/dev/vite";
+import { luaBrowserAliases } from "@regolith-rail/lua-runtime/vite";
 import { defineConfig } from "vite";
-import { luaBrowserAliases } from "../lua-runtime/browser/vite.ts";
 import packageJson from "./package.json" with { type: "json" };
 import { basePath } from "./react-router.config.ts";
 
