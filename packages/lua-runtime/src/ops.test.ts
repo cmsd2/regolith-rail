@@ -227,18 +227,19 @@ describe("inventory position and lookahead", () => {
     expect(reservations.map((e) => [e.train, e.trace.result])).toEqual([["T1", 10_000]]);
   });
 
-  it("keeps cargo for a station further along", () => {
+  it("serves the current station and keeps the rest for a station further along", () => {
     const out = run(
       `return ops.policy {
         classify = ops.roles.manual { A = "supply", B = "demand", C = "demand" },
         target = { supply = ops.drain {}, demand = function(site)
           if site.station == "C" then return 15000 end
-          return site.capacity
+          return 5000
         end },
         plan = ops.lookahead {},
       }`,
-      line([station("A", 20_000, 400), station("B", 0, 400), station("C", 0)]),
+      line([station("A", 30_000, 400), station("B", 0, 400), station("C", 0)]),
     );
+    // Only the 20000 needed ahead is loaded, out of 30000 available.
     expect(transfers(out).slice(0, 2)).toEqual(["1:T1@A Metals 20000", "2:T1@B Metals -5000"]);
     const atB = ofKind(out.events, "trace").filter(
       (e) => e.stop === 2 && e.trace.block === "lookahead" && e.trace.station === "C",

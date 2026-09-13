@@ -475,9 +475,11 @@ function ops.policy(spec)
       if want.amount > 0 then
         local amount = want.amount
         if lookahead then
-          local keep = math.min(carried, downstream_need(want.resource))
-          trace("lookahead", here.id, want.resource, { carried = carried, downstream = downstream_need(want.resource) }, keep)
-          amount = math.min(amount, carried - keep)
+          -- This station is the nearest, so it is served first; what the train
+          -- carries beyond its need stays aboard for the stations further on.
+          amount = math.min(amount, carried)
+          local downstream = downstream_need(want.resource)
+          trace("lookahead", here.id, want.resource, { carried = carried, downstream = downstream }, amount)
         end
         if amount > 0 then
           unloads[#unloads + 1] = { resource = want.resource, station = here.id, amount = amount }

@@ -70,7 +70,7 @@
 - [x] 8.7 Implement custom functions for every stage with stage-attributed errors, and verify the custom target scenario passes
 - [x] 8.8 Implement decision traces for every block, and verify the order-up-to trace scenario passes
 - [x] 8.9 Run the policy checker over the `ops` source in CI, and verify it reports no violations
-- [ ] 8.10 Write an example supply-to-demand policy using roles, inventory position and lookahead, and verify it has lower mean unmet demand and oscillation count than the baseline on `two-trains` and `mixed-line` over 100 seeds
+- [x] 8.10 Write an example supply-to-demand policy using roles, inventory position and lookahead, and verify it has lower mean unmet demand and oscillation count than the baseline on `two-trains` and `mixed-line` over 100 seeds
 
 ## 9. Application shell
 

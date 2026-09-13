@@ -85,15 +85,21 @@ reserving train stops at the site, and SHALL be kept in persistent memory under
 - **THEN** reservations after each reload equal those before it
 
 ### Requirement: Downstream lookahead
-`ops.lookahead{}` SHALL, before unloading at a stop, keep on the train the cargo
-needed to cover shortfalls at stations further along the train's current
-direction, nearest first, and SHALL load at supply sites up to the total of
-those shortfalls.
+`ops.lookahead{}` SHALL serve the station a train has stopped at first, then
+keep the remaining cargo on the train for shortfalls at stations further along
+the train's current direction, reserving it for them nearest first. At supply
+sites it SHALL load up to the total of those shortfalls.
 
 #### Scenario: Cargo kept for further station
-- **WHEN** a train carrying 20000 Metals stops at relay B on its way to demand
-  station C with a shortfall of 15000
-- **THEN** at most 5000 Metals is unloaded at B and 15000 is reserved for C
+- **WHEN** a train carrying 20000 Metals stops at demand station B, which needs
+  5000, on its way to demand station C with a shortfall of 15000
+- **THEN** 5000 Metals is unloaded at B and the remaining 15000 is reserved for
+  C
+
+#### Scenario: Loading limited to what is needed ahead
+- **WHEN** a train stops at a supply station holding 30000 Metals and the
+  stations ahead need 20000 in total
+- **THEN** the train loads 20000
 
 ### Requirement: Allocation
 When requested loads exceed what a train can carry or a station can supply,
