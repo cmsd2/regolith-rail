@@ -1,7 +1,7 @@
 import type { Root } from "mdast";
 import { describe, expect, it } from "vitest";
 import { parseMdx } from "./markdown.ts";
-import { remarkScenarioLinks } from "./scenario-links.ts";
+import { remarkScenarioLinks, shippedNames } from "./scenario-links.ts";
 
 const names = {
   starters: new Set(["two-station", "relay"]),
@@ -40,5 +40,13 @@ describe("scenario links", () => {
       [],
     );
     expect(linked("Guides", "A `relay` role, and `two-station`.")).toEqual([]);
+  });
+
+  it("read the shipped starters, templates and policies from their files", () => {
+    const shipped = shippedNames();
+    expect(shipped.starters.has("two-station")).toBe(true);
+    expect(shipped.templates.has("classic.forecasting")).toBe(true);
+    expect(shipped.policies.has("balance-stock")).toBe(true);
+    expect(shipped.policies.has("naive")).toBe(false);
   });
 });

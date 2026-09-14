@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Nodes, Root } from "mdast";
@@ -90,17 +90,26 @@ function testFiles(dir: string): string[] {
   });
 }
 
-let repositoryTests: Map<string, string[]> | undefined;
+const parsedTests = new Map<string, { mtimeMs: number; source: string }>();
 
-/** Test titles across the workspace's packages, read once. */
+/**
+ * Test titles across the workspace's packages. Files are re-read only when they change, so a
+ * development server that keeps running still resolves tests that were added or renamed.
+ */
 export function workspaceTestTitles(): Map<string, string[]> {
-  repositoryTests ??= testTitles(
-    testFiles(PACKAGES_DIR).map((file) => ({
-      file: `packages/${relative(PACKAGES_DIR, file).replace(/\\/g, "/")}`,
-      source: readFileSync(file, "utf8"),
-    })),
-  );
-  return repositoryTests;
+  const files = testFiles(PACKAGES_DIR).map((file) => {
+    const mtimeMs = statSync(file).mtimeMs;
+    let cached = parsedTests.get(file);
+    if (!cached || cached.mtimeMs !== mtimeMs) {
+      cached = { mtimeMs, source: readFileSync(file, "utf8") };
+      parsedTests.set(file, cached);
+    }
+    return {
+      file: `packages/${relative(PACKAGES_DIR, file).split("\\").join("/")}`,
+      source: cached.source,
+    };
+  });
+  return testTitles(files);
 }
 
 export interface ResolvedCheck {
@@ -212,6 +221,7 @@ export function remarkChecks() {
   return (tree: Root, file: { path?: string }) => {
     const pageFile = file.path;
     if (!pageFile) return;
+    if (checkElements(tree).length === 0) return;
     const context: CheckContext = { pageFile, tree, tests: workspaceTestTitles() };
     for (const { node, ref } of checkElements(tree)) {
       const result = resolveCheck(ref, context);
