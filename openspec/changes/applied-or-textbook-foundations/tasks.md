@@ -15,7 +15,7 @@
 - [x] 3.2 Add the check-reference lint to `docs:check`: in Book pages, every display math node is followed by a `Check`, every exercise answer contains one, and every reference resolves. Verify unit tests for an unchecked equation (naming its line), a renamed notebook cell, and an unknown test title.
 - [x] 3.3 Write the shared Maxima helpers `expect_equal` and `expect_close` as a notebook prelude cell template, and the Python `check_*` runner convention. Verify a fixture notebook with a deliberately wrong value fails with the check's name.
 - [x] 3.4 Add `pnpm docs:claims` (`packages/docs/scripts/claims.ts`). It resolves references, runs each notebook with `aximar-mcp run` in a temporary copy, runs each Python script with `uv run --script`, and reports each failure with page and check. It exits naming a missing tool. Verify by running it against the fixtures, where one passes and one fails with the page named, and with `PATH` lacking `aximar-mcp`.
-- [ ] 3.5 Add the blocking `docs-claims` CI job: install Maxima with apt, download the pinned `aximar-tools` Linux archive, check its recorded SHA-256, set up a pinned `uv`, and run `pnpm docs:claims`. Make `deploy` need it. Verify on a pull request that the job passes, and that a temporary commit with a wrong checksum fails before any check runs.
+- [x] 3.5 Add the blocking `docs-claims` CI job: install Maxima with apt, download the pinned `aximar-tools` Linux archive, check its recorded SHA-256, set up a pinned `uv`, and run `pnpm docs:claims`. Make `deploy` need it. Verify on a pull request that the job passes, and that a temporary commit with a wrong checksum fails before any check runs.
 
 ## 4. Moved pages, fixes and redirects
 
@@ -49,4 +49,4 @@
 ## 9. Integration
 
 - [x] 9.1 Update the docs home page, Getting started and the library guide to point at the Book. Update the roadmap's M7 status and §8 entries for the techniques now covered. Verify the link check passes.
-- [ ] 9.2 Run the full check, `docs:check`, `docs:claims`, determinism tests and end-to-end tests locally, and in CI on a pull request. Verify every blocking job passes and golden hashes are unchanged.
+- [x] 9.2 Run the full check, `docs:check`, `docs:claims`, determinism tests and end-to-end tests locally, and in CI on a pull request. Verify every blocking job passes and golden hashes are unchanged.
