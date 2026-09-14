@@ -48,13 +48,22 @@ construct parameter SHALL have reference documentation. A build SHALL fail if an
 - **THEN** the documentation check fails and names the construct and parameter
 
 ### Requirement: Runnable examples
-Code examples marked as runnable SHALL execute during the documentation check,
-and any stated expected output SHALL match. Runnable examples SHALL offer an
-action that opens them in the editor.
+Code examples marked as runnable SHALL execute during the documentation check, and any stated expected output
+SHALL match. Runnable examples SHALL offer an action that opens them in the workbench.
+
+- **Library item:** the example SHALL open as a read-only example item, named after its page. It SHALL be
+  listed only when it is a starter's suggested fix.
+- **Slot:** the item SHALL fill its slot, and a scenario the example names SHALL fill the Scenario slot.
+- **Player's work:** opening an example SHALL NOT change or remove any Mine item.
 
 #### Scenario: Broken example
 - **WHEN** a runnable example no longer produces its stated output
 - **THEN** the documentation check fails and names the page and example
+
+#### Scenario: Opening an example keeps the player's work
+- **WHEN** a player with an edited Mine policy in the Policy slot opens the min-max example from its page
+- **THEN** the Policy slot holds the read-only example, the Mine policy is unchanged under Mine, and
+  editing the example creates a new copy under Mine
 
 ### Requirement: Game mechanics evidence
 Every statement about game behaviour SHALL show the game version it refers to

@@ -7,12 +7,21 @@ seeds, so players can tell real improvements from luck.
 ## Requirements
 
 ### Requirement: Batch configuration
-The player SHALL be able to choose a scenario, policy A, an optional policy B,
-a base seed and a number of seeds from 1 to 1000, defaulting to 100.
+The player SHALL be able to set up a batch from the run's slots and a few settings:
+
+- the scenario in the Scenario slot;
+- policy A in the Policy slot;
+- an optional policy B in the Compare slot, filled from any policy in the library;
+- a base seed;
+- a number of seeds from 1 to 1000, defaulting to 100.
 
 #### Scenario: Default batch
 - **WHEN** the player opens batch mode
 - **THEN** the current scenario and policy are selected as A with 100 seeds
+
+#### Scenario: Compare with a library policy
+- **WHEN** the player turns on comparison, chooses policy B and uses the built-in naive policy
+- **THEN** the batch compares the Policy slot's policy as A with naive as B on the same seeds
 
 ### Requirement: Paired seeds
 The seed list SHALL be derived deterministically from the base seed and count,

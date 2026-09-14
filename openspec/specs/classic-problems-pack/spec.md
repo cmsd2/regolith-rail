@@ -56,5 +56,5 @@ result and policy, where the simulator's setting differs from the textbook setti
 literature listed in the roadmap.
 
 #### Scenario: Template links to its page
-- **WHEN** a player selects a classic template in the scenario picker
-- **THEN** the picker shows a link to that template's documentation page
+- **WHEN** a player puts a classic template in the Scenario slot
+- **THEN** This run shows an About this problem link to that template's documentation page

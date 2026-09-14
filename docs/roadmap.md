@@ -383,8 +383,9 @@ same numbers.
 
 ### M9 — Reports, sharing and public alpha
 
-**Status** Public deployment, share links and the getting started guide are
-delivered. Benchmark reports, result cards, verify links and paste repair are
+**Status** Public deployment, share links, the library explorer, and the getting
+started and library guides are delivered. Benchmark reports, result cards,
+verify links, paste repair, and the first policy and reading results guides are
 still to come.
 
 **Deliverables**
@@ -398,12 +399,13 @@ still to come.
   - Raw results as JSON.
 - Custom-scenario reports clearly marked and unscored.
 - Paste repair for policies copied from forums.
-- Library explorer: scenarios, policies and experiments grouped by kind and
-  source (built in, examples, classic problems, mine, shared with me), slots
-  for the run's scenario, policy and comparison policy, experiments as saved
-  runs that share links open as, copy on edit with automatic saving, and
-  import and export of files.
-- Guides: getting started, first policy, reading results, sharing.
+- Library explorer: slots for the run's scenario, policy and comparison
+  policy; separate Scenarios, Policies and Saved runs lists, with policies
+  grouped by fit to the scenario; scenario lessons offering the baseline, the
+  suggested fix or the reference policy; saved runs that share links open as;
+  copy on edit with automatic saving; and import and export of files.
+- Guides: getting started, library and saved runs (including sharing), first
+  policy, reading results.
 - Non-affiliation notice in the app and on shared outputs.
 - Public deployment.
 
