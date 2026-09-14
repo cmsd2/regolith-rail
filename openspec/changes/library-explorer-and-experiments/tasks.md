@@ -5,8 +5,8 @@
 
 ## 2. Library model and catalogue
 
-- [ ] 2.1 Define library item, experiment content and slot types in the app, with stable id helpers for each source. Verify unit tests cover id round trips and the name-uniqueness helper ("naive (copy)", "naive (copy 2)").
-- [ ] 2.2 Export example policies from `scenario-kit` with names and one-line descriptions. Expose the documentation's runnable examples, with their page, scenario and name, from the docs build. Verify the docs check fails for an example without a name or scenario.
+- [x] 2.1 Define library item, experiment content and slot types in the app, with stable id helpers for each source. Verify unit tests cover id round trips and the name-uniqueness helper ("naive (copy)", "naive (copy 2)").
+- [x] 2.2 Export example policies from `scenario-kit` with names and one-line descriptions read from their opening comments. Expose the documentation's runnable examples, named after their pages, with their page and scenario, as a committed `generated/examples.json` in the docs package. Verify the docs check fails when that index is out of date or an example names an unknown scenario.
 - [ ] 2.3 Build the read-only catalogue from the packages: starters, built-in policies, kit and docs examples, classic templates, reference policies, and classic and failure-mode experiments. Verify a unit test lists every expected item with a description and no duplicate ids.
 - [ ] 2.4 Generate transient items for classic reference policies at given parameters and for experiment parts. Verify unit tests show equal parameters give equal ids and the reference policy matches `classicTemplates` for those parameters.
 

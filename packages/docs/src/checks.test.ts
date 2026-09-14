@@ -5,7 +5,7 @@ import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
 import { constructs } from "@regolith-rail/scenario-kit";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { extractExamples, runExample } from "./examples.ts";
+import { checkExampleIndex, exampleIndex, extractExamples, runExample } from "./examples.ts";
 import { checkLinks } from "./links.ts";
 import { assignHeadingIds, parseMdx } from "./markdown.ts";
 import { parseCodeMeta } from "./meta.ts";
@@ -203,6 +203,44 @@ describe("runnable examples", () => {
       ["```lua runnable", 'return { on_stop = function(ctx) error("boom") end }', "```"].join("\n"),
     );
     expect(runExample(runtime, example as never)[0]).toMatch(/the policy failed on line 1: .*boom/);
+  });
+
+  it("fail when the example names an unknown scenario", () => {
+    const [example] = page(
+      ["```lua runnable scenario=nowhere", "return { on_stop = function(ctx) end }", "```"].join(
+        "\n",
+      ),
+    );
+    expect(runExample(runtime, example as never)).toEqual([
+      "guides/example example 1 (line 1): unknown scenario nowhere",
+    ]);
+  });
+});
+
+describe("examples index", () => {
+  const pageOf = (slug: string, title: string, body: string) => ({
+    slug,
+    tree: parseMdx(body),
+    frontmatter: { title },
+  });
+  const one = "```lua runnable scenario=relay\nreturn {}\n```";
+  const pages = [
+    pageOf("ops/min-max", "ops.min_max", `${one}\n\n\`\`\`lua runnable script\nreturn 1\n\`\`\``),
+    pageOf("", "Documentation", one),
+  ];
+
+  it("names examples after their page, numbered when a page has several", () => {
+    expect(exampleIndex(pages).map((e) => [e.id, e.name, e.scenario, e.script])).toEqual([
+      ["ops/min-max#1", "ops.min_max (example 1)", "relay", false],
+      ["ops/min-max#2", "ops.min_max (example 2)", "two-station", true],
+      ["index#1", "Documentation", "relay", false],
+    ]);
+  });
+
+  it("reports a committed index that no longer matches the documentation", () => {
+    const current = exampleIndex(pages);
+    expect(checkExampleIndex(JSON.parse(JSON.stringify(current)), current)).toEqual([]);
+    expect(checkExampleIndex(current.slice(1), current)).toHaveLength(1);
   });
 });
 
