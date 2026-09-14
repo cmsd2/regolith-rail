@@ -131,18 +131,20 @@ at the stations, and the dome goes short on every seed.
 <Check ref="test:on relay over seeds 1 to 20 the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short on every seed" />
 
 This run can also show Little's law holding, because all three of its quantities can be
-measured separately. The stock chart gives $L$. The metrics give $\lambda$. And the run's
-events give $W$ without any formula: follow each unit from the stop that unloaded it,
-first in, first out, to the minute it was used, and average the waits. On seed 1 the
-dome holds 6.4 units on average, uses 32.3 a day, and a unit unloaded there is used 4.7
-hours later on average. Multiplied out, $\lambda W$ is 6.3 units, within 3% of $L$. The
-shortfall is the units still on the shelf when the run ends, whose waits are never
-finished and so never counted.
+measured separately, and the run view does. Open **Metrics** and look below the metrics
+at the table of [long-run averages](/docs/metrics#long-run-averages). For each station it
+gives $L$, the average stock over the run; the flow in and out a day, so $\lambda$; and
+two times. **Stock ÷ out** is $L / \lambda$. **Waited** is $W$ measured without any
+formula: each unit is followed from the stop that unloaded it, first in, first out, to
+the minute it was used, and the waits are averaged. On seed 1 the dome's row reads 6.4
+units, 32.3 a day out, and a wait of 4.7 hours. Multiplied out, $\lambda W$ is 6.3 units,
+within 3% of $L$. The shortfall is the units still on the shelf when the run ends, whose
+waits are never finished and so never counted.
 
-The junction shows the other side of that. A unit unloaded there waits about 54 hours
-before a train takes it on again, more than two days, so in a 10-day run a good part of
-what arrives is still there at the end, and $\lambda W$ comes to only four fifths of the
-13.5 units on the chart. Little's law is a statement about long-run averages, and a
+The junction's row shows the other side of that. A unit unloaded there waits about 54
+hours before a train takes it on again, more than two days, so in a 10-day run a good
+part of what arrives is still there at the end, and $\lambda W$ comes to only four fifths
+of the 13.5 units in the stock column. Little's law is a statement about long-run averages, and a
 place that turns over slowly needs a long run to show it.
 
 <Check ref="test:on relay seed 1 under balancing, following each unit first in first out, the dome holds 6.4 units, uses 32.3 a day and a unit waits 4.7 hours there, so lambda W is within 3% of L, while at the junction a unit waits about 54 hours and lambda W comes to four fifths of L, and under roles a unit waits 15 hours at the dome" />

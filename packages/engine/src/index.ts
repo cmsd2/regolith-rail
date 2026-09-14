@@ -1,3 +1,4 @@
+export { type LineAverages, type RunAverages, runAverages, type SiteAverages } from "./averages.ts";
 export {
   GOLDEN_POLICIES,
   GOLDEN_SEEDS,

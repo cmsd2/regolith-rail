@@ -185,3 +185,16 @@ code.
 - Whether the relay fix needs lookahead (decision 2). Answered by the first test written for the case study.
 - Whether the exercise candidates in decision 7 all hold as stated. Each is confirmed or replaced when its test
   is written; the standard (one simulator exercise per chapter, checked) does not change.
+
+### 9. Long-run averages come from the run, not the engine's metrics
+
+Chapter 2's demonstration of Little's law needs $L$, $\lambda$ and $W$ to be visible in the
+workbench, not only in a test. They are computed after the run, in a pure engine function over
+the full-detail output (stock and cargo at every tick, and the transfer, delivery, shipment and
+expiry events), so the metrics the golden hashes cover do not change. Whatever changes a site's
+stock that no event accounts for is production or consumption there. The wait follows units
+first in first out and counts only units that left, so it falls short of stock over flow where
+a place turns over slowly; the table shows both so the reader can see that.
+
+*Alternative:* new metrics computed during the simulation. Rejected: metrics are hashed, and
+the averages need nothing the full-detail output does not already hold.

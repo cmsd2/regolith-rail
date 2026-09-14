@@ -1,4 +1,5 @@
 import {
+  runAverages,
   runSimulation,
   type Scenario,
   starterScenarios,
@@ -84,60 +85,22 @@ describe("chapter 2, flows, rates and Little's law", () => {
   target = { supply = ops.drain {}, relay = ops.pass_through {}, demand = ops.fill {} },
 }`;
 
-  /**
-   * Little's law measured at one station: L from the stock trace, lambda from what left,
-   * and W by following each unit first in, first out from its arrival to its departure.
-   * Units still there when the run ends have not left, so their waits are not counted.
-   */
+  /** Little's law at one station on relay, from the run view's long-run averages. */
   function littleAt(source: string, seed: number, station: string) {
     const result = validateScenario(starterScenarios.find((s) => s.id === "relay")?.document);
     if (!result.ok) throw new Error("invalid starter relay");
     const policy = runtime.createPolicy(source);
     try {
       const out = runSimulation(result.scenario, policy, { seed, detail: "full" });
-      const sites = out.sites.length;
-      const site = out.sites.findIndex((s) => s.station === station);
-      const stock = out.stock as Int32Array;
-      const rows = stock.length / sites;
-      const unloaded = new Map<number, number>();
-      const loaded = new Map<number, number>();
-      for (const e of out.events) {
-        if (e.kind !== "transfer" || e.station !== station) continue;
-        const r = Math.floor(e.t / out.tickMs);
-        if (e.amount < 0) unloaded.set(r, (unloaded.get(r) ?? 0) - e.amount);
-        else loaded.set(r, (loaded.get(r) ?? 0) + e.amount);
-      }
-      const queue: [number, number][] = [[0, stock[site] as number]];
-      let waited = 0;
-      let left = 0;
-      let sum = 0;
-      for (let r = 0; r < rows - 1; r++) {
-        const before = stock[r * sites + site] as number;
-        const after = stock[(r + 1) * sites + site] as number;
-        sum += before;
-        const u = unloaded.get(r) ?? 0;
-        const l = loaded.get(r) ?? 0;
-        // What is neither unloaded nor loaded was produced or consumed here.
-        const net = after - before - u + l;
-        const arrived = u + Math.max(0, net);
-        let leaving = l + Math.max(0, -net);
-        if (arrived > 0) queue.push([r * out.tickMs, arrived]);
-        const now = (r + 1) * out.tickMs;
-        while (leaving > 0 && queue.length > 0) {
-          const head = queue[0] as [number, number];
-          const take = Math.min(leaving, head[1]);
-          waited += take * (now - head[0]);
-          left += take;
-          leaving -= take;
-          head[1] -= take;
-          if (head[1] === 0) queue.shift();
-        }
-      }
-      const days = ((rows - 1) * out.tickMs) / DAY;
-      const L = sum / (rows - 1) / 1000;
-      const lambda = left / 1000 / days;
-      const hours = waited / left / 3_600_000;
-      return { L, lambda, hours, lambdaW: (lambda * hours) / 24 };
+      const site = runAverages(out).sites.find((s) => s.station === station);
+      if (!site) throw new Error(`no site at ${station}`);
+      const hours = site.waitedHours as number;
+      return {
+        L: site.stock / 1000,
+        lambda: site.outPerDay / 1000,
+        hours,
+        lambdaW: ((site.outPerDay / 1000) * hours) / 24,
+      };
     } finally {
       policy.close();
     }

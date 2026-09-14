@@ -112,6 +112,29 @@ test.describe("runs", () => {
 });
 
 test.describe("run views", () => {
+  test("tabulates long-run averages for each station and the line", async ({ page }) => {
+    await openWorkbench(page);
+    await openItem(page, "builtin:scenario:relay");
+    await run(page);
+    await page.getByTestId("run-tab-metrics").click();
+    const averages = page.getByTestId("averages");
+    await expect(averages).toBeVisible();
+    const junction = averages.locator("tr", { hasText: "Junction" });
+    await expect(junction.locator("th")).toHaveText("Junction");
+    const cells = await junction.locator("td").allTextContents();
+    // Resource, stock, in a day, out a day, stock over out, waited.
+    expect(cells[0]).toBe("Metals");
+    expect(Number(cells[1])).toBeGreaterThan(10);
+    expect(Number(cells[4])).toBeGreaterThan(24);
+    expect(Number(cells[5])).toBeGreaterThan(24);
+    const line = averages.locator("tr", { hasText: "Line, with cargo" });
+    await expect(line).toHaveCount(1);
+    await expect(line.locator("td").nth(0)).toHaveText("Metals");
+    await expect(
+      averages.locator("..").getByRole("link", { name: "Long-run averages" }),
+    ).toHaveAttribute("href", /metrics#long-run-averages$/);
+  });
+
   test("plays back without re-rendering the map component", async ({ page }) => {
     await openWorkbench(page);
     await run(page);
