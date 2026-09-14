@@ -136,7 +136,10 @@ inside the 99% confidence interval of the simulated mean cost per day.
 
 To see the lopsided curve, open **Batch**, tick **Compare**, and compare the reference
 policy with copies ordering 10 and 20. The total cost metric rises on both sides of 15,
-by more below it than above.
+by more below it than above: over seeds 1 to 100 the three cost about 41, 43 and 47.5 a
+day, each within a unit of the model's 41.11, 42.78 and 47.78.
+
+<Check ref="test:on classic.newsvendor over seeds 1 to 100 ordering 15 costs about 41 a day, 20 about 43 and 10 about 47.5, each within a unit of the model" />
 
 ## Where the simulator differs
 
@@ -185,6 +188,23 @@ The order is the $3/5$ quantile of demand, $100 + 20z$ with $z \approx 0.2533$, 
 about 105.07 units.
 
 <Check ref="maxima:normal-demand" />
+
+</Answer>
+
+4. Raise the template's `lost_cost` to 10. What is the best order now, and what does it
+   cost a day against ordering 15 or 25?
+
+<Answer>
+
+The critical ratio becomes $(10 - 2)/10 = 4/5$, and 20 is the smallest order with
+$P(D \le Q) \ge 4/5$, since demand is at most 20 with probability $8/9$. Its expected cost
+is $410/9 \approx 45.56$ a day; ordering 15 costs $470/9 \approx 52.22$, and ordering 25,
+which covers every outcome, costs exactly 50. Over seeds 1 to 100 the simulator agrees:
+about 45.8 for 20, and more for both 15 and 25.
+
+<Check ref="maxima:lost-cost-ten" />
+
+<Check ref="test:on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.8 a day over seeds 1 to 100, less than ordering 15 or 25" />
 
 </Answer>
 

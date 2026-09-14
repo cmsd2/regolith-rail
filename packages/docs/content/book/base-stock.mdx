@@ -262,6 +262,20 @@ The protection interval shrinks to $5/4$ days with mean demand 5, and the level 
 
 </Answer>
 
+4. Set the template's lead time to one day, so that the reference orders up to 8 as in
+   exercise 3, and run it over 100 seeds. What does it cost a day?
+
+<Answer>
+
+About 4.8 a day, against 7.97 with a two-day lead time: the level falls by 5 units and
+the cost by two fifths, because less stock is held and less demand arrives before an
+order can. The template's analytic value is 4.81, and over seeds 1 to 100 the simulated
+cost agrees with it within its confidence interval.
+
+<Check ref="test:on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over seeds 1 to 100 the simulated cost agrees within its interval" />
+
+</Answer>
+
 <GameNote>
 
 On a rail line, a train's visit is a review and the time for cargo to reach a station is

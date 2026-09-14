@@ -27,10 +27,10 @@
 
 ## 5. Something to run in every chapter
 
-- [ ] 5.1 Chapter 4: add a Batch comparison of 10, 20 and 40 a time, citing the existing test. Chapter 5: add a Batch comparison of 10, 15 and 20, with a test over 100 seeds that the three mean costs are ordered 15 < 20 < 10. Verify the tests pass and `docs:check` passes.
-- [ ] 5.2 Chapter 7: add the comparison of level 113 with a fixed 2-day lead time at 106, with a test over 200 seeds that both meet 0.95 in their settings and 106 fails it with the variable lead time. Verify the test passes.
-- [ ] 5.3 Add a simulator exercise to each of chapters 1 to 8 (design decision 7's candidates, confirmed or replaced as each test is written), each answered with a `test:` check. Verify each test passes, and the docs check finds every answer's check.
-- [ ] 5.4 Extend the chapter-standard lint: a chapter's exercises must include at least one answer citing a `test:` or `example:` check. Verify a unit test for a chapter with only Maxima answers, naming the chapter.
+- [x] 5.1 Chapter 4: add a Batch comparison of 10, 20 and 40 a time, citing the existing test. Chapter 5: add a Batch comparison of 10, 15 and 20, with a test over 100 seeds that the three mean costs are ordered 15 < 20 < 10. Verify the tests pass and `docs:check` passes.
+- [x] 5.2 Chapter 7: add the comparison of level 113 with a fixed 2-day lead time at 106, with a test over 200 seeds that both meet 0.95 in their settings and 106 fails it with the variable lead time. Verify the test passes.
+- [x] 5.3 Add a simulator exercise to each of chapters 1 to 8 (design decision 7's candidates, confirmed or replaced as each test is written), each answered with a `test:` check. Verify each test passes, and the docs check finds every answer's check.
+- [x] 5.4 Extend the chapter-standard lint: a chapter's exercises must include at least one answer citing a `test:` or `example:` check. Verify a unit test for a chapter with only Maxima answers, naming the chapter.
 
 ## 6. Prose pass
 

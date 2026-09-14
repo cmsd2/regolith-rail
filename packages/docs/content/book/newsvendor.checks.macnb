@@ -92,6 +92,13 @@
    "metadata": {},
    "execution_count": null,
    "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: lost-cost-ten */\n/* With a lost-demand cost of 10 the critical ratio is 4/5, 20 is the smallest order covering that much demand, and its cost sits below 15's and 25's. */\nratio_ten: (10 - unit_cost) / 10$\nexpect_equal(\"ratio-ten\", ratio_ten, 4/5);\nexpect_equal(\"cover-at-twenty\", cdf(20), 8/9);\nexpect_equal(\"cover-at-fifteen-short\", is(cdf(15) < ratio_ten), true);\ncost_ten(q) := unit_cost * q + 10 * shortfall(q)$\nexpect_equal(\"cost-ten-at-twenty\", cost_ten(20), 410/9);\nexpect_equal(\"cost-ten-at-fifteen\", cost_ten(15), 470/9);\nexpect_equal(\"cost-ten-at-twenty-five\", cost_ten(25), 50);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
   }
  ]
 }

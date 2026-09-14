@@ -229,6 +229,21 @@ stations still have to hold very different amounts.
 
 </Answer>
 
+3. Open the starter's script and change both stations to `mars.large_station`, which
+   holds 60 units. Does balancing keep up now?
+
+<Answer>
+
+Mostly. The steady cycle needs a gap of about 26 units between the stations, and a
+60-unit station holds it with room to spare, so over seeds 1 to 20 unmet demand falls
+from about 28 units to about 5. But the dome still goes short on every seed: balancing
+still moves half the gap it sees, so the dome sits low whenever the mine sits high, and
+any disturbance closes the difference.
+
+<Check ref="test:on two-station with 60-unit stations, balancing leaves about 5 units unmet over seeds 1 to 20 instead of about 28, but the dome still goes short on every seed" />
+
+</Answer>
+
 <GameNote>
 
 In the rail game, trains appear to balance stock across the stations on a line, which is

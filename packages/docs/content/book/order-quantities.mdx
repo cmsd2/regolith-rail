@@ -122,8 +122,10 @@ demand.
 
 <Check ref="test:costs the economic order quantity's analytic cost with steady demand and no lead time" />
 
-Try other quantities by changing `max`. With reviews every minute, ordering 10 or 40 at
-a time costs 25 a day in the simulator, as the model predicts.
+Now make two copies of the reference policy, one with `max = 10417` and one with
+`max = 40417`, and compare all three in **Batch**. Ordering 10 or 40 at a time costs 25 a
+day against 20, as the model predicts; the test that checks it reviews every minute, so
+that its reorder point is 7 thousandths and the cost is the model's.
 
 <Check ref="test:on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit" />
 
@@ -171,6 +173,19 @@ relatively less often per unit.
 $(1/2 + 2)/2 = 5/4$ times as much.
 
 <Check ref="maxima:flat-cost" />
+
+</Answer>
+
+4. Order 30 at a time with the template's hourly reviews, `max = 30417`. What does it
+   cost a day, and why is it more than the model's 21.67?
+
+<Answer>
+
+About 22.8 a day. A run of 20 days uses 200 units and places 7 orders of 30, not the
+$6\tfrac{2}{3}$ the model averages over, so it pays for a seventh order and holds part of
+it to the end of the run.
+
+<Check ref="test:on classic.reorder with hourly reviews, ordering 30 at a time costs about 22.8 a day against the model's 21.67, because a 20-day run places 7 orders" />
 
 </Answer>
 

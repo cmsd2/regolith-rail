@@ -79,7 +79,16 @@ describe("claims lint", () => {
     expect(checkClaims([page(body)], tests)).toEqual([
       "book/newsvendor: Exercises needs at least two exercises with an <Answer>, found 1",
       "book/newsvendor line 10: the answer has no <Check>",
+      "book/newsvendor: Exercises needs one exercise run in the simulator, with an answer citing a test: or example: check",
     ]);
+  });
+
+  it("requires one exercise answered by a simulator check", () => {
+    const body = exercises.replaceAll('<Check ref="test:known test" />', "$q = 1$");
+    const problems = checkClaims([page(body)], tests);
+    expect(problems).toContain(
+      "book/newsvendor: Exercises needs one exercise run in the simulator, with an answer citing a test: or example: check",
+    );
   });
 
   it("rejects inline checks, and leaves unchecked maths outside the book alone", () => {

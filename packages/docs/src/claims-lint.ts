@@ -102,6 +102,15 @@ export function checkClaims(pages: Page[], tests = workspaceTestTitles()): strin
         problems.push(`${name} line ${lineOf(answer)}: the answer has no <Check>`);
       }
     }
+    // One exercise must send the reader to the simulator, with the answer checked by a run.
+    const simulated = answers.some((answer) =>
+      checkElements(answer as never).some(({ ref }) => /^(test|example):/.test(ref)),
+    );
+    if (answers.length > 0 && !simulated) {
+      problems.push(
+        `${name}: Exercises needs one exercise run in the simulator, with an answer citing a test: or example: check`,
+      );
+    }
   }
   return problems;
 }
