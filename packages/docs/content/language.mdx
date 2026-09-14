@@ -36,13 +36,13 @@ instead. The [ops library](/docs/ops) is always available as `ops`.
 ## Instruction budget
 
 Every loop iteration and function call counts towards a budget for each call to
-`on_start` or `on_stop`. A policy that runs out, for example in an endless loop, stops
-with a [budget overrun](/docs/metrics#budget-overruns) for that stop, and the train
-leaves without transfers. The `ops` library counts towards the same budget.
+`on_start`, `on_stop` or `on_review`. A policy that runs out, for example in an endless
+loop, stops with a [budget overrun](/docs/metrics#budget-overruns) for that call: at a
+stop, the train leaves without transfers. The `ops` library counts towards the same budget.
 
 ## Memory
 
-`ctx.memory`, `ctx.train.memory` and `ctx.station.memory` are tables kept for the whole
+`ctx.memory`, `ctx.vehicle.memory` and the `memory` of every station are tables kept for the whole
 run. Anything else, including variables at the top of the policy file, should be
 treated as lost between stops, because a saved game only keeps memory.
 
@@ -54,10 +54,10 @@ storing snapshot tables themselves.
 local policy = {}
 
 function policy.on_stop(ctx)
-  local visits = (ctx.train.memory.visits or 0) + 1
-  ctx.train.memory.visits = visits
+  local visits = (ctx.vehicle.memory.visits or 0) + 1
+  ctx.vehicle.memory.visits = visits
   if visits <= 2 then
-    ctx.log(ctx.train.id, "visit", visits, "at", ctx.station.id)
+    ctx.log(ctx.vehicle.id, "visit", visits, "at", ctx.here.id)
   end
 end
 

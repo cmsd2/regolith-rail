@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Scenario format versions this build can read. */
-export const SUPPORTED_FORMATS = [1] as const;
+export const SUPPORTED_FORMATS = [1, 2] as const;
 
 /** One unit of a resource, in the milli-units every quantity is stored in. */
 export const UNIT = 1000;
@@ -14,22 +14,22 @@ export const GAME_HOUR_MS = 60 * GAME_MINUTE_MS;
 /** A sol is 24 game hours. */
 export const SOL_MS = 24 * GAME_HOUR_MS;
 
-const id = z
+export const id = z
   .string()
   .regex(/^[A-Za-z][A-Za-z0-9_-]*$/, "ids start with a letter and use letters, digits, _ or -");
 // Upper bounds keep every intermediate engine value exactly representable.
-const quantity = z.int().nonnegative().max(1_000_000_000);
-const positive = z.int().positive().max(1_000_000_000);
+export const quantity = z.int().nonnegative().max(1_000_000_000);
+export const positive = z.int().positive().max(1_000_000_000);
 /** Up to 100 sols of game time. */
-const span = z
+export const span = z
   .int()
   .positive()
   .max(100 * SOL_MS);
-const offset = z
+export const offset = z
   .int()
   .nonnegative()
   .max(100 * SOL_MS);
-const wholeMinutes = span.refine(
+export const wholeMinutes = span.refine(
   (ms) => ms % GAME_MINUTE_MS === 0,
   "must be a whole number of game minutes (60000 ms)",
 );
@@ -53,26 +53,26 @@ export const Variability = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const Flow = z.strictObject({
+export const FlowV1 = z.strictObject({
   resource: id,
   /** Milli-units per sol. */
   rate: quantity,
   variability: Variability.default({ kind: "fixed" }),
 });
 
-export const StationResource = z.strictObject({
+export const StationResourceV1 = z.strictObject({
   id,
   capacity: quantity.default(DEFAULT_CAPACITY),
   initial: quantity.default(0),
 });
 
-export const Station = z.strictObject({
+export const StationV1 = z.strictObject({
   id,
-  resources: z.array(StationResource).min(1),
+  resources: z.array(StationResourceV1).min(1),
   /** Distance to the next station on the line. Omitted on the last station. */
   distanceToNext: positive.optional(),
-  producers: z.array(Flow).default([]),
-  consumers: z.array(Flow).default([]),
+  producers: z.array(FlowV1).default([]),
+  consumers: z.array(FlowV1).default([]),
 });
 
 export const TrainCapacity = z.union([
@@ -80,7 +80,7 @@ export const TrainCapacity = z.union([
   z.strictObject({ perResource: z.record(id, quantity) }),
 ]);
 
-export const Train = z.strictObject({
+export const TrainV1 = z.strictObject({
   id,
   start: id,
   direction: z.enum(["forward", "backward"]).default("forward"),
@@ -134,7 +134,8 @@ export const Resource = z.strictObject({
 export const INFORMATION_LEVELS = ["local", "line", "line+history", "colony"] as const;
 export const SUPPORTED_INFORMATION_LEVELS = ["local", "line"] as const;
 
-export const Scenario = z
+/** Format 1: one line of stations and shuttling trains. Upgraded to format 2 on load. */
+export const ScenarioV1 = z
   .strictObject({
     format: z.int(),
     id,
@@ -147,15 +148,15 @@ export const Scenario = z
     informationLevel: z.enum(INFORMATION_LEVELS),
     sampleIntervalMs: wholeMinutes.default(GAME_HOUR_MS),
     resources: z.array(Resource).min(1),
-    stations: z.array(Station),
-    trains: z.array(Train).min(1),
+    stations: z.array(StationV1),
+    trains: z.array(TrainV1).min(1),
     events: z.array(WorldEvent).default([]),
   })
   .superRefine((scenario, ctx) => {
     const issue = (path: (string | number)[], message: string) =>
       ctx.addIssue({ code: "custom", path, message });
 
-    if (!(SUPPORTED_FORMATS as readonly number[]).includes(scenario.format)) {
+    if (scenario.format !== 1) {
       issue(
         ["format"],
         `format ${scenario.format} is not supported; supported versions: ${SUPPORTED_FORMATS.join(", ")}`,
@@ -267,11 +268,11 @@ export const Scenario = z
     });
   });
 
-export type ScenarioInput = z.input<typeof Scenario>;
-export type Scenario = z.output<typeof Scenario>;
-export type StationDef = z.output<typeof Station>;
-export type TrainDef = z.output<typeof Train>;
-export type FlowDef = z.output<typeof Flow>;
+export type ScenarioV1Input = z.input<typeof ScenarioV1>;
+export type ScenarioV1 = z.output<typeof ScenarioV1>;
+export type StationV1Def = z.output<typeof StationV1>;
+export type TrainV1Def = z.output<typeof TrainV1>;
+export type FlowV1Def = z.output<typeof FlowV1>;
 export type VariabilityDef = z.output<typeof Variability>;
 export type WorldEventDef = z.output<typeof WorldEvent>;
 export type EffectDef = z.output<typeof Effect>;

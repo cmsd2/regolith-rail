@@ -7,6 +7,7 @@ export function RunControls() {
   const progress = useWorkbench((s) => s.run.progress);
   const error = useWorkbench((s) => s.run.error);
   const valid = useWorkbench((s) => s.scenario.scenario !== null);
+  const evaluating = useWorkbench((s) => s.scenario.status === "evaluating");
   const startRun = useWorkbench((s) => s.startRun);
   const cancelRun = useWorkbench((s) => s.cancelRun);
   const running = status === "running";
@@ -23,7 +24,11 @@ export function RunControls() {
           onClick={() => void startRun()}
           disabled={!valid}
           title={
-            valid ? "Run the policy on this scenario and seed" : "Fix the scenario errors first"
+            valid
+              ? "Run the policy on this scenario and seed"
+              : evaluating
+                ? "Evaluating the scenario script"
+                : "Fix the scenario errors first"
           }
           data-testid="run"
         >

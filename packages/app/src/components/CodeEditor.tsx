@@ -8,6 +8,8 @@ export interface CodeEditorProps {
   onChange(value: string): void;
   extensions: Extension[];
   label: string;
+  /** Shows the value without letting it be edited. */
+  readOnly?: boolean;
   /** Scroll to and select this line when the nonce changes. */
   reveal?: { line: number; nonce: number } | null;
   testId?: string;
@@ -42,6 +44,7 @@ export function CodeEditor({
   onChange,
   extensions,
   label,
+  readOnly = false,
   reveal,
   testId,
 }: CodeEditorProps) {
@@ -61,6 +64,8 @@ export function CodeEditor({
           basicSetup,
           theme,
           EditorView.contentAttributes.of({ "aria-label": label }),
+          EditorState.readOnly.of(readOnly),
+          EditorView.editable.of(!readOnly),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) change.current(update.state.doc.toString());
           }),

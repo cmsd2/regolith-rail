@@ -3,7 +3,7 @@ import { hashRun } from "./hash.ts";
 import { type LineState, type RunEvent, stateAt } from "./output.ts";
 import { emptyOutcome, POLICY_API_VERSION } from "./policy.ts";
 import { naiveReferencePolicy } from "./reference/naive.ts";
-import type { ScenarioInput } from "./scenario/schema.ts";
+import type { ScenarioV1Input as ScenarioInput } from "./scenario/schema.ts";
 import { starterScenarios } from "./scenario/starters.ts";
 import { validateScenario } from "./scenario/validate.ts";
 import { runSimulation } from "./simulate.ts";
@@ -48,7 +48,7 @@ describe("time model", () => {
   it("records the Policy API version", () => {
     const out = runSimulation(parse(minimalScenario()), idlePolicy);
     expect(out.apiVersion).toBe(POLICY_API_VERSION);
-    expect(out.apiVersion).toBe(1);
+    expect(out.apiVersion).toBe(2);
   });
 });
 
@@ -477,7 +477,7 @@ describe("stops and actions", () => {
             }
           : [
               {
-                type: snap.station.id === "A" ? "load" : "unload",
+                type: snap.here.id === "A" ? "load" : "unload",
                 resource: "Metals",
                 amount: 1_000,
               },
@@ -545,7 +545,7 @@ describe("metrics", () => {
     const out = runSimulation(
       scenario,
       scriptedPolicy((snap) =>
-        snap.train.id === "T1"
+        snap.vehicle.id === "T1"
           ? [
               { type: "load", resource: "Metals", amount: 2_000 },
               { type: "unload", resource: "Metals", amount: 2_000 },

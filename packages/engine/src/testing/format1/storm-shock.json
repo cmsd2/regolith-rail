@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "id": "storm-shock",
+  "title": "Storm shock",
+  "description": "A dust storm stops the mine's extractors for a sol, and the damage it leaves behind sends metal demand at the dome up for a sol and a half. Balancing runs the dome close to empty in normal operation, so it has no buffer for either shock and recovers slowly.",
+  "docs": "failure-modes/disruption-recovery",
+  "durationMs": 864000000,
+  "seed": 1,
+  "informationLevel": "line",
+  "resources": [{ "id": "Metals" }],
+  "stations": [
+    {
+      "id": "Mine",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "distanceToNext": 72000,
+      "producers": [{ "resource": "Metals", "rate": 40000 }]
+    },
+    {
+      "id": "Dome",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "consumers": [
+        {
+          "resource": "Metals",
+          "rate": 24000,
+          "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
+        }
+      ]
+    }
+  ],
+  "trains": [
+    {
+      "id": "T1",
+      "start": "Mine",
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    }
+  ],
+  "events": [
+    {
+      "id": "dust-storm",
+      "label": "Dust storm",
+      "schedule": { "kind": "fixed", "startMs": 259200000, "durationMs": 86400000 },
+      "effects": [
+        { "type": "supply", "stations": "all", "resources": "all", "multiplierPermille": 0 },
+        {
+          "type": "demand",
+          "stations": ["Dome"],
+          "resources": ["Metals"],
+          "multiplierPermille": 2500,
+          "startOffsetMs": 43200000,
+          "durationMs": 129600000
+        }
+      ]
+    }
+  ]
+}

@@ -18,17 +18,18 @@ local function stores(station, resource)
 end
 
 function policy.on_stop(ctx)
-  local station = ctx.station
-  for _, resource in ipairs(station.resources) do
+  local here = ctx.here
+  for _, resource in ipairs(here.resources) do
     local total, count = 0, 0
-    for _, other in ipairs(ctx.line.stations) do
+    for _, id in ipairs(ctx.station_order) do
+      local other = ctx.stations[id]
       if stores(other, resource) then
         total = total + other.stock[resource]
         count = count + 1
       end
     end
     local target = math.floor(total / count)
-    local difference = station.stock[resource] - target
+    local difference = here.stock[resource] - target
     if difference > 0 then
       ctx.load(resource, difference)
     elseif difference < 0 then

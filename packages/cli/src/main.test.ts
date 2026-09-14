@@ -35,7 +35,7 @@ describe("command-line runner", () => {
     expect(output).toMatchObject({
       scenarioId: "two-station",
       seed: 7,
-      apiVersion: 1,
+      apiVersion: 2,
       aborted: false,
     });
     expect(output.metrics.stops).toBeGreaterThan(0);
@@ -65,6 +65,78 @@ describe("command-line runner", () => {
     expect(result.code).not.toBe(0);
     expect(result.stderr).toContain("is not a valid scenario");
     expect(result.stderr).toContain("title:");
+  }, 60_000);
+
+  it("runs a scenario script", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
+    const file = join(dir, "shop.lua");
+    writeFileSync(
+      file,
+      [
+        'local a = station { id = "A", resources = { Metals = { initial = 10 } } }',
+        'local b = station { id = "B", resources = { "Metals" } }',
+        "return scenario {",
+        '  id = "script", duration = hours(2), parts = { line { stations = { a, b }, distances = 100 } },',
+        '  vehicles = { vehicle { id = "T1", route = shuttle { stops = { a, b } }, speed = 10, capacity = 10 } },',
+        "}",
+      ].join("\n"),
+    );
+    const result = await cli("run", "--scenario", file, "--policy", "lua:naive");
+    expect(result.code).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ scenarioId: "script", aborted: false });
+  }, 60_000);
+
+  it("runs a template with parameters", async () => {
+    const result = await cli(
+      "run",
+      "--template",
+      "classic.reorder",
+      "--param",
+      "demand=5",
+      "--param",
+      "review_period=hours(6)",
+      "--param",
+      "shortage=lost",
+      "--policy",
+      "reference:naive",
+    );
+    expect(result.code).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output).toMatchObject({ scenarioId: "reorder", aborted: false });
+    expect(output.events.filter((e: { kind: string }) => e.kind === "review")).toHaveLength(80);
+  }, 60_000);
+
+  it("reports a template parameter error", async () => {
+    const result = await cli(
+      "run",
+      "--template",
+      "classic.serial_chain",
+      "--param",
+      "stages=40",
+      "--policy",
+      "reference:naive",
+    );
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain(
+      "classic.serial_chain: stages must be a whole number from 2 to 10",
+    );
+  }, 60_000);
+
+  it("reports an invalid scenario script at its lines", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
+    const file = join(dir, "bad.lua");
+    writeFileSync(
+      file,
+      [
+        'local a = station { id = "A", resources = { "Metals" } }',
+        'return scenario { id = "bad", duration = hours(1), stations = { a },',
+        '  vehicles = { vehicle { id = "V", route = shuttle { stops = { "A", "Nowhere" } }, speed = 1, capacity = 1 } } }',
+      ].join("\n"),
+    );
+    const result = await cli("run", "--scenario", file, "--policy", "reference:naive");
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("is not a valid scenario");
+    expect(result.stderr).toContain(`${file}:3 vehicles[0].route.stops[1]:`);
   }, 60_000);
 
   it("reports a Lua load error with its line before running", async () => {

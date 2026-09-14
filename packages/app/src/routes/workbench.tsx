@@ -5,6 +5,7 @@ import { LineMap } from "../components/LineMap.tsx";
 import { MetricsSummary } from "../components/MetricsSummary.tsx";
 import { Notices } from "../components/Notices.tsx";
 import { Page } from "../components/Page.tsx";
+import { ReviewInspector } from "../components/ReviewInspector.tsx";
 import { RunCharts } from "../components/RunCharts.tsx";
 import { RunControls } from "../components/RunControls.tsx";
 import { ScenarioControls } from "../components/ScenarioControls.tsx";
@@ -31,12 +32,18 @@ function RunView() {
   const [tab, setTab] = useState<RunTab>("inspector");
   const errors = useRunErrors();
   const selectedStop = useWorkbench((s) => s.selectedStop);
+  const selectedReview = useWorkbench((s) => s.selectedReview);
   const hasOutput = useWorkbench((s) => s.run.output !== null);
+  // Runs without vehicles have only reviews to inspect.
+  const reviewsOnly = useWorkbench(
+    (s) => s.run.output !== null && s.run.output.trains.length === 0,
+  );
+  const showReview = selectedReview !== null || reviewsOnly;
   useEffect(() => {
-    if (selectedStop !== null) setTab("inspector");
-  }, [selectedStop]);
+    if (selectedStop !== null || selectedReview !== null) setTab("inspector");
+  }, [selectedStop, selectedReview]);
   const tabs: { id: RunTab; label: string }[] = [
-    { id: "inspector", label: "Stop" },
+    { id: "inspector", label: showReview ? "Review" : "Stop" },
     { id: "charts", label: "Charts" },
     { id: "metrics", label: "Metrics" },
     { id: "errors", label: errors.length > 0 ? `Errors (${errors.length})` : "Errors" },
@@ -62,7 +69,7 @@ function RunView() {
             ))}
           </div>
           <div className={styles.tabPanel} role="tabpanel">
-            {tab === "inspector" && <StopInspector />}
+            {tab === "inspector" && (showReview ? <ReviewInspector /> : <StopInspector />)}
             {tab === "charts" && <RunCharts />}
             {tab === "metrics" && <MetricsSummary />}
             {tab === "errors" && <ErrorList />}
@@ -121,9 +128,9 @@ export default function Workbench() {
     return () => document.removeEventListener("click", open, true);
   }, []);
   return (
-    <Page>
+    <Page docsInPanel>
       <BrowserSupport>
-        <div className={styles.layout}>
+        <div className={docsOpen ? `${styles.layout} ${styles.withDocs}` : styles.layout}>
           <div className={styles.toolbar}>
             <ViewSwitch />
             <ScenarioControls />
@@ -140,18 +147,20 @@ export default function Workbench() {
             <div />
           )}
           <div className={styles.views}>
-            {mounted && docsOpen && (
-              <Suspense fallback={<p className={styles.muted}>Loading documentation…</p>}>
-                <DocsPanel />
-              </Suspense>
-            )}
-            {mounted && !docsOpen && view === "run" && <RunView />}
-            {mounted && !docsOpen && view === "batch" && (
+            {mounted && view === "run" && <RunView />}
+            {mounted && view === "batch" && (
               <Suspense fallback={<p className={styles.muted}>Loading…</p>}>
                 <BatchView />
               </Suspense>
             )}
           </div>
+          {mounted && docsOpen && (
+            <div className={styles.docs}>
+              <Suspense fallback={<p className={styles.muted}>Loading documentation…</p>}>
+                <DocsPanel />
+              </Suspense>
+            </div>
+          )}
         </div>
       </BrowserSupport>
     </Page>

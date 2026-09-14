@@ -11,6 +11,7 @@ game changes, or a statement is checked more closely, this page is updated.
 
 ## Evidence levels
 
+- **assumed**: chosen so that scenarios work, without yet comparing with the game.
 - **observed**: seen by playing the game and watching what happens. The most likely
   to be incomplete.
 - **shadow-mode**: compared against the game by running a policy beside the game's own
@@ -68,6 +69,26 @@ as metals, machine parts and polymers, a demand shock. Scenarios model these as
 
 During storms, shuttles that would otherwise carry goods are grounded, which could send
 more traffic to the railway. The simulation does not model this yet.
+
+## Mars pack defaults
+
+The [Mars pack](/docs/scenarios/mars) fills in values a script does not state. Station
+sizes follow the storage described above. Every other default is a placeholder that
+keeps a scenario running, and any of them can be changed with a parameter.
+
+| Construct | Default | Evidence |
+| --- | --- | --- |
+| `mars.small_station` | 30 units of each resource | observed |
+| `mars.large_station` | 60 units of each resource | observed |
+| `mars.extractor` | 40 units per sol | assumed |
+| `mars.farm` | 30 Food per sol | assumed |
+| `mars.dome` | 20 Food per sol | assumed |
+| `mars.factory` | 3 Metals into 1 MachineParts, 10 batches per sol | assumed |
+| `mars.train` | speed 5, 30 units, 10 minutes at each stop and 1 minute per unit moved | assumed |
+| Variability given as a number | a uniform range redrawn every 2 hours | assumed |
+| Resource priorities | Food, Water and Oxygen 3; Polymers, MachineParts and Electronics 2; others 1 | assumed |
+
+<Evidence level="assumed" />
 
 ## Numbers
 

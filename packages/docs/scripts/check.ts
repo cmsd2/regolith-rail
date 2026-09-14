@@ -1,8 +1,11 @@
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
+import { constructs } from "@regolith-rail/scenario-kit";
 import {
+  checkConstructs,
   checkFrontmatter,
   checkReference,
+  checkTemplatePages,
   extractExamples,
   readContentPages,
   runExample,
@@ -12,9 +15,14 @@ import {
 // examples. Links are checked against the built site by scripts/links.ts.
 
 const pages = readContentPages();
-const problems = [...checkReference(apiTypes, opsBlocks), ...checkFrontmatter(pages)];
-
 const runtime = await LuaRuntime.load();
+const problems = [
+  ...checkReference(apiTypes, opsBlocks),
+  ...checkConstructs(constructs, runtime.libraryConstructs()),
+  ...checkTemplatePages(constructs, new Set(pages.map((p) => p.slug))),
+  ...checkFrontmatter(pages),
+];
+
 const examples = pages.flatMap((page) => extractExamples(page.slug, page.tree));
 for (const example of examples) problems.push(...runExample(runtime, example));
 

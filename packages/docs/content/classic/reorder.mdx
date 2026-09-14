@@ -1,0 +1,115 @@
+---
+title: Reorder
+description: When to order and how much, from the economic order quantity to base-stock policies with lead times.
+section: Classic problems
+order: 2
+---
+
+Template: [`classic.reorder`](/docs/scenarios/classic#classic-reorder).
+
+## The problem
+
+A shop sells goods from stock and reorders from a supplier who delivers after a lead
+time. Holding stock costs money, every order has a fixed cost, and running out costs
+more. The policy decides when to order and how much. Two classic answers cover the
+two ends of the problem: the economic order quantity when demand is steady, and the
+base-stock policy when it is random (Axsäter, 2015, pp. 42–43, 45–48; Snyder and Shen, 2019,
+pp. 105–113).
+
+## The scenario
+
+One station, `Shop`, stores `Goods` with unlimited room.
+
+- Demand is a steady `demand` units a day, or, with `random = true`, Poisson arrivals of
+  one unit each at that average rate.
+- Unmet demand is backordered at `shortage_cost` per unit per day, or lost at that cost
+  per unit with `shortage = "lost"`.
+- Stock costs `holding_cost` per unit per day to hold.
+- The shop is reviewed every `review_period`, a minute into each period. An order costs
+  `order_cost`, plus `unit_cost` per unit, and arrives after `lead_time`.
+
+```lua runnable script
+return classic.reorder { random = true, demand = 4, lead_time = days(2), review_period = hours(6) }
+```
+
+## Steady demand: the economic order quantity
+
+With steady demand $D$ per day, an order cost $K$ and a holding cost $h$, ordering $Q$
+units whenever stock runs out costs
+
+$$
+\frac{KD}{Q} + \frac{hQ}{2}
+$$
+
+per day: orders placed $D/Q$ times a day, and an average stock of half an order. The
+two terms balance at the economic order quantity
+
+$$
+Q^* = \sqrt{\frac{2KD}{h}}, \qquad \text{with cost } \sqrt{2KDh} \text{ per day}
+$$
+
+(Axsäter, 2015, pp. 45–48; Taha, 2017, pp. 507–510). The cost curve is flat near the
+optimum: ordering half again as much costs only about 8% more.
+
+With the defaults, $D = 10$, $K = 20$ and $h = 1$, the order is 20 units and the cost 20
+per day. A test runs the template with a review every minute and no lead time, and
+checks that the simulated cost per day is within one cost unit of 20.
+
+The reference policy orders $Q^*$ whenever the inventory position falls below what the
+lead time and one review period need, so stock never runs out between reviews:
+
+```lua runnable scenario=classic.reorder
+return ops.policy { review = { target = ops.min_max { min = 417, max = 20417 } } }
+```
+
+This is an (s, S) policy with $S - s = Q^*$ (Axsäter, 2015, pp. 115–116).
+
+## Random demand: base stock
+
+With random demand and backorders, and no fixed order cost worth batching for, the best
+policy raises the inventory position to a base-stock level $S$ at every review
+(Snyder and Shen, 2019, pp. 105–113; Axsäter, 2015, pp. 113–115). An order placed now
+arrives after the lead time $L$, and the next one can only arrive a review period $R$
+after that, so stock must cover demand $N$ over $L + R$. Each extra unit of base stock
+costs $h$ when it is not needed and saves $b$ when it is, which gives a newsvendor
+fractile:
+
+$$
+S^* = \min\left\{ S : P(N \le S) \ge \frac{b}{b + h} \right\}, \qquad
+N \sim \text{Poisson}\big(\lambda (L + R)\big).
+$$
+
+With demand of 4 a day, a two-day lead time, a review every six hours, $h = 1$ and
+$b = 10$, lead-time demand has a mean of 9 and the fractile is $10/11$, so $S^* = 13$:
+
+```lua runnable scenario=classic.reorder
+return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }
+```
+
+The template's reference result follows the run tick by tick. At each minute the stock
+or backlog is $S$ minus the demand since the last review whose order has arrived, so
+its expected holding and backorder cost follow from Poisson probabilities, including
+the first two days before any order arrives. Over 30 days without an order cost this
+comes to 7.97 per day, and a test checks it against 200 seeds.
+
+## Where the simulator differs
+
+- **Continuous review.** Textbook models often review continuously. The simulator
+  reviews on a schedule, so a continuous policy is approximated by frequent reviews.
+- **Poisson demand.** Arrivals are drawn as a binomial count over at least eight
+  sub-steps per minute. The mean is exact and the variance slightly lower, by less than
+  one part in a thousand at these rates. See the
+  [scenario format](/docs/scenario-format#demand-processes).
+- **Lost sales.** With lost sales and a lead time, base-stock policies are no longer
+  optimal and the best policy has no simple form (Axsäter, 2015, pp. 97–99), so the
+  template gives no reference result for them.
+- **Costs** are whole cost units per unit, and an order's cost is charged when it is
+  placed.
+
+## References
+
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
+  Hoboken, NJ: John Wiley & Sons.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
+  Education.

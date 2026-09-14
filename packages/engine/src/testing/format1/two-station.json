@@ -1,0 +1,40 @@
+{
+  "format": 1,
+  "id": "two-station",
+  "title": "Two stations",
+  "description": "A mining outpost supplies a dome over a long line with one train. Balancing moves at most half the stock difference per visit, so the dome runs short while the mine's station fills and its extractors stall, even though one train could carry enough.",
+  "docs": "failure-modes/half-capacity",
+  "durationMs": 864000000,
+  "seed": 1,
+  "informationLevel": "line",
+  "resources": [{ "id": "Metals" }],
+  "stations": [
+    {
+      "id": "Mine",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "distanceToNext": 72000,
+      "producers": [{ "resource": "Metals", "rate": 45000 }]
+    },
+    {
+      "id": "Dome",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "consumers": [
+        {
+          "resource": "Metals",
+          "rate": 36000,
+          "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
+        }
+      ]
+    }
+  ],
+  "trains": [
+    {
+      "id": "T1",
+      "start": "Mine",
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    }
+  ]
+}

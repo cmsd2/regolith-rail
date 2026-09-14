@@ -6,8 +6,8 @@ describe("portable Lua subset", () => {
     const source = [
       "local policy = {}",
       "function policy.on_stop(ctx)",
-      "  for _, r in ipairs(ctx.station.resources) do",
-      "    local n = math.floor(ctx.station.stock[r] / 2)",
+      "  for _, r in ipairs(ctx.here.resources) do",
+      "    local n = math.floor(ctx.here.stock[r] / 2)",
       "    if n > 0 then ctx.load(r, n) end",
       "  end",
       "end",

@@ -17,6 +17,39 @@ const hex = (n: number) => n.toString(16).padStart(8, "0");
  * metrics and, for full-detail runs, stock and cargo at every tick.
  */
 export function hashRun(output: RunOutput): string {
+  return hashWithMetrics(output, output.metrics);
+}
+
+/** Metrics that runs reported before scenario format 2 added new ones. */
+export const FORMAT1_METRICS = [
+  "unmetDemand",
+  "unmetDemandWeighted",
+  "stalledProduction",
+  "demandMet",
+  "distance",
+  "emptyDistance",
+  "emptyDistanceShare",
+  "dwellMs",
+  "oscillations",
+  "stops",
+  "transferred",
+  "warnings",
+  "policyErrors",
+  "budgetOverruns",
+  "byResource",
+] as const;
+
+/**
+ * Hash of a run restricted to the output fields that existed before scenario format 2, so
+ * results recorded then can still be compared after new fields are added.
+ */
+export function hashRunFormat1(output: RunOutput): string {
+  const metrics = Object.fromEntries(FORMAT1_METRICS.map((key) => [key, output.metrics[key]]));
+  // Results recorded then carried Policy API version 1.
+  return hashWithMetrics({ ...output, apiVersion: 1 }, metrics);
+}
+
+function hashWithMetrics(output: RunOutput, metrics: unknown): string {
   const text = JSON.stringify({
     apiVersion: output.apiVersion,
     scenarioId: output.scenarioId,
@@ -25,7 +58,7 @@ export function hashRun(output: RunOutput): string {
     records: output.records,
     samples: output.samples,
     flowTotals: output.flowTotals,
-    metrics: output.metrics,
+    metrics,
     aborted: output.aborted,
   });
   const secondOffset = 0x050c5d1f;

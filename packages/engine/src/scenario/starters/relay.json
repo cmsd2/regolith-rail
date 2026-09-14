@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "id": "relay",
   "title": "Relay station",
   "description": "A junction station with no producers or consumers sits between a mine and a dome. Balancing fills it to the line average, tying up stock the dome needs.",
@@ -12,14 +12,9 @@
     {
       "id": "Mine",
       "resources": [{ "id": "Metals", "initial": 15000 }],
-      "distanceToNext": 36000,
       "producers": [{ "resource": "Metals", "rate": 45000 }]
     },
-    {
-      "id": "Junction",
-      "resources": [{ "id": "Metals" }],
-      "distanceToNext": 36000
-    },
+    { "id": "Junction", "resources": [{ "id": "Metals" }] },
     {
       "id": "Dome",
       "resources": [{ "id": "Metals", "initial": 15000 }],
@@ -32,10 +27,14 @@
       ]
     }
   ],
-  "trains": [
+  "arcs": [
+    { "from": "Mine", "to": "Junction", "distance": 36000 },
+    { "from": "Junction", "to": "Dome", "distance": 36000 }
+  ],
+  "vehicles": [
     {
       "id": "T1",
-      "start": "Mine",
+      "route": { "kind": "shuttle", "stops": ["Mine", "Junction", "Dome"], "start": "Mine" },
       "speed": 5,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,

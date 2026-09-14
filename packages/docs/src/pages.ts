@@ -6,14 +6,24 @@ import {
   opsBlocks,
   typeAnchor,
 } from "@regolith-rail/policy-api";
+import {
+  type Construct,
+  constructAnchor,
+  constructParamAnchor,
+  constructs,
+  LIBRARY_PAGES,
+  type Library,
+} from "@regolith-rail/scenario-kit";
 
 /** Sections of the documentation, in navigation order. */
 export const SECTIONS = [
   "Getting started",
   "Guides",
   "Failure modes",
+  "Classic problems",
   "Policy API",
   "ops reference",
+  "Scenarios",
   "Reference",
   "Game mechanics",
   "About",
@@ -34,7 +44,8 @@ export interface DocFrontmatter {
 export type ReferenceKind =
   | { type: "api"; types: ApiType[] }
   | { type: "ops-index" }
-  | { type: "ops-block"; block: OpsBlock };
+  | { type: "ops-block"; block: OpsBlock }
+  | { type: "constructs"; library: Library; constructs: Construct[] };
 
 export interface ReferencePage {
   slug: string;
@@ -49,14 +60,20 @@ export interface ReferencePage {
 export const API_PAGE_TITLES: Record<string, { title: string; description: string }> = {
   "api/context": {
     title: "Context",
-    description: "What on_start and on_stop receive, and the resources they refer to.",
+    description: "What every hook receives: stations, resources, memory and helpers.",
   },
-  "api/train": {
-    title: "Trains and actions",
-    description: "The train at a stop, its cargo and the actions it can take.",
+  "api/station": {
+    title: "Stations",
+    description: "A station's stock, neighbours, suppliers and orders.",
   },
-  "api/station": { title: "Stations", description: "A station's stock, capacity and memory." },
-  "api/line": { title: "The line", description: "Every station and train on the line." },
+  "api/vehicle": {
+    title: "Vehicles",
+    description: "The stopped vehicle, its cargo and the route ahead.",
+  },
+  "api/review": {
+    title: "Reviews and orders",
+    description: "What on_review receives and how a station orders from its suppliers.",
+  },
 };
 
 /** Stages of the ops pipeline, in the order the reference lists them. */
@@ -100,6 +117,19 @@ export function referencePages(): ReferencePage[] {
       kind: { type: "ops-block", block },
     });
   });
+  (Object.keys(LIBRARY_PAGES) as Library[]).forEach((library, i) => {
+    const page = LIBRARY_PAGES[library];
+    pages.push({
+      ...page,
+      section: "Scenarios",
+      order: i + 1,
+      kind: {
+        type: "constructs",
+        library,
+        constructs: constructs.filter((c) => c.library === library),
+      },
+    });
+  });
   return pages;
 }
 
@@ -120,5 +150,10 @@ export function referenceAnchors(page: ReferencePage): string[] {
         : [];
     case "ops-index":
       return [...OPS_STAGES];
+    case "constructs":
+      return page.kind.constructs.flatMap((c) => [
+        constructAnchor(c),
+        ...c.params.map((p) => constructParamAnchor(c, p)),
+      ]);
   }
 }

@@ -5,7 +5,7 @@
  * from this description.
  */
 
-export const POLICY_API_VERSION = 1;
+export const POLICY_API_VERSION = 2;
 
 export type Level = "local" | "line";
 
@@ -38,446 +38,447 @@ export interface ApiType {
 
 const quantities = "table<string, integer>";
 
-export const apiTypes: ApiType[] = [
-  {
-    name: "StopContext",
-    ts: "StopSnapshot",
-    summary: "Everything `on_stop` receives about the stop, the train, the station and the line.",
-    docs: "api/context",
-    fields: [
+const snapshot = (
+  name: string,
+  lua: string,
+  ts: string,
+  summary: string,
+  extra: Partial<Field> = {},
+): Field => ({ name, lua, ts, level: "local", source: "snapshot", summary, ...extra });
+
+const runtime = (
+  name: string,
+  lua: string,
+  summary: string,
+  extra: Partial<Field> = {},
+): Field => ({
+  name,
+  lua,
+  level: "local",
+  source: "runtime",
+  summary,
+  ...extra,
+});
+
+/** Members every hook's context has, before its own. */
+function sharedFields(when: string): Field[] {
+  return [
+    snapshot("now", "integer", "number", `Game time in milliseconds ${when}.`),
+    snapshot(
+      "information_level",
+      '"local"|"line"',
+      '"local" | "line"',
+      "How much of other stations this scenario lets the policy see.",
+    ),
+    snapshot(
+      "stations",
+      "table<string, Station>",
+      "Record<string, StationSnapshot>",
+      "Every station, keyed by id. Every station a context refers to is one of these tables.",
+    ),
+    snapshot("station_order", "string[]", "string[]", "Station ids in scenario order."),
+    snapshot(
+      "resources",
+      "table<string, Resource>",
+      "Record<string, ResourceSnapshot>",
+      "Every resource, keyed by id.",
+    ),
+    snapshot("resource_order", "string[]", "string[]", "Resource ids in scenario order."),
+    runtime(
+      "memory",
+      "table",
+      "Table kept between calls for the whole run. It may hold only booleans, numbers, strings and tables of those, without cycles.",
+    ),
+    runtime(
+      "rand",
+      "fun(): number",
+      "A number from 0 up to but not including 1, repeatable for the same seed.",
+      { returns: { lua: "number", summary: "A number in [0, 1)." } },
+    ),
+    runtime(
+      "distance",
+      "fun(from: string, to: string): integer",
+      "Distance between two stations along the shortest path over arcs.",
       {
-        name: "stop",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Number of this stop within the run, starting at 1.",
-      },
-      {
-        name: "now",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Game time in milliseconds since the run started.",
-      },
-      {
-        name: "information_level",
-        lua: '"local"|"line"',
-        ts: '"local" | "line"',
-        level: "local",
-        source: "snapshot",
-        summary: "How much of the line this scenario lets the policy see.",
-      },
-      {
-        name: "train",
-        lua: "Train",
-        ts: "TrainSnapshot",
-        level: "local",
-        source: "snapshot",
-        summary: "The train that has stopped.",
-      },
-      {
-        name: "station",
-        lua: "Station",
-        ts: "CurrentStationSnapshot",
-        level: "local",
-        source: "snapshot",
-        summary:
-          "The station the train has stopped at. Its stock and capacity are always readable.",
-      },
-      {
-        name: "line",
-        lua: "Line",
-        ts: "LineSnapshot",
-        level: "local",
-        source: "snapshot",
-        summary: "The stations on the line, in order.",
-      },
-      {
-        name: "resources",
-        lua: "Resource[]",
-        ts: "ResourceSnapshot[]",
-        level: "local",
-        source: "snapshot",
-        summary: "Every resource in the scenario, in scenario order.",
-      },
-      {
-        name: "memory",
-        lua: "table",
-        level: "local",
-        source: "runtime",
-        summary:
-          "Table kept between calls for the whole run. It may hold only booleans, numbers, strings and tables of those, without cycles.",
-      },
-      {
-        name: "rand",
-        lua: "fun(): number",
-        level: "local",
-        source: "runtime",
-        summary: "A number from 0 up to but not including 1, repeatable for the same seed.",
-        returns: { lua: "number", summary: "A number in [0, 1)." },
-      },
-      {
-        name: "load",
-        lua: "fun(resource: string, amount: integer)",
-        level: "local",
-        source: "runtime",
-        summary:
-          "Move `amount` milli-units of `resource` from the station onto the train. Clamped to what the station holds and the train can carry.",
         params: [
-          { name: "resource", lua: "string", summary: "Resource id, such as `Metals`." },
-          { name: "amount", lua: "integer", summary: "Milli-units to load; 1 unit is 1000." },
+          { name: "from", lua: "string", summary: "Station id." },
+          { name: "to", lua: "string", summary: "Station id." },
         ],
+        returns: { lua: "integer", summary: "Distance; `nil` when no path joins them." },
       },
+    ),
+    runtime(
+      "travel_time",
+      "fun(from: string, to: string, speed?: integer): integer",
+      "Milliseconds of travel between two stations along the shortest path over arcs, not counting stops. Uses the stopped vehicle's speed when `speed` is omitted.",
       {
-        name: "unload",
-        lua: "fun(resource: string, amount: integer)",
-        level: "local",
-        source: "runtime",
-        summary:
-          "Move `amount` milli-units of `resource` from the train into the station. Clamped to what the train carries and the station can store.",
         params: [
-          { name: "resource", lua: "string", summary: "Resource id, such as `Metals`." },
-          { name: "amount", lua: "integer", summary: "Milli-units to unload; 1 unit is 1000." },
+          { name: "from", lua: "string", summary: "Station id." },
+          { name: "to", lua: "string", summary: "Station id." },
+          { name: "speed", lua: "integer?", summary: "Distance per second." },
         ],
+        returns: { lua: "integer", summary: "Travel time in milliseconds." },
       },
+    ),
+    runtime(
+      "log",
+      "fun(...: any)",
+      "Write a message. Arguments are converted to text and joined with spaces.",
+      { params: [{ name: "...", lua: "any", summary: "Values to write." }] },
+    ),
+    runtime(
+      "record",
+      "fun(name: string, value: number)",
+      "Add a point to a named series that is charted after the run.",
       {
-        name: "log",
-        lua: "fun(...: any)",
-        level: "local",
-        source: "runtime",
-        summary:
-          "Attach a message to this stop. Arguments are converted to text and joined with spaces.",
-        params: [{ name: "...", lua: "any", summary: "Values to write." }],
-      },
-      {
-        name: "record",
-        lua: "fun(name: string, value: number)",
-        level: "local",
-        source: "runtime",
-        summary: "Add a point to a named series that is charted after the run.",
         params: [
           { name: "name", lua: "string", summary: "Series name." },
           { name: "value", lua: "number", summary: "Finite number to record." },
         ],
       },
+    ),
+  ];
+}
+
+const transfer = (verb: "load" | "unload", summary: string): Field =>
+  runtime(verb, "fun(resource: string, amount: integer)", summary, {
+    params: [
+      { name: "resource", lua: "string", summary: "Resource id, such as `Metals`." },
+      { name: "amount", lua: "integer", summary: `Milli-units to ${verb}; 1 unit is 1000.` },
     ],
-  },
+  });
+
+const capacityField = snapshot(
+  "capacity",
+  "VehicleCapacity",
+  "VehicleCapacitySnapshot",
+  "How much the vehicle can carry.",
+);
+
+export const apiTypes: ApiType[] = [
   {
     name: "StartContext",
     ts: "StartSnapshot",
     summary: "What `on_start` receives once at the start of each run.",
     docs: "api/context",
     fields: [
-      {
-        name: "now",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Game time in milliseconds; always 0 at the start of a run.",
-      },
-      {
-        name: "information_level",
-        lua: '"local"|"line"',
-        ts: '"local" | "line"',
-        level: "local",
-        source: "snapshot",
-        summary: "How much of the line this scenario lets the policy see.",
-      },
-      {
-        name: "line",
-        lua: "Line",
-        ts: "LineSnapshot",
-        level: "local",
-        source: "snapshot",
-        summary: "The stations on the line, without stock.",
-      },
-      {
-        name: "resources",
-        lua: "Resource[]",
-        ts: "ResourceSnapshot[]",
-        level: "local",
-        source: "snapshot",
-        summary: "Every resource in the scenario.",
-      },
-      {
-        name: "trains",
-        lua: "TrainInfo[]",
-        ts: "TrainInfoSnapshot[]",
-        level: "local",
-        source: "snapshot",
-        summary: "Every train on the line.",
-      },
-      {
-        name: "memory",
-        lua: "table",
-        level: "local",
-        source: "runtime",
-        summary: "The same persistent table `on_stop` receives.",
-      },
-      {
-        name: "rand",
-        lua: "fun(): number",
-        level: "local",
-        source: "runtime",
-        summary: "A number from 0 up to but not including 1, repeatable for the same seed.",
-        returns: { lua: "number", summary: "A number in [0, 1)." },
-      },
-      {
-        name: "log",
-        lua: "fun(...: any)",
-        level: "local",
-        source: "runtime",
-        summary: "Write a message at the start of the run.",
-        params: [{ name: "...", lua: "any", summary: "Values to write." }],
-      },
-      {
-        name: "record",
-        lua: "fun(name: string, value: number)",
-        level: "local",
-        source: "runtime",
-        summary: "Add a point to a named series at time 0.",
-        params: [
-          { name: "name", lua: "string", summary: "Series name." },
-          { name: "value", lua: "number", summary: "Finite number to record." },
-        ],
-      },
+      ...sharedFields("since the run started; always 0 at the start"),
+      snapshot(
+        "vehicles",
+        "table<string, VehicleInfo>",
+        "Record<string, VehicleInfoSnapshot>",
+        "Every vehicle, keyed by id.",
+      ),
     ],
   },
   {
-    name: "Train",
-    ts: "TrainSnapshot",
-    summary: "A train stopped at a station.",
-    docs: "api/train",
+    name: "StopContext",
+    ts: "StopSnapshot",
+    summary: "What `on_stop` receives when a vehicle stops at a station.",
+    docs: "api/context",
     fields: [
-      {
-        name: "id",
-        lua: "string",
-        ts: "string",
-        level: "local",
-        source: "snapshot",
-        summary: "Train id, as written in the scenario.",
-      },
-      {
-        name: "direction",
-        lua: '"forward"|"backward"',
-        ts: '"forward" | "backward"',
-        level: "local",
-        source: "snapshot",
-        summary:
-          "Direction the train will leave in. `forward` runs towards the last station; trains reverse at either end.",
-      },
-      {
-        name: "speed",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Distance travelled per second.",
-      },
-      {
-        name: "capacity",
-        lua: "TrainCapacity",
-        ts: "TrainCapacitySnapshot",
-        level: "local",
-        source: "snapshot",
-        summary: "How much the train can carry.",
-      },
-      {
-        name: "cargo",
-        lua: quantities,
-        ts: "Quantities",
-        level: "local",
-        source: "snapshot",
-        summary: "Milli-units carried, by resource id. Every scenario resource is present.",
-      },
-      {
-        name: "space",
-        lua: quantities,
-        ts: "Quantities",
-        level: "local",
-        source: "snapshot",
-        summary: "Milli-units more the train could load, by resource id.",
-      },
-      {
-        name: "memory",
-        lua: "table",
-        level: "local",
-        source: "runtime",
-        summary: "Persistent table for this train, under the same rules as `ctx.memory`.",
-      },
+      snapshot("stop", "integer", "number", "Number of this stop within the run, starting at 1."),
+      snapshot("here", "Station", "StationSnapshot", "The station the vehicle has stopped at."),
+      snapshot("vehicle", "Vehicle", "VehicleSnapshot", "The vehicle that has stopped."),
+      ...sharedFields("since the run started"),
+      transfer(
+        "load",
+        "Move `amount` milli-units of `resource` from `ctx.here` onto the vehicle. Clamped to what the station holds and the vehicle can carry.",
+      ),
+      transfer(
+        "unload",
+        "Move `amount` milli-units of `resource` from the vehicle into `ctx.here`. Clamped to what the vehicle carries and the station can store.",
+      ),
     ],
   },
   {
-    name: "TrainCapacity",
-    ts: "TrainCapacitySnapshot",
-    summary: "Either one capacity shared by all resources, or a capacity per resource.",
-    docs: "api/train",
+    name: "ReviewContext",
+    ts: "ReviewSnapshot",
+    summary: "What `on_review` receives when a station reviews what to order from its suppliers.",
+    docs: "api/review",
     fields: [
-      {
-        name: "shared",
-        lua: "integer",
-        ts: "number",
-        optional: true,
-        level: "local",
-        source: "snapshot",
-        summary: "Total milli-units across all resources, when capacity is shared.",
-      },
-      {
-        name: "per_resource",
-        lua: quantities,
-        ts: "Quantities",
-        optional: true,
-        level: "local",
-        source: "snapshot",
-        summary: "Milli-units per resource id, when capacity is per resource.",
-      },
-    ],
-  },
-  {
-    name: "TrainInfo",
-    ts: "TrainInfoSnapshot",
-    summary: "A train as described at the start of a run.",
-    docs: "api/train",
-    fields: [
-      {
-        name: "id",
-        lua: "string",
-        ts: "string",
-        level: "local",
-        source: "snapshot",
-        summary: "Train id, as written in the scenario.",
-      },
-      {
-        name: "speed",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Distance travelled per second.",
-      },
-      {
-        name: "capacity",
-        lua: "TrainCapacity",
-        ts: "TrainCapacitySnapshot",
-        level: "local",
-        source: "snapshot",
-        summary: "How much the train can carry.",
-      },
+      snapshot(
+        "review",
+        "integer",
+        "number",
+        "Number of this review within the run, starting at 1.",
+      ),
+      snapshot("here", "Station", "StationSnapshot", "The station being reviewed."),
+      ...sharedFields("since the run started"),
+      runtime(
+        "order",
+        "fun(resource: string, amount: integer)",
+        "Order `amount` milli-units of `resource` from `ctx.here`'s supplier for it. Clamped to the supplier's minimum and maximum order.",
+        {
+          params: [
+            { name: "resource", lua: "string", summary: "Resource id, such as `Beer`." },
+            { name: "amount", lua: "integer", summary: "Milli-units to order; 1 unit is 1000." },
+          ],
+        },
+      ),
     ],
   },
   {
     name: "Station",
     ts: "StationSnapshot",
-    summary: "A station on the line.",
+    summary:
+      "A place that holds stock. Stock, backorders and orders of stations other than `ctx.here` are readable only at the `line` level.",
     docs: "api/station",
     fields: [
-      {
-        name: "id",
-        lua: "string",
-        ts: "string",
-        level: "local",
-        source: "snapshot",
-        summary: "Station id, as written in the scenario.",
-      },
-      {
-        name: "index",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Position on the line, starting at 1.",
-      },
-      {
-        name: "resources",
-        lua: "string[]",
-        ts: "string[]",
-        level: "local",
-        source: "snapshot",
-        summary: "Ids of the resources this station stores, in scenario order.",
-      },
-      {
-        name: "distance_to_next",
-        lua: "integer",
-        ts: "number",
-        optional: true,
-        level: "local",
-        source: "snapshot",
-        summary: "Distance to the next station; `nil` on the last station.",
-      },
-      {
-        name: "stock",
-        lua: quantities,
-        ts: "Quantities",
+      snapshot("id", "string", "string", "Station id, as written in the scenario."),
+      snapshot(
+        "index",
+        "integer",
+        "number",
+        "Position in the scenario's station order, starting at 1.",
+      ),
+      snapshot(
+        "resources",
+        "string[]",
+        "string[]",
+        "Ids of the resources this station stores, in scenario order.",
+      ),
+      snapshot(
+        "neighbours",
+        "Neighbour[]",
+        "NeighbourSnapshot[]",
+        "Stations joined to this one by an arc.",
+      ),
+      snapshot("stock", quantities, "Quantities", "Milli-units stored, by resource id.", {
         optional: true,
         level: "line",
-        source: "snapshot",
-        summary:
-          "Milli-units stored, by resource id. Readable for other stations only at the `line` level.",
-      },
-      {
-        name: "capacity",
-        lua: quantities,
-        ts: "Quantities",
-        optional: true,
-        level: "line",
-        source: "snapshot",
-        summary:
-          "Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.",
-      },
-      {
-        name: "memory",
-        lua: "table",
-        optional: true,
-        level: "local",
-        source: "runtime",
-        summary:
-          "Persistent table for this station, under the same rules as `ctx.memory`. Present on `ctx.station`.",
-      },
+      }),
+      snapshot(
+        "capacity",
+        quantities,
+        "Quantities",
+        "Storage limit in milli-units, by resource id.",
+        {
+          optional: true,
+          level: "line",
+        },
+      ),
+      snapshot(
+        "backorders",
+        quantities,
+        "Quantities",
+        "Demand waiting to be served, in milli-units, by resource id.",
+        {
+          optional: true,
+          level: "line",
+        },
+      ),
+      snapshot(
+        "suppliers",
+        "Supplier[]",
+        "SupplierSnapshot[]",
+        "Where each resource can be ordered from.",
+      ),
+      snapshot(
+        "on_order",
+        "Order[]",
+        "OrderSnapshot[]",
+        "Orders placed by this station that have not arrived, oldest first.",
+        { optional: true, level: "line" },
+      ),
+      runtime(
+        "memory",
+        "table",
+        "Persistent table for this station, under the same rules as `ctx.memory`.",
+      ),
     ],
   },
   {
-    name: "Line",
-    ts: "LineSnapshot",
-    summary: "The line the train runs on.",
-    docs: "api/line",
+    name: "Neighbour",
+    ts: "NeighbourSnapshot",
+    summary: "A station joined to another by an arc.",
+    docs: "api/station",
     fields: [
-      {
-        name: "stations",
-        lua: "Station[]",
-        ts: "StationSnapshot[]",
-        level: "local",
-        source: "snapshot",
-        summary: "Stations in line order.",
-      },
-      {
-        name: "distance",
-        lua: "fun(from: string, to: string): integer",
-        level: "local",
-        source: "runtime",
-        summary: "Distance along the line between two stations.",
-        params: [
-          { name: "from", lua: "string", summary: "Station id, as written in the scenario." },
-          { name: "to", lua: "string", summary: "Station id, as written in the scenario." },
-        ],
-        returns: { lua: "integer", summary: "Distance, never negative." },
-      },
-      {
-        name: "travel_time",
-        lua: "fun(from: string, to: string, speed?: integer): integer",
-        level: "local",
-        source: "runtime",
-        summary:
-          "Milliseconds a train takes between two stations, not counting stops. Uses the stopped train's speed when `speed` is omitted.",
-        params: [
-          { name: "from", lua: "string", summary: "Station id, as written in the scenario." },
-          { name: "to", lua: "string", summary: "Station id, as written in the scenario." },
-          { name: "speed", lua: "integer?", summary: "Distance per second." },
-        ],
-        returns: { lua: "integer", summary: "Travel time in milliseconds." },
-      },
+      snapshot("station", "Station", "StationSnapshot", "The neighbouring station."),
+      snapshot("distance", "integer", "number", "Length of the arc between them."),
+    ],
+  },
+  {
+    name: "Vehicle",
+    ts: "VehicleSnapshot",
+    summary: "A vehicle stopped at a station.",
+    docs: "api/vehicle",
+    fields: [
+      snapshot("id", "string", "string", "Vehicle id, as written in the scenario."),
+      snapshot(
+        "direction",
+        '"forward"|"backward"',
+        '"forward" | "backward"',
+        "Direction the vehicle will leave in along its route's stops. Shuttles reverse at either end; loops always go forward.",
+      ),
+      snapshot("speed", "integer", "number", "Distance travelled per second."),
+      capacityField,
+      snapshot(
+        "cargo",
+        quantities,
+        "Quantities",
+        "Milli-units carried, by resource id. Every scenario resource is present.",
+      ),
+      snapshot(
+        "space",
+        quantities,
+        "Quantities",
+        "Milli-units more the vehicle could load, by resource id.",
+      ),
+      snapshot("route", "Route", "RouteSnapshot", "The vehicle's route and the stops ahead of it."),
+      runtime(
+        "memory",
+        "table",
+        "Persistent table for this vehicle, under the same rules as `ctx.memory`.",
+      ),
+    ],
+  },
+  {
+    name: "VehicleCapacity",
+    ts: "VehicleCapacitySnapshot",
+    summary: "Either one capacity shared by all resources, or a capacity per resource.",
+    docs: "api/vehicle",
+    fields: [
+      snapshot(
+        "shared",
+        "integer",
+        "number",
+        "Total milli-units across all resources, when capacity is shared.",
+        {
+          optional: true,
+        },
+      ),
+      snapshot(
+        "per_resource",
+        quantities,
+        "Quantities",
+        "Milli-units per resource id, when capacity is per resource.",
+        {
+          optional: true,
+        },
+      ),
+    ],
+  },
+  {
+    name: "VehicleInfo",
+    ts: "VehicleInfoSnapshot",
+    summary: "A vehicle as described at the start of a run.",
+    docs: "api/vehicle",
+    fields: [
+      snapshot("id", "string", "string", "Vehicle id, as written in the scenario."),
+      snapshot("speed", "integer", "number", "Distance travelled per second."),
+      capacityField,
+      snapshot(
+        "route_kind",
+        '"shuttle"|"loop"|"timetable"',
+        '"shuttle" | "loop" | "timetable"',
+        "The kind of route the vehicle follows.",
+      ),
+      snapshot("stops", "string[]", "string[]", "Ids of the stations on its route, in order."),
+    ],
+  },
+  {
+    name: "Route",
+    ts: "RouteSnapshot",
+    summary: "The fixed route a stopped vehicle follows.",
+    docs: "api/vehicle",
+    fields: [
+      snapshot(
+        "kind",
+        '"shuttle"|"loop"|"timetable"',
+        '"shuttle" | "loop" | "timetable"',
+        "`shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times.",
+      ),
+      snapshot(
+        "ahead",
+        "RouteStop[]",
+        "RouteStopSnapshot[]",
+        "The next stops in visiting order, up to returning to this stop, or to the end of a timetable trip.",
+      ),
+    ],
+  },
+  {
+    name: "RouteStop",
+    ts: "RouteStopSnapshot",
+    summary: "A stop ahead on a vehicle's route.",
+    docs: "api/vehicle",
+    fields: [
+      snapshot("station", "Station", "StationSnapshot", "The station at that stop."),
+      snapshot("distance", "integer", "number", "Distance along the route from `ctx.here`."),
+      snapshot(
+        "travel_time",
+        "integer",
+        "number",
+        "Milliseconds of travel from `ctx.here`, not counting stops on the way.",
+      ),
+    ],
+  },
+  {
+    name: "Order",
+    ts: "OrderSnapshot",
+    summary: "An order on its way to the station that placed it.",
+    docs: "api/review",
+    fields: [
+      snapshot("resource", "string", "string", "Resource id."),
+      snapshot("amount", "integer", "number", "Milli-units still to arrive."),
+      snapshot("from", "string", "string", "`external`, or the id of the supplying station."),
+      snapshot("placed_at", "integer", "number", "Game time the order was placed."),
+      snapshot(
+        "arrives_at",
+        "integer",
+        "number",
+        "Game time the order arrives; `nil` while it waits for stock at a supplying station.",
+        { optional: true },
+      ),
+    ],
+  },
+  {
+    name: "Supplier",
+    ts: "SupplierSnapshot",
+    summary: "A supplier for one resource.",
+    docs: "api/review",
+    fields: [
+      snapshot("resource", "string", "string", "Resource id."),
+      snapshot("from", "string", "string", "`external`, or the id of the supplying station."),
+      snapshot(
+        "lead_times",
+        "LeadTime[]",
+        "LeadTimeSnapshot[]",
+        "Possible lead times in milliseconds, with their weights.",
+      ),
+      snapshot(
+        "min_order",
+        "integer",
+        "number",
+        "Smallest order in milli-units, when there is one.",
+        {
+          optional: true,
+        },
+      ),
+      snapshot(
+        "max_order",
+        "integer",
+        "number",
+        "Largest order in milli-units, when there is one.",
+        {
+          optional: true,
+        },
+      ),
+    ],
+  },
+  {
+    name: "LeadTime",
+    ts: "LeadTimeSnapshot",
+    summary: "One possible lead time and how likely it is.",
+    docs: "api/review",
+    fields: [
+      snapshot("value", "integer", "number", "Lead time in milliseconds."),
+      snapshot(
+        "weight",
+        "integer",
+        "number",
+        "Relative weight; a fixed lead time has one value with weight 1.",
+      ),
     ],
   },
   {
@@ -486,22 +487,13 @@ export const apiTypes: ApiType[] = [
     summary: "A resource and how important it is.",
     docs: "api/context",
     fields: [
-      {
-        name: "id",
-        lua: "string",
-        ts: "string",
-        level: "local",
-        source: "snapshot",
-        summary: "Resource id, such as `Metals`.",
-      },
-      {
-        name: "priority",
-        lua: "integer",
-        ts: "number",
-        level: "local",
-        source: "snapshot",
-        summary: "Weight used when scoring unmet demand; higher is more important.",
-      },
+      snapshot("id", "string", "string", "Resource id, such as `Metals`."),
+      snapshot(
+        "priority",
+        "integer",
+        "number",
+        "Weight used when scoring unmet demand; higher is more important.",
+      ),
     ],
   },
 ];

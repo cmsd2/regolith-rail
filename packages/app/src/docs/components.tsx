@@ -1,5 +1,6 @@
 import { EVIDENCE_LEVELS, GAME, GAME_VERSION, isEvidenceLevel } from "@regolith-rail/docs";
 import { POLICY_API_VERSION, starterScenarios } from "@regolith-rail/engine";
+import { classicTemplates } from "@regolith-rail/scenario-kit";
 import type { MDXComponents } from "mdx/types";
 import { type ReactNode, useContext, useState } from "react";
 import { useNavigate } from "react-router";
@@ -8,6 +9,7 @@ import styles from "./docs.module.css";
 import { openExample } from "./open-example.ts";
 
 const scenarioTitle = (id: string) =>
+  classicTemplates.find((t) => t.name === id)?.title ??
   (starterScenarios.find((s) => s.id === id)?.document as { title?: string } | undefined)?.title ??
   id;
 
@@ -16,13 +18,16 @@ export function Example({
   source,
   scenario,
   seed,
+  kind = "policy",
   children,
 }: {
   source: string;
   scenario: string;
   seed: string;
+  kind?: string;
   children?: ReactNode;
 }) {
+  const script = kind === "script";
   const mode = useContext(DocsMode);
   const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
@@ -31,14 +36,22 @@ export function Example({
       {children}
       <figcaption>
         <span>
-          Runs on <em>{scenarioTitle(scenario)}</em>, seed {seed}
+          {script ? (
+            "A scenario script"
+          ) : (
+            <>
+              Runs on <em>{scenarioTitle(scenario)}</em>, seed {seed}
+            </>
+          )}
         </span>
         <button
           type="button"
           onClick={() =>
-            void openExample({ source, scenario, seed: Number(seed) }, mode, navigate).then(() =>
-              setOpened(true),
-            )
+            void openExample(
+              { source, kind: script ? "script" : "policy", scenario, seed: Number(seed) },
+              mode,
+              navigate,
+            ).then(() => setOpened(true))
           }
           data-testid="open-example"
         >

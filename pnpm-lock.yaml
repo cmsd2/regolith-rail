@@ -229,6 +229,9 @@ importers:
       '@regolith-rail/policy-api':
         specifier: workspace:*
         version: link:../policy-api
+      '@regolith-rail/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       codemirror:
         specifier: 6.0.2
         version: 6.0.2
@@ -321,6 +324,9 @@ importers:
       '@regolith-rail/policy-api':
         specifier: workspace:*
         version: link:../policy-api
+      '@regolith-rail/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       '@shikijs/rehype':
         specifier: 4.4.3
         version: 4.4.3
@@ -407,6 +413,9 @@ importers:
       '@regolith-rail/policy-api':
         specifier: workspace:*
         version: link:../policy-api
+      '@regolith-rail/scenario-kit':
+        specifier: workspace:*
+        version: link:../scenario-kit
       luaparse:
         specifier: 0.3.1
         version: 0.3.1
@@ -425,6 +434,15 @@ importers:
         version: 7.0.2
 
   packages/policy-api:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.13.4
+        version: 24.13.4
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+
+  packages/scenario-kit:
     devDependencies:
       '@types/node':
         specifier: ^24.13.4

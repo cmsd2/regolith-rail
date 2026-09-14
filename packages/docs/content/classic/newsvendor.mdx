@@ -1,0 +1,101 @@
+---
+title: Newsvendor
+description: Order once before random demand, when leftovers are worthless and shortages are lost.
+section: Classic problems
+order: 1
+---
+
+Template: [`classic.newsvendor`](/docs/scenarios/classic#classic-newsvendor).
+
+## The problem
+
+A newsstand orders papers once a day, before it knows how many customers will come.
+Papers left at the end of the day are worthless; customers who find none go
+elsewhere. Ordering too many wastes what they cost, and ordering too few loses the
+sale. The question is how many to order.
+
+It is the simplest problem in which uncertainty shapes the best decision, and the
+reasoning behind it, balancing the cost of too much against the cost of too little,
+reappears in almost every inventory policy (Axsäter, 2015, pp. 95–97; Snyder and Shen,
+2019, pp. 90–101).
+
+## The scenario
+
+One station, `Stand`, stores `Papers` with unlimited room.
+
+- Demand for each day is drawn from a discrete distribution and spread evenly over the
+  day. Demand that finds no stock is lost, at a cost of `lost_cost` per unit.
+- Stock expires at each review, so nothing carries over.
+- The stand is reviewed a minute into each day. It orders from an outside supplier
+  with no lead time, at `unit_cost` per unit, and the papers arrive before any of that
+  day's demand.
+
+```lua runnable script
+return classic.newsvendor {}
+```
+
+The defaults are demand of 5, 10, 15, 20 or 25 papers with weights 1, 2, 3, 2 and 1, a
+unit cost of 2 and a lost-demand cost of 5, over 30 days.
+
+## The reference result
+
+With an order of $Q$ and demand $D$, a day costs
+
+$$
+C(Q) = cQ + p\,\mathbb{E}\left[(D - Q)^+\right]
+$$
+
+where $c$ is the unit cost and $p$ the lost-demand cost. Buying one more paper costs
+$c$ for certain and saves $p$ only when demand exceeds $Q$, so the cost stops falling
+at the smallest $Q$ with
+
+$$
+P(D \le Q) \ge \frac{p - c}{p}.
+$$
+
+This is the critical ratio. In textbook terms the underage cost is $c_u = p - c$, the
+margin a lost sale gives up, and the overage cost is $c_o = c$, what an unsold paper
+wastes, giving the familiar $c_u / (c_u + c_o)$ (Snyder and Shen, 2019, pp. 90–101;
+Taha, 2017, pp. 618–620).
+
+With the defaults the ratio is $3/5 = 0.6$. Demand is at most 15 with probability
+$6/9 \approx 0.67$, the first value past 0.6, so the best order is 15 papers and the
+expected cost is
+
+$$
+2 \times 15 + 5 \times \frac{5 \times 2 + 10 \times 1}{9} \approx 41.11 \text{ per day}.
+$$
+
+A test runs the template for 400 seeds and checks that 41.11 lies within the 99%
+confidence interval of the simulated mean cost per day.
+
+## The reference policy
+
+Order up to the critical-ratio quantity at every review. After the leftovers expire
+the stand holds nothing, so it orders exactly that quantity:
+
+```lua runnable scenario=classic.newsvendor
+return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }
+```
+
+Try other levels with a batch comparison: costs rise on both sides of 15, faster below
+it, because a lost sale costs more than an unsold paper.
+
+## Where the simulator differs
+
+- **Timing.** Demand arrives minute by minute rather than all at once. Only the total
+  for the day matters to the cost, so the result is the same, but the stand runs out
+  part way through a busy day rather than at its end.
+- **Costs.** Costs are whole cost units per unit, so textbook examples with fractional
+  prices need scaling.
+- **Leftovers.** Unsold papers have no salvage value. They are counted in the
+  [expired stock](/docs/metrics#expired-stock) metric rather than as a cost, since
+  their cost was paid when they were ordered.
+
+## References
+
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
+  Hoboken, NJ: John Wiley & Sons.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
+  Education.

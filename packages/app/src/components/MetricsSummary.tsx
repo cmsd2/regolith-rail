@@ -1,5 +1,5 @@
 import { docsHref } from "../lib/format.ts";
-import { METRICS, type MetricDefinition } from "../lib/metrics.ts";
+import { type MetricDefinition, metricsFor } from "../lib/metrics.ts";
 import { useWorkbench } from "../state/instance.ts";
 import styles from "./Workbench.module.css";
 
@@ -13,16 +13,17 @@ export function MetricLink({ metric }: { metric: MetricDefinition }) {
 
 export function MetricsSummary() {
   const metrics = useWorkbench((s) => s.run.output?.metrics);
+  const scenario = useWorkbench((s) => s.scenario.scenario);
   if (!metrics) return null;
   return (
     <table className={styles.table} data-testid="metrics">
       <tbody>
-        {METRICS.map((metric) => (
+        {metricsFor(scenario).map((metric) => (
           <tr key={metric.key}>
             <th scope="row">
               <MetricLink metric={metric} />
             </th>
-            <td>{metric.format(metrics[metric.key])}</td>
+            <td>{metric.format(metric.value(metrics))}</td>
           </tr>
         ))}
       </tbody>

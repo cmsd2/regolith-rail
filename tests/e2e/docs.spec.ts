@@ -68,6 +68,26 @@ test.describe("documentation pages", () => {
 });
 
 test.describe("documentation panel", () => {
+  test("the header's Docs link opens a column beside the run, which stays in view", async ({
+    page,
+  }) => {
+    await openWorkbench(page);
+    await page.getByTestId("nav-docs").click();
+    const panel = page.getByTestId("docs-panel");
+    await expect(panel.locator("h1")).toBeVisible();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("line-map")).toBeInViewport();
+    await expect(page.getByTestId("policy-editor")).toBeInViewport();
+
+    const map = await page.getByTestId("line-map").boundingBox();
+    const docs = await panel.boundingBox();
+    expect(docs && map && docs.x >= map.x + map.width).toBe(true);
+
+    await panel.getByTestId("docs-close").click();
+    await expect(panel).toHaveCount(0);
+    await expect(page.getByTestId("line-map")).toBeInViewport();
+  });
+
   test("a scenario's failure-mode link opens beside the editor and keeps the edit", async ({
     page,
   }) => {

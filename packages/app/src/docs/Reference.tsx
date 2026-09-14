@@ -6,6 +6,7 @@ import {
   type OpsBlock,
   typeAnchor,
 } from "@regolith-rail/policy-api";
+import { type Construct, constructAnchor, constructParamAnchor } from "@regolith-rail/scenario-kit";
 import { InlineCode } from "./components.tsx";
 import { DocLink } from "./DocLink.tsx";
 import styles from "./docs.module.css";
@@ -160,6 +161,88 @@ function OpsBlockReference({ block }: { block: OpsBlock }) {
   );
 }
 
+const KIND_LABELS: Record<Construct["kind"], string> = {
+  construct: "Constructs",
+  template: "Templates",
+  helper: "Helpers",
+};
+
+function ConstructsReference({ constructs }: { constructs: Construct[] }) {
+  const kinds = (["template", "construct", "helper"] as const).filter((kind) =>
+    constructs.some((c) => c.kind === kind),
+  );
+  return (
+    <>
+      {kinds.map((kind) => (
+        <section key={kind}>
+          {kinds.length > 1 && <h2>{KIND_LABELS[kind]}</h2>}
+          {constructs
+            .filter((c) => c.kind === kind)
+            .map((construct) => {
+              const call =
+                construct.kind === "helper"
+                  ? `${construct.name}(${construct.params.map((p) => p.name).join(", ")})`
+                  : `${construct.name} { ${construct.params
+                      .filter((p) => p.required)
+                      .map((p) => `${p.name} = …`)
+                      .join(", ")} }`;
+              return (
+                <section key={construct.name} className={styles.referenceType}>
+                  <h3 id={constructAnchor(construct)}>
+                    <code>{construct.name}</code>
+                  </h3>
+                  <p>
+                    <InlineCode text={construct.summary} />
+                  </p>
+                  {construct.kind === "template" && (
+                    <p>
+                      <DocLink href={`/docs/${construct.docs}`}>
+                        About this problem and its reference policy
+                      </DocLink>
+                    </p>
+                  )}
+                  <pre className={styles.signature}>
+                    <code>{call}</code>
+                  </pre>
+                  <dl className={styles.members}>
+                    {construct.params.map((param) => (
+                      <div
+                        key={param.name}
+                        id={constructParamAnchor(construct, param)}
+                        className={styles.member}
+                      >
+                        <dt>
+                          <code className={styles.memberName}>{param.name}</code>{" "}
+                          <code className={styles.type}>{param.type}</code>{" "}
+                          <span className={styles.required}>
+                            {param.required ? "required" : "optional"}
+                          </span>
+                        </dt>
+                        <dd>
+                          <InlineCode text={param.summary} />
+                          {param.unit && <> In {param.unit}.</>}
+                          {param.default && (
+                            <>
+                              {" "}
+                              Default <code>{param.default}</code>.
+                            </>
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  <p>
+                    Returns <InlineCode text={construct.returns} />.
+                  </p>
+                </section>
+              );
+            })}
+        </section>
+      ))}
+    </>
+  );
+}
+
 export function Reference({ page }: { page: ReferencePage }) {
   switch (page.kind.type) {
     case "api":
@@ -168,5 +251,7 @@ export function Reference({ page }: { page: ReferencePage }) {
       return <OpsIndex />;
     case "ops-block":
       return <OpsBlockReference block={page.kind.block} />;
+    case "constructs":
+      return <ConstructsReference constructs={page.kind.constructs} />;
   }
 }

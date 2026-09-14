@@ -25,6 +25,18 @@
   overflow: auto;
 }
 
+/* Documentation opens as a third column, so the editor, the run and the docs are all in view. */
+.layout.withDocs {
+  grid-template-columns: minmax(300px, 32%) minmax(0, 1fr) minmax(300px, 30%);
+}
+
+.docs {
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+
 .runControls {
   display: flex;
   align-items: center;
@@ -73,6 +85,10 @@
   height: 220px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+}
+
+.network {
+  height: 360px;
 }
 
 .playback {
@@ -347,10 +363,17 @@
 }
 
 @media (max-width: 800px) {
-  .layout {
+  .layout,
+  .layout.withDocs {
     grid-template-columns: 1fr;
     grid-template-rows: auto 420px auto;
     height: auto;
+  }
+
+  .docs {
+    height: 70vh;
+    border-left: none;
+    border-top: 1px solid var(--border);
   }
 }
 
@@ -373,4 +396,22 @@
   background: var(--accent);
   color: var(--accent-contrast);
   font-weight: 600;
+}
+
+.reviewTicks {
+  stroke: var(--accent);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.reviewTrack {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 7px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }

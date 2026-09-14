@@ -1,5 +1,5 @@
 {
-  "apiVersion": 1,
+  "apiVersion": 2,
   "entries": [
     {
       "path": "ctx.stop",
@@ -8,6 +8,591 @@
       "summary": "Number of this stop within the run, starting at 1.",
       "level": "local",
       "docs": "api/context#stopcontext-stop",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here",
+      "name": "here",
+      "type": "Station",
+      "summary": "The station the vehicle has stopped at.",
+      "level": "local",
+      "docs": "api/context#stopcontext-here",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.id",
+      "name": "id",
+      "type": "string",
+      "summary": "Station id, as written in the scenario.",
+      "level": "local",
+      "docs": "api/station#station-id",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.index",
+      "name": "index",
+      "type": "integer",
+      "summary": "Position in the scenario's station order, starting at 1.",
+      "level": "local",
+      "docs": "api/station#station-index",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.resources",
+      "name": "resources",
+      "type": "string[]",
+      "summary": "Ids of the resources this station stores, in scenario order.",
+      "level": "local",
+      "docs": "api/station#station-resources",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.neighbours",
+      "name": "neighbours",
+      "type": "Neighbour[]",
+      "summary": "Stations joined to this one by an arc.",
+      "level": "local",
+      "docs": "api/station#station-neighbours",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.neighbours[i].station",
+      "name": "station",
+      "type": "Station",
+      "summary": "The neighbouring station.",
+      "level": "local",
+      "docs": "api/station#neighbour-station",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.neighbours[i].distance",
+      "name": "distance",
+      "type": "integer",
+      "summary": "Length of the arc between them.",
+      "level": "local",
+      "docs": "api/station#neighbour-distance",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.stock",
+      "name": "stock",
+      "type": "table<string, integer>",
+      "summary": "Milli-units stored, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-stock",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.capacity",
+      "name": "capacity",
+      "type": "table<string, integer>",
+      "summary": "Storage limit in milli-units, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-capacity",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.backorders",
+      "name": "backorders",
+      "type": "table<string, integer>",
+      "summary": "Demand waiting to be served, in milli-units, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-backorders",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers",
+      "name": "suppliers",
+      "type": "Supplier[]",
+      "summary": "Where each resource can be ordered from.",
+      "level": "local",
+      "docs": "api/station#station-suppliers",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#supplier-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying station.",
+      "level": "local",
+      "docs": "api/review#supplier-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].lead_times",
+      "name": "lead_times",
+      "type": "LeadTime[]",
+      "summary": "Possible lead times in milliseconds, with their weights.",
+      "level": "local",
+      "docs": "api/review#supplier-lead-times",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].lead_times[i].value",
+      "name": "value",
+      "type": "integer",
+      "summary": "Lead time in milliseconds.",
+      "level": "local",
+      "docs": "api/review#leadtime-value",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].lead_times[i].weight",
+      "name": "weight",
+      "type": "integer",
+      "summary": "Relative weight; a fixed lead time has one value with weight 1.",
+      "level": "local",
+      "docs": "api/review#leadtime-weight",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].min_order",
+      "name": "min_order",
+      "type": "integer",
+      "summary": "Smallest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-min-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.suppliers[i].max_order",
+      "name": "max_order",
+      "type": "integer",
+      "summary": "Largest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-max-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.on_order",
+      "name": "on_order",
+      "type": "Order[]",
+      "summary": "Orders placed by this station that have not arrived, oldest first.",
+      "level": "line",
+      "docs": "api/station#station-on-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.on_order[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#order-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.on_order[i].amount",
+      "name": "amount",
+      "type": "integer",
+      "summary": "Milli-units still to arrive.",
+      "level": "local",
+      "docs": "api/review#order-amount",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.on_order[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying station.",
+      "level": "local",
+      "docs": "api/review#order-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.on_order[i].placed_at",
+      "name": "placed_at",
+      "type": "integer",
+      "summary": "Game time the order was placed.",
+      "level": "local",
+      "docs": "api/review#order-placed-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.on_order[i].arrives_at",
+      "name": "arrives_at",
+      "type": "integer",
+      "summary": "Game time the order arrives; `nil` while it waits for stock at a supplying station.",
+      "level": "local",
+      "docs": "api/review#order-arrives-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.here.memory",
+      "name": "memory",
+      "type": "table",
+      "summary": "Persistent table for this station, under the same rules as `ctx.memory`.",
+      "level": "local",
+      "docs": "api/station#station-memory",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle",
+      "name": "vehicle",
+      "type": "Vehicle",
+      "summary": "The vehicle that has stopped.",
+      "level": "local",
+      "docs": "api/context#stopcontext-vehicle",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.id",
+      "name": "id",
+      "type": "string",
+      "summary": "Vehicle id, as written in the scenario.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-id",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.direction",
+      "name": "direction",
+      "type": "\"forward\"|\"backward\"",
+      "summary": "Direction the vehicle will leave in along its route's stops. Shuttles reverse at either end; loops always go forward.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-direction",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.speed",
+      "name": "speed",
+      "type": "integer",
+      "summary": "Distance travelled per second.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-speed",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.capacity",
+      "name": "capacity",
+      "type": "VehicleCapacity",
+      "summary": "How much the vehicle can carry.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-capacity",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.capacity.shared",
+      "name": "shared",
+      "type": "integer",
+      "summary": "Total milli-units across all resources, when capacity is shared.",
+      "level": "local",
+      "docs": "api/vehicle#vehiclecapacity-shared",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.capacity.per_resource",
+      "name": "per_resource",
+      "type": "table<string, integer>",
+      "summary": "Milli-units per resource id, when capacity is per resource.",
+      "level": "local",
+      "docs": "api/vehicle#vehiclecapacity-per-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.cargo",
+      "name": "cargo",
+      "type": "table<string, integer>",
+      "summary": "Milli-units carried, by resource id. Every scenario resource is present.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-cargo",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.space",
+      "name": "space",
+      "type": "table<string, integer>",
+      "summary": "Milli-units more the vehicle could load, by resource id.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-space",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route",
+      "name": "route",
+      "type": "Route",
+      "summary": "The vehicle's route and the stops ahead of it.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-route",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.kind",
+      "name": "kind",
+      "type": "\"shuttle\"|\"loop\"|\"timetable\"",
+      "summary": "`shuttle` runs back and forth, `loop` goes round, and `timetable` runs trips from its first stop at listed times.",
+      "level": "local",
+      "docs": "api/vehicle#route-kind",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead",
+      "name": "ahead",
+      "type": "RouteStop[]",
+      "summary": "The next stops in visiting order, up to returning to this stop, or to the end of a timetable trip.",
+      "level": "local",
+      "docs": "api/vehicle#route-ahead",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station",
+      "name": "station",
+      "type": "Station",
+      "summary": "The station at that stop.",
+      "level": "local",
+      "docs": "api/vehicle#routestop-station",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.id",
+      "name": "id",
+      "type": "string",
+      "summary": "Station id, as written in the scenario.",
+      "level": "local",
+      "docs": "api/station#station-id",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.index",
+      "name": "index",
+      "type": "integer",
+      "summary": "Position in the scenario's station order, starting at 1.",
+      "level": "local",
+      "docs": "api/station#station-index",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.resources",
+      "name": "resources",
+      "type": "string[]",
+      "summary": "Ids of the resources this station stores, in scenario order.",
+      "level": "local",
+      "docs": "api/station#station-resources",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.neighbours",
+      "name": "neighbours",
+      "type": "Neighbour[]",
+      "summary": "Stations joined to this one by an arc.",
+      "level": "local",
+      "docs": "api/station#station-neighbours",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.neighbours[i].station",
+      "name": "station",
+      "type": "Station",
+      "summary": "The neighbouring station.",
+      "level": "local",
+      "docs": "api/station#neighbour-station",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.neighbours[i].distance",
+      "name": "distance",
+      "type": "integer",
+      "summary": "Length of the arc between them.",
+      "level": "local",
+      "docs": "api/station#neighbour-distance",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.stock",
+      "name": "stock",
+      "type": "table<string, integer>",
+      "summary": "Milli-units stored, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-stock",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.capacity",
+      "name": "capacity",
+      "type": "table<string, integer>",
+      "summary": "Storage limit in milli-units, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-capacity",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.backorders",
+      "name": "backorders",
+      "type": "table<string, integer>",
+      "summary": "Demand waiting to be served, in milli-units, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-backorders",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers",
+      "name": "suppliers",
+      "type": "Supplier[]",
+      "summary": "Where each resource can be ordered from.",
+      "level": "local",
+      "docs": "api/station#station-suppliers",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#supplier-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying station.",
+      "level": "local",
+      "docs": "api/review#supplier-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].lead_times",
+      "name": "lead_times",
+      "type": "LeadTime[]",
+      "summary": "Possible lead times in milliseconds, with their weights.",
+      "level": "local",
+      "docs": "api/review#supplier-lead-times",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].lead_times[i].value",
+      "name": "value",
+      "type": "integer",
+      "summary": "Lead time in milliseconds.",
+      "level": "local",
+      "docs": "api/review#leadtime-value",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].lead_times[i].weight",
+      "name": "weight",
+      "type": "integer",
+      "summary": "Relative weight; a fixed lead time has one value with weight 1.",
+      "level": "local",
+      "docs": "api/review#leadtime-weight",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].min_order",
+      "name": "min_order",
+      "type": "integer",
+      "summary": "Smallest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-min-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.suppliers[i].max_order",
+      "name": "max_order",
+      "type": "integer",
+      "summary": "Largest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-max-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.on_order",
+      "name": "on_order",
+      "type": "Order[]",
+      "summary": "Orders placed by this station that have not arrived, oldest first.",
+      "level": "line",
+      "docs": "api/station#station-on-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.on_order[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#order-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.on_order[i].amount",
+      "name": "amount",
+      "type": "integer",
+      "summary": "Milli-units still to arrive.",
+      "level": "local",
+      "docs": "api/review#order-amount",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.on_order[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying station.",
+      "level": "local",
+      "docs": "api/review#order-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.on_order[i].placed_at",
+      "name": "placed_at",
+      "type": "integer",
+      "summary": "Game time the order was placed.",
+      "level": "local",
+      "docs": "api/review#order-placed-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.on_order[i].arrives_at",
+      "name": "arrives_at",
+      "type": "integer",
+      "summary": "Game time the order arrives; `nil` while it waits for stock at a supplying station.",
+      "level": "local",
+      "docs": "api/review#order-arrives-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].station.memory",
+      "name": "memory",
+      "type": "table",
+      "summary": "Persistent table for this station, under the same rules as `ctx.memory`.",
+      "level": "local",
+      "docs": "api/station#station-memory",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].distance",
+      "name": "distance",
+      "type": "integer",
+      "summary": "Distance along the route from `ctx.here`.",
+      "level": "local",
+      "docs": "api/vehicle#routestop-distance",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.route.ahead[i].travel_time",
+      "name": "travel_time",
+      "type": "integer",
+      "summary": "Milliseconds of travel from `ctx.here`, not counting stops on the way.",
+      "level": "local",
+      "docs": "api/vehicle#routestop-travel-time",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicle.memory",
+      "name": "memory",
+      "type": "table",
+      "summary": "Persistent table for this vehicle, under the same rules as `ctx.memory`.",
+      "level": "local",
+      "docs": "api/vehicle#vehicle-memory",
       "kind": "field"
     },
     {
@@ -23,314 +608,250 @@
       "path": "ctx.information_level",
       "name": "information_level",
       "type": "\"local\"|\"line\"",
-      "summary": "How much of the line this scenario lets the policy see.",
+      "summary": "How much of other stations this scenario lets the policy see.",
       "level": "local",
       "docs": "api/context#stopcontext-information-level",
       "kind": "field"
     },
     {
-      "path": "ctx.train",
-      "name": "train",
-      "type": "Train",
-      "summary": "The train that has stopped.",
+      "path": "ctx.stations",
+      "name": "stations",
+      "type": "table<string, Station>",
+      "summary": "Every station, keyed by id. Every station a context refers to is one of these tables.",
       "level": "local",
-      "docs": "api/context#stopcontext-train",
+      "docs": "api/context#stopcontext-stations",
       "kind": "field"
     },
     {
-      "path": "ctx.train.id",
+      "path": "ctx.stations[i].id",
       "name": "id",
       "type": "string",
-      "summary": "Train id, as written in the scenario.",
+      "summary": "Station id, as written in the scenario.",
       "level": "local",
-      "docs": "api/train#train-id",
+      "docs": "api/station#station-id",
       "kind": "field"
     },
     {
-      "path": "ctx.train.direction",
-      "name": "direction",
-      "type": "\"forward\"|\"backward\"",
-      "summary": "Direction the train will leave in. `forward` runs towards the last station; trains reverse at either end.",
-      "level": "local",
-      "docs": "api/train#train-direction",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.train.speed",
-      "name": "speed",
+      "path": "ctx.stations[i].index",
+      "name": "index",
       "type": "integer",
-      "summary": "Distance travelled per second.",
+      "summary": "Position in the scenario's station order, starting at 1.",
       "level": "local",
-      "docs": "api/train#train-speed",
+      "docs": "api/station#station-index",
       "kind": "field"
     },
     {
-      "path": "ctx.train.capacity",
-      "name": "capacity",
-      "type": "TrainCapacity",
-      "summary": "How much the train can carry.",
+      "path": "ctx.stations[i].resources",
+      "name": "resources",
+      "type": "string[]",
+      "summary": "Ids of the resources this station stores, in scenario order.",
       "level": "local",
-      "docs": "api/train#train-capacity",
+      "docs": "api/station#station-resources",
       "kind": "field"
     },
     {
-      "path": "ctx.train.capacity.shared",
-      "name": "shared",
-      "type": "integer",
-      "summary": "Total milli-units across all resources, when capacity is shared.",
+      "path": "ctx.stations[i].neighbours",
+      "name": "neighbours",
+      "type": "Neighbour[]",
+      "summary": "Stations joined to this one by an arc.",
       "level": "local",
-      "docs": "api/train#traincapacity-shared",
+      "docs": "api/station#station-neighbours",
       "kind": "field"
     },
     {
-      "path": "ctx.train.capacity.per_resource",
-      "name": "per_resource",
-      "type": "table<string, integer>",
-      "summary": "Milli-units per resource id, when capacity is per resource.",
-      "level": "local",
-      "docs": "api/train#traincapacity-per-resource",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.train.cargo",
-      "name": "cargo",
-      "type": "table<string, integer>",
-      "summary": "Milli-units carried, by resource id. Every scenario resource is present.",
-      "level": "local",
-      "docs": "api/train#train-cargo",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.train.space",
-      "name": "space",
-      "type": "table<string, integer>",
-      "summary": "Milli-units more the train could load, by resource id.",
-      "level": "local",
-      "docs": "api/train#train-space",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.train.memory",
-      "name": "memory",
-      "type": "table",
-      "summary": "Persistent table for this train, under the same rules as `ctx.memory`.",
-      "level": "local",
-      "docs": "api/train#train-memory",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station",
+      "path": "ctx.stations[i].neighbours[i].station",
       "name": "station",
       "type": "Station",
-      "summary": "The station the train has stopped at. Its stock and capacity are always readable.",
+      "summary": "The neighbouring station.",
       "level": "local",
-      "docs": "api/context#stopcontext-station",
+      "docs": "api/station#neighbour-station",
       "kind": "field"
     },
     {
-      "path": "ctx.station.id",
-      "name": "id",
-      "type": "string",
-      "summary": "Station id, as written in the scenario.",
-      "level": "local",
-      "docs": "api/station#station-id",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station.index",
-      "name": "index",
-      "type": "integer",
-      "summary": "Position on the line, starting at 1.",
-      "level": "local",
-      "docs": "api/station#station-index",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station.resources",
-      "name": "resources",
-      "type": "string[]",
-      "summary": "Ids of the resources this station stores, in scenario order.",
-      "level": "local",
-      "docs": "api/station#station-resources",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station.distance_to_next",
-      "name": "distance_to_next",
-      "type": "integer",
-      "summary": "Distance to the next station; `nil` on the last station.",
-      "level": "local",
-      "docs": "api/station#station-distance-to-next",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station.stock",
-      "name": "stock",
-      "type": "table<string, integer>",
-      "summary": "Milli-units stored, by resource id. Readable for other stations only at the `line` level.",
-      "level": "line",
-      "docs": "api/station#station-stock",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station.capacity",
-      "name": "capacity",
-      "type": "table<string, integer>",
-      "summary": "Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.",
-      "level": "line",
-      "docs": "api/station#station-capacity",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.station.memory",
-      "name": "memory",
-      "type": "table",
-      "summary": "Persistent table for this station, under the same rules as `ctx.memory`. Present on `ctx.station`.",
-      "level": "local",
-      "docs": "api/station#station-memory",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line",
-      "name": "line",
-      "type": "Line",
-      "summary": "The stations on the line, in order.",
-      "level": "local",
-      "docs": "api/context#stopcontext-line",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations",
-      "name": "stations",
-      "type": "Station[]",
-      "summary": "Stations in line order.",
-      "level": "local",
-      "docs": "api/line#line-stations",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].id",
-      "name": "id",
-      "type": "string",
-      "summary": "Station id, as written in the scenario.",
-      "level": "local",
-      "docs": "api/station#station-id",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].index",
-      "name": "index",
-      "type": "integer",
-      "summary": "Position on the line, starting at 1.",
-      "level": "local",
-      "docs": "api/station#station-index",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].resources",
-      "name": "resources",
-      "type": "string[]",
-      "summary": "Ids of the resources this station stores, in scenario order.",
-      "level": "local",
-      "docs": "api/station#station-resources",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].distance_to_next",
-      "name": "distance_to_next",
-      "type": "integer",
-      "summary": "Distance to the next station; `nil` on the last station.",
-      "level": "local",
-      "docs": "api/station#station-distance-to-next",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].stock",
-      "name": "stock",
-      "type": "table<string, integer>",
-      "summary": "Milli-units stored, by resource id. Readable for other stations only at the `line` level.",
-      "level": "line",
-      "docs": "api/station#station-stock",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].capacity",
-      "name": "capacity",
-      "type": "table<string, integer>",
-      "summary": "Storage limit in milli-units, by resource id. Readable for other stations only at the `line` level.",
-      "level": "line",
-      "docs": "api/station#station-capacity",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.stations[i].memory",
-      "name": "memory",
-      "type": "table",
-      "summary": "Persistent table for this station, under the same rules as `ctx.memory`. Present on `ctx.station`.",
-      "level": "local",
-      "docs": "api/station#station-memory",
-      "kind": "field"
-    },
-    {
-      "path": "ctx.line.distance",
+      "path": "ctx.stations[i].neighbours[i].distance",
       "name": "distance",
-      "type": "fun(from: string, to: string): integer",
-      "summary": "Distance along the line between two stations.",
+      "type": "integer",
+      "summary": "Length of the arc between them.",
       "level": "local",
-      "docs": "api/line#line-distance",
-      "kind": "function",
-      "params": [
-        {
-          "name": "from",
-          "lua": "string",
-          "summary": "Station id, as written in the scenario."
-        },
-        {
-          "name": "to",
-          "lua": "string",
-          "summary": "Station id, as written in the scenario."
-        }
-      ],
-      "returns": {
-        "lua": "integer",
-        "summary": "Distance, never negative."
-      }
+      "docs": "api/station#neighbour-distance",
+      "kind": "field"
     },
     {
-      "path": "ctx.line.travel_time",
-      "name": "travel_time",
-      "type": "fun(from: string, to: string, speed?: integer): integer",
-      "summary": "Milliseconds a train takes between two stations, not counting stops. Uses the stopped train's speed when `speed` is omitted.",
+      "path": "ctx.stations[i].stock",
+      "name": "stock",
+      "type": "table<string, integer>",
+      "summary": "Milli-units stored, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-stock",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].capacity",
+      "name": "capacity",
+      "type": "table<string, integer>",
+      "summary": "Storage limit in milli-units, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-capacity",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].backorders",
+      "name": "backorders",
+      "type": "table<string, integer>",
+      "summary": "Demand waiting to be served, in milli-units, by resource id.",
+      "level": "line",
+      "docs": "api/station#station-backorders",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers",
+      "name": "suppliers",
+      "type": "Supplier[]",
+      "summary": "Where each resource can be ordered from.",
       "level": "local",
-      "docs": "api/line#line-travel-time",
-      "kind": "function",
-      "params": [
-        {
-          "name": "from",
-          "lua": "string",
-          "summary": "Station id, as written in the scenario."
-        },
-        {
-          "name": "to",
-          "lua": "string",
-          "summary": "Station id, as written in the scenario."
-        },
-        {
-          "name": "speed",
-          "lua": "integer?",
-          "summary": "Distance per second."
-        }
-      ],
-      "returns": {
-        "lua": "integer",
-        "summary": "Travel time in milliseconds."
-      }
+      "docs": "api/station#station-suppliers",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#supplier-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying station.",
+      "level": "local",
+      "docs": "api/review#supplier-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].lead_times",
+      "name": "lead_times",
+      "type": "LeadTime[]",
+      "summary": "Possible lead times in milliseconds, with their weights.",
+      "level": "local",
+      "docs": "api/review#supplier-lead-times",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].lead_times[i].value",
+      "name": "value",
+      "type": "integer",
+      "summary": "Lead time in milliseconds.",
+      "level": "local",
+      "docs": "api/review#leadtime-value",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].lead_times[i].weight",
+      "name": "weight",
+      "type": "integer",
+      "summary": "Relative weight; a fixed lead time has one value with weight 1.",
+      "level": "local",
+      "docs": "api/review#leadtime-weight",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].min_order",
+      "name": "min_order",
+      "type": "integer",
+      "summary": "Smallest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-min-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].suppliers[i].max_order",
+      "name": "max_order",
+      "type": "integer",
+      "summary": "Largest order in milli-units, when there is one.",
+      "level": "local",
+      "docs": "api/review#supplier-max-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].on_order",
+      "name": "on_order",
+      "type": "Order[]",
+      "summary": "Orders placed by this station that have not arrived, oldest first.",
+      "level": "line",
+      "docs": "api/station#station-on-order",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].on_order[i].resource",
+      "name": "resource",
+      "type": "string",
+      "summary": "Resource id.",
+      "level": "local",
+      "docs": "api/review#order-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].on_order[i].amount",
+      "name": "amount",
+      "type": "integer",
+      "summary": "Milli-units still to arrive.",
+      "level": "local",
+      "docs": "api/review#order-amount",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].on_order[i].from",
+      "name": "from",
+      "type": "string",
+      "summary": "`external`, or the id of the supplying station.",
+      "level": "local",
+      "docs": "api/review#order-from",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].on_order[i].placed_at",
+      "name": "placed_at",
+      "type": "integer",
+      "summary": "Game time the order was placed.",
+      "level": "local",
+      "docs": "api/review#order-placed-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].on_order[i].arrives_at",
+      "name": "arrives_at",
+      "type": "integer",
+      "summary": "Game time the order arrives; `nil` while it waits for stock at a supplying station.",
+      "level": "local",
+      "docs": "api/review#order-arrives-at",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.stations[i].memory",
+      "name": "memory",
+      "type": "table",
+      "summary": "Persistent table for this station, under the same rules as `ctx.memory`.",
+      "level": "local",
+      "docs": "api/station#station-memory",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.station_order",
+      "name": "station_order",
+      "type": "string[]",
+      "summary": "Station ids in scenario order.",
+      "level": "local",
+      "docs": "api/context#stopcontext-station-order",
+      "kind": "field"
     },
     {
       "path": "ctx.resources",
       "name": "resources",
-      "type": "Resource[]",
-      "summary": "Every resource in the scenario, in scenario order.",
+      "type": "table<string, Resource>",
+      "summary": "Every resource, keyed by id.",
       "level": "local",
       "docs": "api/context#stopcontext-resources",
       "kind": "field"
@@ -351,6 +872,15 @@
       "summary": "Weight used when scoring unmet demand; higher is more important.",
       "level": "local",
       "docs": "api/context#resource-priority",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.resource_order",
+      "name": "resource_order",
+      "type": "string[]",
+      "summary": "Resource ids in scenario order.",
+      "level": "local",
+      "docs": "api/context#stopcontext-resource-order",
       "kind": "field"
     },
     {
@@ -376,52 +906,65 @@
       }
     },
     {
-      "path": "ctx.load",
-      "name": "load",
-      "type": "fun(resource: string, amount: integer)",
-      "summary": "Move `amount` milli-units of `resource` from the station onto the train. Clamped to what the station holds and the train can carry.",
+      "path": "ctx.distance",
+      "name": "distance",
+      "type": "fun(from: string, to: string): integer",
+      "summary": "Distance between two stations along the shortest path over arcs.",
       "level": "local",
-      "docs": "api/context#stopcontext-load",
+      "docs": "api/context#stopcontext-distance",
       "kind": "function",
       "params": [
         {
-          "name": "resource",
+          "name": "from",
           "lua": "string",
-          "summary": "Resource id, such as `Metals`."
+          "summary": "Station id."
         },
         {
-          "name": "amount",
-          "lua": "integer",
-          "summary": "Milli-units to load; 1 unit is 1000."
+          "name": "to",
+          "lua": "string",
+          "summary": "Station id."
         }
-      ]
+      ],
+      "returns": {
+        "lua": "integer",
+        "summary": "Distance; `nil` when no path joins them."
+      }
     },
     {
-      "path": "ctx.unload",
-      "name": "unload",
-      "type": "fun(resource: string, amount: integer)",
-      "summary": "Move `amount` milli-units of `resource` from the train into the station. Clamped to what the train carries and the station can store.",
+      "path": "ctx.travel_time",
+      "name": "travel_time",
+      "type": "fun(from: string, to: string, speed?: integer): integer",
+      "summary": "Milliseconds of travel between two stations along the shortest path over arcs, not counting stops. Uses the stopped vehicle's speed when `speed` is omitted.",
       "level": "local",
-      "docs": "api/context#stopcontext-unload",
+      "docs": "api/context#stopcontext-travel-time",
       "kind": "function",
       "params": [
         {
-          "name": "resource",
+          "name": "from",
           "lua": "string",
-          "summary": "Resource id, such as `Metals`."
+          "summary": "Station id."
         },
         {
-          "name": "amount",
-          "lua": "integer",
-          "summary": "Milli-units to unload; 1 unit is 1000."
+          "name": "to",
+          "lua": "string",
+          "summary": "Station id."
+        },
+        {
+          "name": "speed",
+          "lua": "integer?",
+          "summary": "Distance per second."
         }
-      ]
+      ],
+      "returns": {
+        "lua": "integer",
+        "summary": "Travel time in milliseconds."
+      }
     },
     {
       "path": "ctx.log",
       "name": "log",
       "type": "fun(...: any)",
-      "summary": "Attach a message to this stop. Arguments are converted to text and joined with spaces.",
+      "summary": "Write a message. Arguments are converted to text and joined with spaces.",
       "level": "local",
       "docs": "api/context#stopcontext-log",
       "kind": "function",
@@ -453,6 +996,150 @@
           "summary": "Finite number to record."
         }
       ]
+    },
+    {
+      "path": "ctx.load",
+      "name": "load",
+      "type": "fun(resource: string, amount: integer)",
+      "summary": "Move `amount` milli-units of `resource` from `ctx.here` onto the vehicle. Clamped to what the station holds and the vehicle can carry.",
+      "level": "local",
+      "docs": "api/context#stopcontext-load",
+      "kind": "function",
+      "params": [
+        {
+          "name": "resource",
+          "lua": "string",
+          "summary": "Resource id, such as `Metals`."
+        },
+        {
+          "name": "amount",
+          "lua": "integer",
+          "summary": "Milli-units to load; 1 unit is 1000."
+        }
+      ]
+    },
+    {
+      "path": "ctx.unload",
+      "name": "unload",
+      "type": "fun(resource: string, amount: integer)",
+      "summary": "Move `amount` milli-units of `resource` from the vehicle into `ctx.here`. Clamped to what the vehicle carries and the station can store.",
+      "level": "local",
+      "docs": "api/context#stopcontext-unload",
+      "kind": "function",
+      "params": [
+        {
+          "name": "resource",
+          "lua": "string",
+          "summary": "Resource id, such as `Metals`."
+        },
+        {
+          "name": "amount",
+          "lua": "integer",
+          "summary": "Milli-units to unload; 1 unit is 1000."
+        }
+      ]
+    },
+    {
+      "path": "ctx.review",
+      "name": "review",
+      "type": "integer",
+      "summary": "Number of this review within the run, starting at 1.",
+      "level": "local",
+      "docs": "api/review#reviewcontext-review",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.order",
+      "name": "order",
+      "type": "fun(resource: string, amount: integer)",
+      "summary": "Order `amount` milli-units of `resource` from `ctx.here`'s supplier for it. Clamped to the supplier's minimum and maximum order.",
+      "level": "local",
+      "docs": "api/review#reviewcontext-order",
+      "kind": "function",
+      "params": [
+        {
+          "name": "resource",
+          "lua": "string",
+          "summary": "Resource id, such as `Beer`."
+        },
+        {
+          "name": "amount",
+          "lua": "integer",
+          "summary": "Milli-units to order; 1 unit is 1000."
+        }
+      ]
+    },
+    {
+      "path": "ctx.vehicles",
+      "name": "vehicles",
+      "type": "table<string, VehicleInfo>",
+      "summary": "Every vehicle, keyed by id.",
+      "level": "local",
+      "docs": "api/context#startcontext-vehicles",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].id",
+      "name": "id",
+      "type": "string",
+      "summary": "Vehicle id, as written in the scenario.",
+      "level": "local",
+      "docs": "api/vehicle#vehicleinfo-id",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].speed",
+      "name": "speed",
+      "type": "integer",
+      "summary": "Distance travelled per second.",
+      "level": "local",
+      "docs": "api/vehicle#vehicleinfo-speed",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].capacity",
+      "name": "capacity",
+      "type": "VehicleCapacity",
+      "summary": "How much the vehicle can carry.",
+      "level": "local",
+      "docs": "api/vehicle#vehicleinfo-capacity",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].capacity.shared",
+      "name": "shared",
+      "type": "integer",
+      "summary": "Total milli-units across all resources, when capacity is shared.",
+      "level": "local",
+      "docs": "api/vehicle#vehiclecapacity-shared",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].capacity.per_resource",
+      "name": "per_resource",
+      "type": "table<string, integer>",
+      "summary": "Milli-units per resource id, when capacity is per resource.",
+      "level": "local",
+      "docs": "api/vehicle#vehiclecapacity-per-resource",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].route_kind",
+      "name": "route_kind",
+      "type": "\"shuttle\"|\"loop\"|\"timetable\"",
+      "summary": "The kind of route the vehicle follows.",
+      "level": "local",
+      "docs": "api/vehicle#vehicleinfo-route-kind",
+      "kind": "field"
+    },
+    {
+      "path": "ctx.vehicles[i].stops",
+      "name": "stops",
+      "type": "string[]",
+      "summary": "Ids of the stations on its route, in order.",
+      "level": "local",
+      "docs": "api/vehicle#vehicleinfo-stops",
+      "kind": "field"
     },
     {
       "path": "ops.policy",

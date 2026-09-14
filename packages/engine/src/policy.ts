@@ -1,5 +1,5 @@
 import type { InformationLevel } from "./scenario/schema.ts";
-import type { StartSnapshot, StopSnapshot } from "./snapshot.generated.ts";
+import type { ReviewSnapshot, StartSnapshot, StopSnapshot } from "./snapshot.generated.ts";
 
 export type * from "./snapshot.generated.ts";
 export { POLICY_API_VERSION } from "./snapshot.generated.ts";
@@ -8,7 +8,8 @@ export type Direction = "forward" | "backward";
 
 export type Action =
   | { type: "load"; resource: string; amount: number }
-  | { type: "unload"; resource: string; amount: number };
+  | { type: "unload"; resource: string; amount: number }
+  | { type: "order"; resource: string; amount: number };
 
 export interface Trace {
   block: string;
@@ -38,12 +39,16 @@ export interface PolicyOutcome {
 export interface RunContext {
   seed: number;
   informationLevel: InformationLevel;
+  /** Hooks the scenario calls: `stop` when it has vehicles, `review` when it has reviews. */
+  hooks: { stop: boolean; review: boolean };
 }
 
-/** Anything the engine can ask what to do at a stop. */
+/** Anything the engine can ask what to do at a stop or a review. */
 export interface Policy {
   start(snapshot: StartSnapshot, run: RunContext): PolicyOutcome;
   stop(snapshot: StopSnapshot): PolicyOutcome;
+  /** Decides what a station orders at a review. Without it, reviews place no orders. */
+  review?(snapshot: ReviewSnapshot): PolicyOutcome;
 }
 
 export function emptyOutcome(): PolicyOutcome {

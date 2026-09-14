@@ -2,7 +2,9 @@
 --
 -- A declarative policy runs these stages at every stop:
 --   classify -> target -> plan -> allocate -> execute
--- Each stage takes a block from this library or a Lua function. The library is
+-- and, when given a review table, orders each supplied resource up to its
+-- target at every review. Each stage takes a block from this library or a Lua
+-- function. The library is
 -- written to the same Lua 5.1 subset as policies and counts towards the same
 -- instruction budget. Its state lives in ctx.memory.ops.
 --
@@ -264,11 +266,11 @@ local function memory_of(ctx)
   return state
 end
 
---- Amount of a resource other trains have reserved for a station.
-local function inbound(state, train_id, station_id, resource)
+--- Amount of a resource other vehicles have reserved for a station.
+local function inbound(state, vehicle_id, station_id, resource)
   local total = 0
   for other, by_station in pairs(state.reservations) do
-    if other ~= train_id then
+    if other ~= vehicle_id then
       local by_resource = by_station[station_id]
       if by_resource and by_resource[resource] then
         total = total + by_resource[resource]
@@ -278,15 +280,15 @@ local function inbound(state, train_id, station_id, resource)
   return total
 end
 
---- Exposed for custom code: stock plus cargo reserved for the site by other trains.
+--- Exposed for custom code: stock plus cargo reserved for the site by other vehicles.
 function ops.inventory_position(ctx, station_id, resource)
   local state = memory_of(ctx)
-  for _, station in ipairs(ctx.line.stations) do
-    if station.id == station_id then
-      return (station.stock[resource] or 0) + inbound(state, ctx.train.id, station_id, resource)
-    end
+  local station = ctx.stations[station_id]
+  if station == nil then
+    error("ops.inventory_position: unknown station " .. tostring(station_id), 2)
   end
-  error("ops.inventory_position: unknown station " .. tostring(station_id), 2)
+  local vehicle_id = ctx.vehicle and ctx.vehicle.id
+  return (station.stock[resource] or 0) + inbound(state, vehicle_id, station_id, resource)
 end
 
 local function validate_spec(spec)
@@ -294,11 +296,11 @@ local function validate_spec(spec)
     error("ops.policy expects a table, such as ops.policy { target = ops.balance {} }", 3)
   end
   for key in pairs(spec) do
-    if key ~= "classify" and key ~= "target" and key ~= "plan" and key ~= "allocate" then
+    if key ~= "classify" and key ~= "target" and key ~= "plan" and key ~= "allocate" and key ~= "review" then
       error("ops.policy has no stage named " .. tostring(key), 3)
     end
   end
-  if spec.target == nil then
+  if spec.target == nil and spec.review == nil then
     error("ops.policy: target is required", 3)
   end
 
@@ -332,8 +334,23 @@ local function validate_spec(spec)
         end
       end
     end
-  else
+  elseif spec.target ~= nil then
     stage("target", spec.target)
+  end
+
+  if spec.review ~= nil then
+    if type(spec.review) ~= "table" or spec.review.ops_block then
+      error("ops.policy: review must be a table, such as review = { target = ops.order_up_to { level = 10000 } }", 3)
+    end
+    for key in pairs(spec.review) do
+      if key ~= "target" then
+        error("ops.policy: review has no entry named " .. tostring(key), 3)
+      end
+    end
+    if spec.review.target == nil then
+      error("ops.policy: review needs a target", 3)
+    end
+    stage("target", spec.review.target)
   end
 
   for _, block in ipairs(blocks) do
@@ -367,8 +384,8 @@ function ops.policy(spec)
     return spec.classify.decide(site, ctx)
   end
 
-  local function target_of(site, ctx, view)
-    local chosen = spec.target
+  local function target_of(site, ctx, view, chosen)
+    chosen = chosen or spec.target
     if type(chosen) == "table" and not chosen.ops_block then
       chosen = chosen[site.role]
       if chosen == nil then
@@ -397,7 +414,7 @@ function ops.policy(spec)
       resource = resource,
       stock = stock,
       capacity = station.capacity[resource],
-      position = stock + inbound(state, ctx.train.id, station.id, resource),
+      position = stock + inbound(state, ctx.vehicle.id, station.id, resource),
     }
     site.role = role_of(site, ctx)
     return site
@@ -405,21 +422,77 @@ function ops.policy(spec)
 
   local policy = {}
 
-  function policy.on_stop(ctx)
-    local state = memory_of(ctx)
-    local train = ctx.train
-    local here = ctx.station
-    -- This train's reservations are rebuilt from its cargo at every stop, which
-    -- also releases whatever it had reserved for this station.
-    local mine = {}
-    state.reservations[train.id] = mine
-
+  local function line_view(ctx)
     local view = { stations = {} }
     if scenario_level == "line" then
-      for i, station in ipairs(ctx.line.stations) do
-        view.stations[i] = station
+      for i, id in ipairs(ctx.station_order) do
+        view.stations[i] = ctx.stations[id]
       end
     end
+    return view
+  end
+
+  if spec.review ~= nil then
+    --- Orders each supplied resource up to its target, from the inventory
+    --- position: stock plus orders on the way minus backorders.
+    function policy.on_review(ctx)
+      local here = ctx.here
+      local view = line_view(ctx)
+      local seen = {}
+      for _, supplier in ipairs(here.suppliers) do
+        local resource = supplier.resource
+        if not seen[resource] then
+          seen[resource] = true
+          local stock = here.stock[resource] or 0
+          local backorders = here.backorders and here.backorders[resource] or 0
+          local on_order = 0
+          for _, order in ipairs(here.on_order or {}) do
+            if order.resource == resource then
+              on_order = on_order + order.amount
+            end
+          end
+          local site = {
+            station = here.id,
+            resource = resource,
+            stock = stock,
+            capacity = here.capacity[resource],
+            on_order = on_order,
+            backorders = backorders,
+            position = stock + on_order - backorders,
+            role = "any",
+          }
+          local target = target_of(site, ctx, view, spec.review.target)
+          local amount = 0
+          if target ~= nil and target > site.position then
+            amount = target - site.position
+            ctx.order(resource, amount)
+          end
+          trace(
+            "order",
+            here.id,
+            resource,
+            { stock = stock, on_order = on_order, backorders = backorders, position = site.position },
+            amount
+          )
+        end
+      end
+    end
+  end
+
+  if spec.target == nil then
+    return policy
+  end
+
+  function policy.on_stop(ctx)
+    local state = memory_of(ctx)
+    local vehicle = ctx.vehicle
+    local here = ctx.here
+    -- This vehicle's reservations are rebuilt from its cargo at every stop, which
+    -- also releases whatever it had reserved for this station.
+    local mine = {}
+    state.reservations[vehicle.id] = mine
+
+    local view = line_view(ctx)
 
     -- Classify and target every site at this station.
     local wants = {}
@@ -431,15 +504,18 @@ function ops.policy(spec)
       end
     end
 
-    -- Plan: shortfalls further along the line, nearest first.
+    -- Plan: shortfalls at the stops ahead, nearest first, until the route comes
+    -- back to a station it has already passed.
     local downstream = {}
     local lookahead = spec.plan ~= nil
     if lookahead then
-      local stations = ctx.line.stations
-      local step = train.direction == "forward" and 1 or -1
-      local i = here.index + step
-      while i >= 1 and i <= #stations do
-        local station = stations[i]
+      local passed = { [here.id] = true }
+      for _, stop in ipairs(vehicle.route.ahead) do
+        local station = stop.station
+        if passed[station.id] then
+          break
+        end
+        passed[station.id] = true
         for _, resource in ipairs(station.resources) do
           local site = site_for(ctx, state, station, resource)
           local target = target_of(site, ctx, view)
@@ -449,7 +525,6 @@ function ops.policy(spec)
             downstream[#downstream + 1] = { station = station.id, resource = resource, amount = amount }
           end
         end
-        i = i + step
       end
     end
 
@@ -471,11 +546,11 @@ function ops.policy(spec)
     local order = {}
     for i, want in ipairs(wants) do
       order[want.resource] = i
-      local carried = train.cargo[want.resource] or 0
+      local carried = vehicle.cargo[want.resource] or 0
       if want.amount > 0 then
         local amount = want.amount
         if lookahead then
-          -- This station is the nearest, so it is served first; what the train
+          -- This station is the nearest, so it is served first; what the vehicle
           -- carries beyond its need stays aboard for the stations further on.
           amount = math.min(amount, carried)
           local downstream = downstream_need(want.resource)
@@ -502,8 +577,8 @@ function ops.policy(spec)
 
     -- Allocate and execute.
     local cargo_after = {}
-    for _, resource in ipairs(ctx.resources) do
-      cargo_after[resource.id] = train.cargo[resource.id] or 0
+    for _, id in ipairs(ctx.resource_order) do
+      cargo_after[id] = vehicle.cargo[id] or 0
     end
 
     if spec.allocate == nil then
@@ -530,16 +605,16 @@ function ops.policy(spec)
         cargo_after[u.resource] = math.max(0, cargo_after[u.resource] - u.amount)
       end
       local priority = {}
-      for _, resource in ipairs(ctx.resources) do
-        priority[resource.id] = resource.priority
+      for _, id in ipairs(ctx.resource_order) do
+        priority[id] = ctx.resources[id].priority
       end
       local granted
-      if train.capacity.shared ~= nil then
+      if vehicle.capacity.shared ~= nil then
         local used = 0
         for _, amount in pairs(cargo_after) do
           used = used + amount
         end
-        local space = math.max(0, train.capacity.shared - used)
+        local space = math.max(0, vehicle.capacity.shared - used)
         if type(spec.allocate) == "function" then
           granted = call_custom("allocate", spec.allocate, loads, space, ctx)
         else
@@ -548,7 +623,7 @@ function ops.policy(spec)
       else
         granted = {}
         for _, l in ipairs(loads) do
-          local room = math.max(0, (train.capacity.per_resource[l.resource] or 0) - cargo_after[l.resource])
+          local room = math.max(0, (vehicle.capacity.per_resource[l.resource] or 0) - cargo_after[l.resource])
           if type(spec.allocate) == "function" then
             local g = call_custom("allocate", spec.allocate, { l }, room, ctx)
             granted[l.resource] = g[l.resource] or 0

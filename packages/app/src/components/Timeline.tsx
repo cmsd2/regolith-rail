@@ -7,17 +7,22 @@ import styles from "./Workbench.module.css";
 
 interface Markers {
   stops: number[];
+  reviews: { t: number; review: number; station: string }[];
   warnings: { t: number; stop: number }[];
   errors: { t: number; stop: number | undefined }[];
   events: { from: number; to: number; label: string }[];
 }
 
 function markers(output: RunOutput): Markers {
-  const result: Markers = { stops: [], warnings: [], errors: [], events: [] };
+  const result: Markers = { stops: [], reviews: [], warnings: [], errors: [], events: [] };
   const open = new Map<string, { from: number; label: string }>();
   for (const event of output.events) {
     if (event.kind === "arrival") result.stops.push(event.t);
-    else if (event.kind === "warning") result.warnings.push({ t: event.t, stop: event.stop });
+    else if (event.kind === "review")
+      result.reviews.push({ t: event.t, review: event.review, station: event.station });
+    // Warnings at reviews get their own markers with the review inspector.
+    else if (event.kind === "warning" && event.stop !== undefined)
+      result.warnings.push({ t: event.t, stop: event.stop });
     else if (event.kind === "error") result.errors.push({ t: event.t, stop: event.stop });
     else if (event.kind === "event-start")
       open.set(event.event, { from: event.t, label: event.label });
@@ -75,6 +80,7 @@ export function Timeline() {
     if (stop !== undefined) workbench.getState().selectStop(stop);
   };
   const stopPath = found.stops.map((s) => `M${(s / duration) * 1000},8V16`).join("");
+  const reviewPath = found.reviews.map((r) => `M${(r.t / duration) * 1000},0V6`).join("");
   return (
     <div className={styles.timeline}>
       <div className={styles.markers} data-testid="timeline-markers">
@@ -93,6 +99,7 @@ export function Timeline() {
           <svg viewBox="0 0 1000 24" preserveAspectRatio="none" width="100%" height="24">
             <title>Stops</title>
             <path d={stopPath} className={styles.stopTicks} />
+            <path d={reviewPath} className={styles.reviewTicks} />
           </svg>
         </svg>
         {found.events.map((e) => (
@@ -103,6 +110,26 @@ export function Timeline() {
             title={`${e.label}: ${formatGameTime(e.from)} to ${formatGameTime(e.to)}`}
           />
         ))}
+        {found.reviews.length > 0 && (
+          <button
+            type="button"
+            className={styles.reviewTrack}
+            aria-label="Reviews: choose a time to inspect the nearest review"
+            title="Reviews: click to inspect the nearest review"
+            data-testid="review-track"
+            onClick={(e) => {
+              const box = e.currentTarget.getBoundingClientRect();
+              const time = ((e.clientX - box.left) / Math.max(1, box.width)) * duration;
+              let nearest = found.reviews[0] as Markers["reviews"][number];
+              for (const r of found.reviews) {
+                if (Math.abs(r.t - time) < Math.abs(nearest.t - time)) nearest = r;
+              }
+              playhead.getState().pause();
+              playhead.getState().setTime(nearest.t);
+              workbench.getState().selectReview(nearest.review);
+            }}
+          />
+        )}
         {found.warnings.slice(0, 2000).map((w, i) => (
           <button
             // biome-ignore lint/suspicious/noArrayIndexKey: warnings at the same time and stop are indistinguishable
@@ -139,6 +166,7 @@ export function Timeline() {
           playhead.getState().pause();
           playhead.getState().setTime(Number(e.target.value));
           workbench.getState().selectStop(null);
+          workbench.getState().selectReview(null);
         }}
         aria-label="Time in the run"
         data-testid="scrubber"

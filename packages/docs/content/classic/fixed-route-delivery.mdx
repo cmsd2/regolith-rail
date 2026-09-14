@@ -1,0 +1,97 @@
+---
+title: Fixed-route delivery
+description: Trucks on a fixed loop deciding how much to load at the depot and leave at each customer.
+section: Classic problems
+order: 4
+---
+
+Template: [`classic.fixed_route_delivery`](/docs/scenarios/classic#classic-fixed_route_delivery).
+
+## The problem
+
+A depot delivers fuel to customers that trucks visit on a fixed loop. Each truck
+decides how much to load at the depot and how much to leave at each customer, and the
+depot decides how much to order from its supplier. Deciding when, how much and by which
+route to deliver together is inventory routing; with the route fixed, only the amounts
+remain (Snyder and Shen, 2019, pp. 531–534, 632–635). Surviving Mars shuttle lines are
+the same problem on a line.
+
+## The scenario
+
+- `Depot` stores `Fuel` with unlimited room, orders from an outside supplier with a
+  `lead_time`, and is reviewed every `review_period`.
+- `Customer1` to `CustomerN` each store `customer_capacity` and use `demand` a day.
+  Demand that finds no fuel is lost at `lost_cost` per unit.
+- Legs of `distance` join the depot and the customers in a loop, and `vehicles` trucks
+  of `vehicle_capacity` go round it, spaced out along the loop.
+
+```lua runnable script
+return classic.fixed_route_delivery { customers = 4, vehicles = 2 }
+```
+
+## The reference policy
+
+Fill the route:
+
+- At the depot, a truck loads what the customers ahead of it are short of, up to its
+  space.
+- At a customer, it unloads as much as fits.
+- At each review, the depot orders up to the storage of all its customers.
+
+```lua runnable scenario=classic.fixed_route_delivery
+return {
+  on_review = function(ctx)
+    local target = 0
+    for _, id in ipairs(ctx.station_order) do
+      local station = ctx.stations[id]
+      if station ~= ctx.here then target = target + station.capacity.Fuel end
+    end
+    local position = ctx.here.stock.Fuel
+    for _, order in ipairs(ctx.here.on_order or {}) do position = position + order.amount end
+    if target > position then ctx.order("Fuel", target - position) end
+  end,
+  on_stop = function(ctx)
+    local here, truck = ctx.here, ctx.vehicle
+    if #here.suppliers > 0 then
+      local short, passed = 0, { [here.id] = true }
+      for _, stop in ipairs(truck.route.ahead) do
+        if passed[stop.station.id] then break end
+        passed[stop.station.id] = true
+        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel
+      end
+      local amount = math.min(short - truck.cargo.Fuel, here.stock.Fuel, truck.space.Fuel)
+      if amount > 0 then ctx.load("Fuel", amount) end
+    else
+      local amount = math.min(truck.cargo.Fuel, here.capacity.Fuel - here.stock.Fuel)
+      if amount > 0 then ctx.unload("Fuel", amount) end
+    end
+  end,
+}
+```
+
+It fills customers only to what they lack when the truck passes the depot, so a
+customer that uses fuel quickly can still run dry before the truck returns. Holding
+back cargo for the customers that need it most, or loading for the demand expected by
+the time the truck arrives, does better.
+
+## The reference result
+
+There is no closed form. A test checks the template's opening against a trace worked
+out by hand: with two customers holding 10 of 20, no demand, legs of 600 at speed 5 and
+20 units at the depot, the truck loads 20 and leaves after 30 seconds, the first review
+orders 40, and the truck arrives at each customer two minutes after leaving the stop
+before, unloads 10 and leaves 20 seconds later.
+
+## Where the simulator differs
+
+- **Routes are fixed.** Textbook inventory routing also chooses the route. Choosing
+  routes is outside this simulator; see the roadmap.
+- **One product, lost sales.** Customers use one resource and lose demand they cannot
+  meet, rather than being penalised for missed deliveries.
+- **No split deliveries by time window.** Trucks deliver whenever they pass, and dwell
+  longer for every unit they move.
+
+## References
+
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
+  Hoboken, NJ: John Wiley & Sons.

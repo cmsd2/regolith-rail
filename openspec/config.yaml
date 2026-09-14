@@ -8,17 +8,33 @@ context: |
   dispatch fails (half capacity, operating at the edge, no flow control, dead
   stock at relays, ping-pong, double dispatch, no priorities, bullwhip), lets
   players write better policies, scores them against a frozen benchmark, and
-  later runs the same policies in the game as a mod. docs/roadmap.md is the
-  source of truth for scope, stage order (M0-M12) and open questions; cite the
-  stage a change belongs to.
+  later runs the same policies in the game as a mod. Surviving Mars is the
+  flagship use case, but the core model is general enough to express
+  well-known operations research problems, which it also teaches.
+  docs/roadmap.md is the source of truth for scope, stage order (M0-M12, with
+  M7a between M7 and M8) and open questions; cite the stage a change belongs to.
 
-  Domain model: a scenario is one line of stations with per-resource capacity
-  (30 units per enabled resource in game terms), shuttling trains with
-  capacity, speed and per-unit dwell time, and a catchment behind each station
-  (producers, consumers, depots, rate-limited drones) with randomised rates and
-  shocks. A policy is called when a train stops, receives a snapshot of the
-  world limited by the scenario's information level (local, line,
-  line+history, colony), and issues load, unload, log and record actions.
+  Domain model: a scenario (format 2) is a network of stations joined by
+  arcs. Stations hold resources with capacities, and have producers and
+  consumers (rates with variability, Poisson, per-period, traces, profiles),
+  converters, suppliers with lead times, review schedules, expiring stock, and
+  lost or backordered demand. Vehicles follow fixed shuttle, loop or timetable
+  routes with capacity, speed and per-unit dwell time; free routing is out of
+  scope. Costs are optional. World events scale supply or demand for a time
+  window. Format 1 (one line of stations and shuttling trains) is upgraded on
+  load and must give identical results. A Surviving Mars line is one shuttle
+  route; its stations hold 30 or 60 units per enabled resource. Policies have
+  on_start, on_stop (a vehicle stops: load, unload, log, record) and on_review
+  (a station orders from its suppliers) hooks, with snapshots limited by the
+  scenario's information level (local, line; line+history and colony reserved).
+  Only on_start and on_stop on a single shuttle line are mod-ready.
+
+  Scenario authoring: scenarios are written as sandboxed Lua scripts that call
+  construct libraries and evaluate to validated JSON. Packs: mars (game
+  vocabulary and units, used by the starter scenarios) and classic (newsvendor,
+  reorder, serial chain, fixed-route delivery templates with reference policies
+  and analytic checks). Constructs are described once in scenario-kit, which
+  drives editor help and documentation.
   Categories: Vanilla (local, line) and Extended. A site is one station and one
   resource. Inventory position is on hand plus inbound minus promised. The
   baseline is the naive policy reproducing the game for a stated game version.
@@ -36,15 +52,16 @@ context: |
 
   Tech stack: TypeScript (strict), pnpm workspaces, Vite, React, Zustand, Radix
   UI with CSS Modules, CodeMirror 6, Canvas 2D, uPlot, Observable Plot, Comlink
-  over module Web Workers, Zod, a Lua VM in the browser (wasmoon or Fengari),
+  over module Web Workers, Zod, wasmoon (Lua 5.4 in WebAssembly),
   MDX docs prerendered with React Router 7, KaTeX, Shiki, MiniSearch. Tests:
   Vitest, fast-check, Playwright on Chromium, Firefox and WebKit. Biome for
-  lint and format. GitHub Actions; static hosting on GitHub Pages or
-  Cloudflare Pages. No backend, no accounts. Licence Apache-2.0.
+  lint and format. GitHub Actions; static hosting on GitHub Pages, with an S3
+  and CloudFront guide. No backend, no accounts. Licence Apache-2.0.
 
   Packages: engine (simulation core, no DOM), policy-api (API spec and ops),
-  lua-runtime, bench (suites, bounds, scoring), cli (Node runner), app (web
-  UI), docs (content), mod (game adapter, later).
+  lua-runtime (policies and scenario scripts), scenario-kit (construct
+  libraries and packs), bench (suites, bounds, scoring), cli (Node runner), app
+  (web UI), docs (content and checks), mod (game adapter, later).
 
   Non-negotiable constraints:
   - Determinism: the same scenario, policy and seed give identical results in
@@ -52,7 +69,10 @@ context: |
     fixed-point rates; own seeded PRNG with a separate stream per source; no
     Math.random, Date, or engine-dependent Math functions (exp, log, pow,
     trig) in simulation paths.
-  - One policy file runs unchanged in the simulator and in the game.
+  - One policy file runs unchanged in the simulator and in the game, for
+    mod-ready pairings.
+  - Golden result hashes for the starter scenarios never change unless a new
+    engine version is declared.
   - The simulation never runs on the main thread; high-frequency rendering
     bypasses React state.
   - Benchmarks, baselines and the Policy API are versioned and never edited in
@@ -65,7 +85,8 @@ context: |
   - IP: no game assets, no copied game code, no game trademarks in names or
     branding; include a non-affiliation notice on public surfaces.
 
-  Out of scope: backend or leaderboard, passengers, networks of connected
+  Out of scope: backend or leaderboard, passengers, free vehicle routing
+  (research track at most), Surviving Mars colonies with several connected
   lines, colony simulation beyond catchments, other games.
 
 # Per-artifact rules (optional)

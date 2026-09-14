@@ -5,18 +5,22 @@ export interface CodeMeta {
   runnable: boolean;
   /** Holds the log lines the runnable example before it must produce. */
   output: boolean;
+  /** The example is a scenario script rather than a policy. */
+  script: boolean;
+  /** A starter id, or a classic template name such as `classic.reorder` with its defaults. */
   scenario: string;
   seed: number;
 }
 
 /**
  * Reads the words after a code fence's language, such as
- * `lua runnable scenario=relay seed=3`.
+ * `lua runnable scenario=relay seed=3` or `lua runnable script`.
  */
 export function parseCodeMeta(meta: string | null | undefined): CodeMeta {
   const result: CodeMeta = {
     runnable: false,
     output: false,
+    script: false,
     scenario: DEFAULT_EXAMPLE_SCENARIO,
     seed: 1,
   };
@@ -24,6 +28,7 @@ export function parseCodeMeta(meta: string | null | undefined): CodeMeta {
     const [key, value] = token.split("=", 2) as [string, string | undefined];
     if (key === "runnable") result.runnable = true;
     else if (key === "output") result.output = true;
+    else if (key === "script") result.script = true;
     else if (key === "scenario" && value) result.scenario = value;
     else if (key === "seed" && value && /^\d+$/.test(value)) result.seed = Number(value);
   }

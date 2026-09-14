@@ -1,4 +1,5 @@
 import { createStore, del, get, set, type UseStore, values } from "idb-keyval";
+import type { ScenarioKind, ScenarioSource } from "./scenario-source.ts";
 
 export interface SavedPolicy {
   kind: "policy";
@@ -11,6 +12,8 @@ export interface SavedScenario {
   kind: "scenario";
   name: string;
   text: string;
+  /** Whether the text is a script or JSON; saves from before scripts hold JSON. */
+  scenarioKind?: ScenarioKind;
   savedAt: number;
 }
 
@@ -19,7 +22,8 @@ export type SavedItem = SavedPolicy | SavedScenario;
 export interface Draft {
   policy: { name: string; source: string };
   policyB: { name: string; source: string };
-  scenario: { starterId: string | null; text: string };
+  /** A scenario record; drafts from before scenario scripts hold `{ starterId, text }`. */
+  scenario: ScenarioSource;
   seed: number;
 }
 

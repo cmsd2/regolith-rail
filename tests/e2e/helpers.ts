@@ -19,5 +19,7 @@ export async function setEditorText(page: Page, testId: string, text: string) {
 export async function run(page: Page) {
   await page.getByTestId("run").click();
   await expect(page.getByTestId("run")).toBeVisible({ timeout: 90_000 });
-  await expect(page.locator('canvas[data-testid="line-map"]')).toBeVisible();
+  await expect(page.locator('canvas[data-testid="line-map"][data-replaying="true"]')).toBeVisible({
+    timeout: 90_000,
+  });
 }

@@ -3,8 +3,10 @@ import {
   type Policy,
   type PolicyOutcome,
   type Random,
+  type ReviewSnapshot,
   type RunContext,
   type StartSnapshot,
+  type StationSnapshot,
   type StopSnapshot,
   streamFor,
 } from "@regolith-rail/engine";
@@ -13,6 +15,13 @@ import { LuaEngine, LuaFactory, type LuaWasm } from "wasmoon";
 import { checkPolicySource, instrumentPolicySource } from "./check.ts";
 import { toLuaLiteral } from "./literal.ts";
 import { PRELUDE } from "./prelude.ts";
+import {
+  type Evaluation,
+  evaluateScript,
+  libraryConstructs,
+  loadScript,
+  type ScriptScenario,
+} from "./scenario.ts";
 
 /** Loop iterations and function calls a single hook call may make. */
 export const DEFAULT_BUDGET = 200_000;
@@ -27,10 +36,27 @@ export interface LuaPolicyOptions {
   saveReloadTest?: boolean;
 }
 
+export type PolicyHook = "on_start" | "on_stop" | "on_review";
+
+/** The hooks a policy's module defines, or why it does not load. */
+export interface PolicyHooks {
+  hooks: PolicyHook[];
+  error?: PolicyOutcome["error"];
+}
+
 interface Entry {
-  load(source: string, ops: string, level: string): string;
+  load(
+    source: string,
+    ops: string,
+    level: string,
+    needsStop: boolean,
+    needsReview: boolean,
+  ): string;
+  layout(literal: string): void;
   start(literal: string): string;
   stop(literal: string): string;
+  review(literal: string): string;
+  hooks(): string;
   save(): string;
   restore(text: string): void;
 }
@@ -59,6 +85,26 @@ export class LuaRuntime {
   createPolicy(source: string, options: LuaPolicyOptions = {}): LuaPolicy {
     return new LuaPolicy(this.module, source, options);
   }
+
+  /** Loads a policy without running any hook and lists the hooks it defines. */
+  hooksOf(source: string): PolicyHooks {
+    return this.createPolicy(source).inspect();
+  }
+
+  /** Evaluates a scenario script to a document, without validating it. */
+  evaluateScript(source: string, budget?: number): Evaluation {
+    return evaluateScript(this.module, source, budget);
+  }
+
+  /** Evaluates a scenario script and validates it, with errors at script lines. */
+  loadScript(source: string, budget?: number): ScriptScenario {
+    return loadScript(this.module, source, budget);
+  }
+
+  /** Constructs and functions the scenario libraries define, for description checks. */
+  libraryConstructs() {
+    return libraryConstructs(this.module);
+  }
 }
 
 function parseOutcome(json: string): PolicyOutcome {
@@ -73,6 +119,48 @@ function parseOutcome(json: string): PolicyOutcome {
   };
 }
 
+/**
+ * The parts of a context that do not change during a run. Stations refer to each other by id;
+ * the prelude links them back into shared tables.
+ */
+function layoutOf(snapshot: StartSnapshot) {
+  return {
+    information_level: snapshot.information_level,
+    station_order: snapshot.station_order,
+    resource_order: snapshot.resource_order,
+    resources: snapshot.resources,
+    vehicles: snapshot.vehicles,
+    stations: snapshot.station_order.map((id) => {
+      const station = snapshot.stations[id] as StationSnapshot;
+      return {
+        id,
+        index: station.index,
+        resources: station.resources,
+        suppliers: station.suppliers,
+        neighbours: station.neighbours.map((n) => ({
+          station: n.station.id,
+          distance: n.distance,
+        })),
+      };
+    }),
+  };
+}
+
+/** Quantities of the stations the policy can see in this call, by station id. */
+function quantitiesOf(stations: Record<string, StationSnapshot>) {
+  const out: Record<string, unknown> = {};
+  for (const [id, s] of Object.entries(stations)) {
+    if (s.stock === undefined) continue;
+    out[id] = {
+      stock: s.stock,
+      capacity: s.capacity,
+      backorders: s.backorders,
+      on_order: s.on_order,
+    };
+  }
+  return out;
+}
+
 /** A policy written in Lua, run in a fresh sandboxed Lua state for every run. */
 export class LuaPolicy implements Policy {
   private state: LuaEngine | undefined;
@@ -83,6 +171,8 @@ export class LuaPolicy implements Policy {
   private shuffle: Random | undefined;
   private reload: Random | undefined;
   private level: RunContext["informationLevel"] = "line";
+  private hooks: RunContext["hooks"] = { stop: true, review: false };
+  private layout = "";
   private readonly module: LuaWasm;
   private readonly options: LuaPolicyOptions;
 
@@ -117,16 +207,32 @@ export class LuaPolicy implements Policy {
     state.doStringSync(PRELUDE);
     const table = state.global.get("__rr") as Record<keyof Entry, (...args: unknown[]) => unknown>;
     this.entry = {
-      load: (source, ops, level) => table.load(source, ops, level) as string,
+      load: (source, ops, level, needsStop, needsReview) =>
+        table.load(source, ops, level, needsStop, needsReview) as string,
+      layout: (literal) => {
+        table.layout(literal);
+      },
       start: (literal) => table.start(literal) as string,
       stop: (literal) => table.stop(literal) as string,
+      review: (literal) => table.review(literal) as string,
+      hooks: () => table.hooks() as string,
       save: () => table.save() as string,
       restore: (text) => {
         table.restore(text);
       },
     };
     this.state = state;
-    return parseOutcome(this.entry.load(this.instrumented as string, opsSource(), this.level));
+    const loaded = parseOutcome(
+      this.entry.load(
+        this.instrumented as string,
+        opsSource(),
+        this.level,
+        this.hooks.stop,
+        this.hooks.review,
+      ),
+    );
+    if (!loaded.error && this.layout) this.entry.layout(this.layout);
+    return loaded;
   }
 
   start(snapshot: StartSnapshot, run: RunContext): PolicyOutcome {
@@ -135,9 +241,12 @@ export class LuaPolicy implements Policy {
     this.shuffle = streamFor(run.seed, "policy:pairs");
     this.reload = streamFor(run.seed, "policy:reload");
     this.level = run.informationLevel;
+    this.hooks = run.hooks;
+    this.layout = toLuaLiteral(layoutOf(snapshot));
     const loaded = this.open();
     if (loaded.error) return loaded;
-    return parseOutcome((this.entry as Entry).start(toLuaLiteral(snapshot)));
+    const call = { now: snapshot.now, quantities: quantitiesOf(snapshot.stations) };
+    return parseOutcome((this.entry as Entry).start(toLuaLiteral(call)));
   }
 
   stop(snapshot: StopSnapshot): PolicyOutcome {
@@ -149,7 +258,50 @@ export class LuaPolicy implements Policy {
       if (loaded.error) return loaded;
       (this.entry as Entry).restore(saved);
     }
-    return parseOutcome((this.entry as Entry).stop(toLuaLiteral(snapshot)));
+    const { vehicle } = snapshot;
+    const call = {
+      now: snapshot.now,
+      stop: snapshot.stop,
+      here: snapshot.here.id,
+      quantities: quantitiesOf(snapshot.stations),
+      vehicle: {
+        ...vehicle,
+        route: {
+          kind: vehicle.route.kind,
+          ahead: vehicle.route.ahead.map((a) => ({ ...a, station: a.station.id })),
+        },
+      },
+    };
+    return parseOutcome((this.entry as Entry).stop(toLuaLiteral(call)));
+  }
+
+  review(snapshot: ReviewSnapshot): PolicyOutcome {
+    if (this.loadError) return { ...emptyOutcome(), error: this.loadError };
+    if (!this.entry) throw new Error("review called before start");
+    const call = {
+      now: snapshot.now,
+      review: snapshot.review,
+      here: snapshot.here.id,
+      quantities: quantitiesOf(snapshot.stations),
+    };
+    return parseOutcome(this.entry.review(toLuaLiteral(call)));
+  }
+
+  /** Loads the policy without running any hook and lists the hooks its module defines. */
+  inspect(): PolicyHooks {
+    if (this.loadError) return { hooks: [], error: this.loadError };
+    this.rand = streamFor(0, "policy:rand");
+    this.shuffle = streamFor(0, "policy:pairs");
+    this.level = "line";
+    this.hooks = { stop: false, review: false };
+    this.layout = "";
+    try {
+      const loaded = this.open();
+      if (loaded.error) return { hooks: [], error: loaded.error };
+      return { hooks: JSON.parse((this.entry as Entry).hooks()) as PolicyHook[] };
+    } finally {
+      this.close();
+    }
   }
 
   /** Releases the Lua state. The policy can be started again afterwards. */

@@ -1,7 +1,8 @@
 ## How it works
 
-Lookahead first serves the station the train is stopped at. Then it walks the stations
-ahead in the train's direction, nearest first, and adds up the shortfall of each one:
+Lookahead first serves the station the train is stopped at. Then it walks the stops
+ahead on the train's route, nearest first, until the route comes back to a station it
+has already passed, and adds up the shortfall of each one:
 how far its inventory position is below its target, limited by its free space.
 
 - At a site that wants to give stock away, it loads only what is needed ahead, so a

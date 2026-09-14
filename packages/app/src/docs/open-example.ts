@@ -1,13 +1,22 @@
 import { POLICY_API_VERSION } from "@regolith-rail/engine";
 import type { NavigateFunction } from "react-router";
+import { findTemplate, starterSource, templateSource } from "../lib/scenario-source.ts";
 import { encodeShare } from "../lib/share.ts";
 import { workbench } from "../state/instance.ts";
-import { starterText, type WorkContent } from "../state/workbench.ts";
+import type { WorkContent } from "../state/workbench.ts";
 
 export interface ExampleToOpen {
   source: string;
+  /** A policy, or a scenario script that opens in the scenario editor. */
+  kind: "policy" | "script";
   scenario: string;
   seed: number;
+}
+
+/** A starter scenario by id, or a classic template with its defaults. */
+function exampleScenario(id: string) {
+  const template = findTemplate(id);
+  return template ? templateSource(template.name, template.defaults) : starterSource(id);
 }
 
 /** Puts a documentation example in the editor without running it. */
@@ -16,18 +25,22 @@ export async function openExample(
   mode: "page" | "panel",
   navigate: NavigateFunction,
 ): Promise<void> {
+  const state = workbench.getState();
+  const script = example.kind === "script";
   const content: WorkContent = {
     view: "run",
-    policy: { name: "example.lua", source: example.source },
-    scenario: { starterId: example.scenario, text: starterText(example.scenario) },
+    // A script example keeps the policy in the editor.
+    policy: script ? state.policy : { name: "example.lua", source: example.source },
+    scenario: script
+      ? { kind: "script", source: example.source, starterId: null }
+      : exampleScenario(example.scenario),
     seed: example.seed,
     saveReloadTest: false,
   };
-  const state = workbench.getState();
   if (state.loaded) {
     // The workbench is already open in this tab, so change it directly.
     state.restore(content);
-    state.setEditorTab("policy");
+    state.setEditorTab(script ? "scenario" : "policy");
     if (mode === "page") await navigate("/");
     return;
   }

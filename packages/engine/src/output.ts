@@ -27,29 +27,85 @@ export type RunEvent =
       /** Positive when loaded onto the train, negative when unloaded. */
       amount: number;
     })
-  | (AtStop & {
+  | (At & {
       kind: "warning";
+      stop?: number;
+      train?: string;
+      station: string;
+      review?: number;
       message: string;
-      action?: { type: "load" | "unload"; resource: string; requested: number; applied: number };
+      action?: {
+        type: "load" | "unload" | "order";
+        resource: string;
+        requested: number;
+        applied: number;
+      };
     })
-  | (At & { kind: "log"; stop?: number; train?: string; station?: string; message: string })
-  | (At & { kind: "record"; stop?: number; name: string; value: number })
-  | (AtStop & { kind: "trace"; trace: Trace })
+  | (At & {
+      kind: "log";
+      stop?: number;
+      train?: string;
+      station?: string;
+      review?: number;
+      message: string;
+    })
+  | (At & { kind: "record"; stop?: number; review?: number; name: string; value: number })
+  | (At & {
+      kind: "trace";
+      stop?: number;
+      train?: string;
+      station: string;
+      review?: number;
+      trace: Trace;
+    })
   | (At & {
       kind: "error";
       stop?: number;
       train?: string;
       station?: string;
+      review?: number;
       errorKind: PolicyErrorKind;
       message: string;
       line?: number;
     })
-  | (At & { kind: "event-start" | "event-end"; event: string; label: string });
+  | (At & { kind: "event-start" | "event-end"; event: string; label: string })
+  | (At & { kind: "review"; review: number; station: string })
+  | (At & {
+      kind: "order";
+      review: number;
+      station: string;
+      resource: string;
+      from: string;
+      requested: number;
+      amount: number;
+    })
+  | (At & {
+      kind: "shipment";
+      /** The supplying station, or `external`. */
+      station: string;
+      to: string;
+      resource: string;
+      amount: number;
+      arrivesAt: number;
+    })
+  | (At & { kind: "delivery"; station: string; resource: string; amount: number; overflow: number })
+  | (At & { kind: "expire"; station: string; resource: string; amount: number });
 
 export interface ResourceMetrics {
   unmet: number;
   stalled: number;
   met: number;
+}
+
+/** Costs in thousandths of a cost unit, each component rounded down. */
+export interface CostMetrics {
+  total: number;
+  holding: number;
+  ordering: number;
+  transport: number;
+  lostDemand: number;
+  backorders: number;
+  stalledProduction: number;
 }
 
 export interface Metrics {
@@ -71,6 +127,20 @@ export interface Metrics {
   warnings: number;
   policyErrors: number;
   budgetOverruns: number;
+  /** Backordered demand averaged over every tick of the run, in milli-units. */
+  backorderAverage: number;
+  /** The largest total backorder at the end of any tick. */
+  backorderPeak: number;
+  /** Stock removed because it expired at a review. */
+  expired: number;
+  /** Deliveries that did not fit at the station they arrived at. */
+  overflow: number;
+  /** Time, summed over converters, when a due batch lacked its inputs. */
+  converterStarvedMs: number;
+  /** Time, summed over converters, when a due batch had no room for its outputs. */
+  converterBlockedMs: number;
+  /** Costs stated by the scenario, all zero when it states none. */
+  costs: CostMetrics;
   byResource: Record<string, ResourceMetrics>;
 }
 
@@ -94,11 +164,18 @@ export interface RunOutput {
   stations: string[];
   resources: string[];
   trains: string[];
+  /** Stock point each vehicle is at before its first stop. */
+  trainStarts: string[];
   sites: Site[];
   /** Stock per site at every tick boundary, row-major (only with full detail). */
   stock?: Int32Array;
   /** Cargo per train and resource at every tick boundary (only with full detail). */
   cargo?: Int32Array;
+  /**
+   * Backordered demand per site at every tick boundary, only with full detail and when the
+   * scenario backorders demand. Derived from the same state as stock, so not hashed.
+   */
+  backorders?: Int32Array;
   samples: {
     intervalMs: number;
     t: number[];
@@ -134,6 +211,8 @@ export interface LineState {
   stock: number[];
   /** Cargo per train, then per resource. */
   cargo: number[][];
+  /** Backordered demand per site, when the run records it. */
+  backorders?: number[];
   trains: TrainPlace[];
 }
 
@@ -209,11 +288,19 @@ export function stateAt(output: RunOutput, t: number): LineState {
     }
   }
 
+  const backorders = output.backorders
+    ? Array.from(output.backorders.subarray(row * siteCount, (row + 1) * siteCount))
+    : undefined;
   return {
     t: time,
     stock: stockNow,
     cargo: cargoNow,
-    // Every train arrives at its start station at time 0, so a place is always found.
-    trains: places.map((place) => place ?? { state: "stopped", station: "", direction: "forward" }),
+    ...(backorders ? { backorders } : {}),
+    // Vehicles without an arrival yet, such as timetables before their first trip, wait at
+    // their start.
+    trains: places.map(
+      (place, i) =>
+        place ?? { state: "stopped", station: output.trainStarts[i] ?? "", direction: "forward" },
+    ),
   };
 }

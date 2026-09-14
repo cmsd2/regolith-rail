@@ -14,6 +14,10 @@ describe("starter scenarios", () => {
   });
 
   for (const starter of starterScenarios) {
+    it(`${starter.id} is written in format 2`, () => {
+      expect((starter.document as { format: number }).format).toBe(2);
+    });
+
     it(`${starter.id} passes validation and links to its documentation`, () => {
       const result = validateScenario(starter.document);
       expect(result.ok ? [] : result.errors).toEqual([]);

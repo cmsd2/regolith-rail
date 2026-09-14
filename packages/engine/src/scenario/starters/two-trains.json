@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "id": "two-trains",
   "title": "Two trains",
   "description": "Two trains share a line from a mine to a factory and a dome. Without knowing what the other train is carrying, both respond to the same shortage, oversupplying one station while the other waits.",
@@ -12,13 +12,11 @@
     {
       "id": "Mine",
       "resources": [{ "id": "Metals", "capacity": 60000, "initial": 30000 }],
-      "distanceToNext": 30000,
       "producers": [{ "resource": "Metals", "rate": 80000 }]
     },
     {
       "id": "Factory",
       "resources": [{ "id": "Metals", "initial": 15000 }],
-      "distanceToNext": 42000,
       "consumers": [
         {
           "resource": "Metals",
@@ -39,10 +37,14 @@
       ]
     }
   ],
-  "trains": [
+  "arcs": [
+    { "from": "Mine", "to": "Factory", "distance": 30000 },
+    { "from": "Factory", "to": "Dome", "distance": 42000 }
+  ],
+  "vehicles": [
     {
       "id": "T1",
-      "start": "Mine",
+      "route": { "kind": "shuttle", "stops": ["Mine", "Factory", "Dome"], "start": "Mine" },
       "speed": 5,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,
@@ -50,8 +52,12 @@
     },
     {
       "id": "T2",
-      "start": "Dome",
-      "direction": "backward",
+      "route": {
+        "kind": "shuttle",
+        "stops": ["Mine", "Factory", "Dome"],
+        "start": "Dome",
+        "direction": "backward"
+      },
       "speed": 5,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,

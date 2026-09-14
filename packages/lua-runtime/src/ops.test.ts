@@ -4,7 +4,7 @@ import {
   type RunOutput,
   runSimulation,
   type Scenario,
-  type ScenarioInput,
+  type ScenarioV1Input as ScenarioInput,
   starterScenarios,
   validateScenario,
 } from "@regolith-rail/engine";
@@ -222,7 +222,7 @@ describe("inventory position and lookahead", () => {
     expect(transfers(out).slice(0, 1)).toEqual(["1:T1@S Metals 10000"]);
     expect(transfers(out).some((t) => t.startsWith("2:"))).toBe(false);
     const reservations = ofKind(out.events, "trace").filter(
-      (e) => e.trace.block === "lookahead" && e.trace.station === "D" && e.stop <= 2,
+      (e) => e.trace.block === "lookahead" && e.trace.station === "D" && (e.stop ?? 0) <= 2,
     );
     expect(reservations.map((e) => [e.train, e.trace.result])).toEqual([["T1", 10_000]]);
   });
@@ -321,6 +321,111 @@ describe("allocation", () => {
       scenario,
     );
     expect(transfers(out).slice(0, 2).sort()).toEqual(["1:T1@A Food 10000", "1:T1@A Metals 2000"]);
+  });
+});
+
+describe("reviews", () => {
+  const DAY = 24 * HOUR;
+
+  /** A shop reviewed daily, selling 2 Beer a day with backorders, and a two-day lead time. */
+  const shop = (): Scenario => {
+    const result = validateScenario({
+      format: 2,
+      id: "shop",
+      title: "Shop",
+      description: "A shop ordering beer.",
+      durationMs: 6 * DAY,
+      seed: 1,
+      informationLevel: "local",
+      resources: [{ id: "Beer" }],
+      stations: [
+        {
+          id: "Shop",
+          resources: [{ id: "Beer", capacity: 100_000, initial: 3000 }],
+          consumers: [{ resource: "Beer", rate: 2000, unmet: "backorder" }],
+          suppliers: [
+            { resource: "Beer", from: "external", leadTime: { kind: "fixed", value: 2 * DAY } },
+          ],
+          review: { periodMs: DAY },
+        },
+      ],
+    });
+    if (!result.ok) throw new Error(JSON.stringify(result.errors));
+    return result.scenario;
+  };
+
+  /**
+   * Reviews a station with stock 3000, 2000 on order and 1000 backordered, by passing the
+   * policy a context with those quantities at the shop's first review.
+   */
+  const reviewWith = (target: string) =>
+    run(
+      `local policy = ops.policy { review = { target = ${target} } }
+      return { on_review = function(ctx)
+        if ctx.review ~= 1 then return end
+        local here = {
+          id = "Shop",
+          suppliers = ctx.here.suppliers,
+          stock = { Beer = 3000 },
+          capacity = { Beer = 100000 },
+          backorders = { Beer = 1000 },
+          on_order = { { resource = "Beer", amount = 2000, from = "external", placed_at = 0 } },
+        }
+        policy.on_review({
+          here = here, stations = { Shop = here }, station_order = ctx.station_order,
+          order = ctx.order, memory = ctx.memory,
+        })
+      end }`,
+      shop(),
+    );
+
+  const traces = (out: RunOutput) => ofKind(out.events, "trace").map((e) => e.trace);
+
+  it("order up to a base-stock level from the inventory position", () => {
+    const out = reviewWith("ops.order_up_to { level = 10000 }");
+    expect(ofKind(out.events, "order").map((e) => e.amount)).toEqual([6000]);
+    expect(traces(out)).toContainEqual(
+      expect.objectContaining({
+        block: "order_up_to",
+        inputs: { position: 4000, level: 10_000 },
+        result: 10_000,
+      }),
+    );
+    expect(traces(out)).toContainEqual(
+      expect.objectContaining({ block: "order", resource: "Beer", result: 6000 }),
+    );
+  });
+
+  it("hold off under (s, S) while the position is not below the minimum", () => {
+    const out = reviewWith("ops.min_max { min = 2000, max = 10000 }");
+    expect(ofKind(out.events, "order")).toEqual([]);
+    expect(traces(out)).toContainEqual(
+      expect.objectContaining({ block: "min_max", result: "no change" }),
+    );
+    expect(traces(out)).toContainEqual(expect.objectContaining({ block: "order", result: 0 }));
+  });
+
+  it("keep a base-stock position at its level over a run", () => {
+    const out = run(
+      "return ops.policy { review = { target = ops.order_up_to { level = 10000 } } }",
+      shop(),
+    );
+    expect(out.aborted).toBe(false);
+    // The first review orders up from 3000; each later one replaces the demand since the last.
+    // The review at one day comes before that minute's demand, so it has seen 1998.
+    expect(ofKind(out.events, "order").map((e) => [e.t, e.amount])).toEqual([
+      [0, 7000],
+      [DAY, 1998],
+      [2 * DAY, 2000],
+      [3 * DAY, 2000],
+      [4 * DAY, 2000],
+      [5 * DAY, 2000],
+    ]);
+  });
+
+  it("need a target in the review table", () => {
+    const out = run("return ops.policy { review = {} }", shop());
+    expect(loadError(out)?.message).toBe("ops.policy: review needs a target");
   });
 });
 

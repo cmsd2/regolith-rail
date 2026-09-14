@@ -3,12 +3,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
+import { constructs } from "@regolith-rail/scenario-kit";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { extractExamples, runExample } from "./examples.ts";
 import { checkLinks } from "./links.ts";
 import { assignHeadingIds, parseMdx } from "./markdown.ts";
 import { parseCodeMeta } from "./meta.ts";
-import { checkReference } from "./reference.ts";
+import { checkConstructs, checkReference, checkTemplatePages } from "./reference.ts";
 
 describe("reference check", () => {
   it("passes for the current Policy API and ops library", () => {
@@ -45,11 +46,56 @@ describe("reference check", () => {
   });
 });
 
+describe("construct reference check", () => {
+  let declared: ReturnType<LuaRuntime["libraryConstructs"]>;
+  beforeAll(async () => {
+    declared = (await LuaRuntime.load()).libraryConstructs();
+  });
+
+  it("passes for the current construct libraries", () => {
+    expect(checkConstructs(constructs, declared)).toEqual([]);
+  });
+
+  it("names a construct parameter the description leaves out", () => {
+    const withExtra = {
+      ...declared,
+      constructs: {
+        ...declared.constructs,
+        "mars.line": { ...declared.constructs["mars.line"], gauge: "integer" },
+      },
+    };
+    expect(checkConstructs(constructs, withExtra)).toEqual([
+      'mars.line parameter "gauge" has no documentation',
+    ]);
+  });
+
+  it("names a construct parameter with a blank summary", () => {
+    const blanked = constructs.map((c) =>
+      c.name === "mars.train"
+        ? { ...c, params: c.params.map((p) => (p.name === "speed" ? { ...p, summary: "" } : p)) }
+        : c,
+    );
+    expect(checkConstructs(blanked, declared)).toEqual([
+      'mars.train parameter "speed" has no documentation',
+    ]);
+  });
+});
+
+describe("classic template pages", () => {
+  it("name a template without a page", () => {
+    const pages = new Set(["classic/newsvendor", "classic/reorder", "classic/serial-chain"]);
+    expect(checkTemplatePages(constructs, pages)).toEqual([
+      "classic.fixed_route_delivery has no page at classic/fixed-route-delivery",
+    ]);
+  });
+});
+
 describe("code meta", () => {
   it("reads runnable options", () => {
     expect(parseCodeMeta("runnable scenario=relay seed=4")).toEqual({
       runnable: true,
       output: false,
+      script: false,
       scenario: "relay",
       seed: 4,
     });
@@ -92,6 +138,37 @@ describe("runnable examples", () => {
       ].join("\n"),
     );
     expect(example).toMatchObject({ scenario: "relay", output: ["hello 2"] });
+    expect(runExample(runtime, example as never)).toEqual([]);
+  });
+
+  it("evaluate scenario script examples and report their errors at script lines", () => {
+    const [good, bad] = page(
+      [
+        "```lua runnable script",
+        "return classic.serial_chain { stages = 2 }",
+        "```",
+        "",
+        "```lua runnable script",
+        "-- a typo",
+        'return scenario { id = "x", duration = sols(1), colour = 1 }',
+        "```",
+      ].join("\n"),
+    );
+    expect(good).toMatchObject({ script: true });
+    expect(runExample(runtime, good as never)).toEqual([]);
+    expect(runExample(runtime, bad as never)).toEqual([
+      "guides/example example 2 (line 5): the script failed on line 2: scenario: has no parameter named colour",
+    ]);
+  });
+
+  it("run policy examples on a classic template", () => {
+    const [example] = page(
+      [
+        "```lua runnable scenario=classic.newsvendor",
+        "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }",
+        "```",
+      ].join("\n"),
+    );
     expect(runExample(runtime, example as never)).toEqual([]);
   });
 

@@ -65,8 +65,9 @@ dwell per unit for every whole unit moved. **Lower is better** for the same deli
 ## Oscillations
 
 The number of loads at a station, for a resource, within one round trip of the last
-unload of that resource there. A round trip is the time the loading train takes to
-travel the whole line and back. **Lower is better.** High counts mean stock is being
+unload of that resource there. A round trip is the time the loading vehicle takes to go
+once round its route: out and back for a shuttle, one circuit for a loop, one trip for a
+timetable. **Lower is better.** High counts mean stock is being
 carried back the way it came; see [ping-pong](/docs/failure-modes/ping-pong).
 
 ## Stops
@@ -95,6 +96,66 @@ without transfers after an error. **Lower is better**; zero is the goal.
 
 Stops where the policy ran past the [instruction budget](/docs/language#instruction-budget).
 These are also counted as policy errors.
+
+## Backorders (average)
+
+Demand waiting to be served, averaged over every minute of the run. Only consumers that
+backorder contribute; other consumers lose unmet demand instead. **Lower is better.**
+Shown only for scenarios with backordering consumers.
+
+## Backorders (peak)
+
+The largest total backorder at the end of any minute. **Lower is better.**
+
+## Expired stock
+
+Stock removed at reviews because it expires, as in the newsvendor problem. **Lower is
+better.** Shown only for scenarios with expiring stock.
+
+## Delivery overflow
+
+Deliveries from suppliers that did not fit where they arrived. **Lower is better.** Shown
+only for scenarios with suppliers.
+
+## Converters starved
+
+Time, summed over converters, when a batch was due but its inputs were not in stock.
+**Lower is better.** Shown only for scenarios with converters.
+
+## Converters blocked
+
+Time, summed over converters, when a batch was due but there was no room for its outputs.
+**Lower is better.**
+
+## Total cost
+
+The sum of every cost the scenario states, in cost units. Each component below is rounded
+down to a thousandth of a unit. **Lower is better.** Shown only for scenarios that state
+costs.
+
+## Holding cost
+
+Cost per unit of stock held per sol, charged every minute.
+
+## Ordering cost
+
+A fixed cost for each order plus a cost for each unit ordered.
+
+## Transport cost
+
+Cost per unit of distance each vehicle travels.
+
+## Lost demand cost
+
+Cost per unit of demand that could not be met and was lost.
+
+## Backorder cost
+
+Cost per unit of backordered demand per sol, charged every minute.
+
+## Stalled production cost
+
+Cost per unit of production that did not fit at its station.
 
 ## Comparing policies
 

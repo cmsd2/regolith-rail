@@ -27,6 +27,12 @@ Regolith Rail is a browser sandbox that lets players:
 It also teaches: every building block, concept and metric is documented inside
 the app.
 
+Surviving Mars is the flagship use case, but the simulator is not limited to it.
+Its core model describes networks of stations, converters, suppliers with lead
+times, costs and vehicles on fixed routes, so well-known operations research
+problems can be expressed as well. Scenarios for either are written concisely with
+domain packs: one in the game's own vocabulary, and one of classic problems.
+
 ## 2. The problem in brief
 
 These are the failures the project sets out to demonstrate. Each becomes a
@@ -59,6 +65,10 @@ The exact vanilla rules are not yet confirmed; see §10.
 - **Static.** The app is a static website with no backend and no accounts.
 - **Documented as part of done.** A feature is not finished until it is
   documented.
+- **General core, domain packs.** The engine and scenario format know nothing
+  about any one game. Domain packs describe scenarios in their own vocabulary and
+  compile to the core format. Surviving Mars is the flagship pack and the default
+  experience.
 - **Independent of the game's IP.** No game assets, no copied game code, no
   trademarks in names or branding, and a clear non-affiliation statement.
 
@@ -70,7 +80,8 @@ The exact vanilla rules are not yet confirmed; see §10.
 | Policy language | A sandboxed subset of Lua matching the Lua version the game embeds, chosen over a Python subset so policies can become mods. |
 | Policy model | A policy is a Lua module against a versioned Policy API. It is called when a train stops, receives a snapshot of the world, and issues load and unload actions. |
 | High-level constructs | An `ops` library, written in Lua and shipped to both simulator and mod, providing operations research building blocks arranged as a pipeline. Custom Lua is the escape hatch. |
-| Simulation | Discrete, integer-based simulation of lines, stations, trains and station catchments, with randomised production, consumption and shocks. Monte Carlo over many seeds, with paired seeds for comparisons. |
+| Simulation | Discrete, integer-based simulation of networks of stations joined by arcs, with vehicles on fixed shuttle, loop or timetable routes, converters, suppliers with lead times, reviews, backorders or lost sales, costs, and randomised production, consumption and shocks. A Surviving Mars line is one shuttle route. Monte Carlo over many seeds, with paired seeds for comparisons. |
+| Scenario authoring | Scenario scripts in the same sandboxed Lua as policies, built from a constructs library and evaluated to a validated JSON document. Packs: `mars` for the game, `classic` for well-known operations research problems. |
 | Scale | Scenarios use game units: rates per sol (24 game hours) and game time, with values typical of the game rather than arbitrary ones. |
 | World events | Events are states of the world that hold for a time window, like the game's disasters, not one-off impulses. While active, an event's effects scale production (supply shocks) or consumption (demand shocks) of chosen resources at chosen stations. A storm is one kind of event. |
 | Trains and disasters | Disasters do not affect trains: speed, capacity and dwell are unchanged. |
@@ -89,6 +100,7 @@ The exact vanilla rules are not yet confirmed; see §10.
 | `policy-api` | The single definition of the Policy API. Generates TypeScript types, Lua editor annotations, documentation and shared test cases. |
 | `lua-runtime` | Runs policies: sandbox, instruction budget, information-level checks, snapshots, save/load testing. |
 | `ops` | The Lua building-block library (lives with `policy-api`). |
+| `scenario-kit` | Scenario construct libraries and packs in Lua, with the single description of every construct that drives the editor and documentation. |
 | `bench` | Benchmark suites, bounds and scoring. |
 | `cli` | Runs simulations and benchmarks in Node for CI, golden results and batch work. |
 | `app` | The web application. |
@@ -99,7 +111,13 @@ The exact vanilla rules are not yet confirmed; see §10.
 
 | Term | Meaning |
 |---|---|
-| Scenario | A complete world definition: line, stations, trains, catchments, randomness, events, duration, information level. |
+| Scenario | A complete world definition: stations, arcs, vehicles and routes, flows, suppliers, reviews, costs, randomness, events, duration, information level. |
+| Station | A place that holds stock of one or more resources: a Surviving Mars rail station, a warehouse, a shop or a stage in a supply chain. |
+| Vehicle | Anything that carries stock along a fixed route: a shuttle, a loop or a timetable. A Surviving Mars train is a vehicle on a shuttle route. |
+| Review | A scheduled moment when a policy decides what a station orders from its suppliers. |
+| Scenario script | Lua source that builds a scenario from constructs. |
+| Pack | A construct library for one domain, such as the game or classic problems. |
+| Template | A pack construct that returns a whole scenario from a few parameters. |
 | Catchment | Everything behind a station: producers, consumers, depots and drones, with limited transfer rates. |
 | Site | One station and one resource. |
 | Policy | A Lua module that decides what a train loads and unloads at each stop. |
@@ -309,6 +327,36 @@ mechanics.
 checks pass, and the failure modes in §2 each have an explanatory page linked
 to a scenario.
 
+### M7a — General scenarios and packs
+
+Comes after M7 and before M8, so the benchmark is built on the general format and
+classic problems can check the engine against known results.
+
+**Deliverables**
+- Scenario format 2: stations and arcs, vehicles on shuttle, loop and
+  timetable routes, converters, suppliers with lead times, reviews, expiring
+  stock, backorders or lost sales, costs, and Poisson, per-period, trace and
+  profile demand. Format 1 scenarios are upgraded on load.
+- Engine support for format 2, with upgraded format 1 scenarios giving exactly
+  the same results.
+- Policy API v2: a review hook with an order action and route-aware context,
+  with v1 policies unchanged and a mod-ready indication.
+- `ops` pipelines that make ordering decisions at reviews.
+- Scenario scripts: a sandboxed Lua constructs library with unit helpers and
+  errors reported at script lines.
+- The `mars` pack in game vocabulary, with the starter scenarios rewritten in it.
+- The `classic` pack: newsvendor, reorder policies, serial chain and fixed-route
+  delivery templates with reference policies and analytic checks.
+- A map for networks and loops, a template picker with parameter forms, a
+  review inspector, and scripts in share links and saved work.
+- Construct reference, a scenario scripting guide and a page per classic
+  template.
+
+**Done when** golden results are unchanged, every classic template with an
+analytic answer agrees with it within its confidence interval, and a starter
+scenario and a classic template can each be edited as a short script, run and
+shared.
+
 ### M8 — Benchmark v1 and scoring
 
 **Deliverables**
@@ -324,6 +372,8 @@ to a scenario.
   case seed, confidence intervals, instructions per stop, lines of code.
 - Categories (Vanilla, Extended) with a Mod-ready indication.
 - Golden results for the baseline stored and checked in CI.
+- A versioned result format: each version declares the output fields its hash
+  covers, so later additions to run output do not change published hashes.
 - Simulator reference documentation for metrics, score and categories.
 
 **Done when** the suite, bounds and baseline results are frozen under a version
@@ -424,13 +474,17 @@ something players can read or use.
   challenge.
 - **Engine performance.** Revisit a native engine with browser and Python
   bindings if batch or training workloads need it.
+- **Vehicle routing.** Vehicles that choose their own destinations, for
+  vehicle routing and pickup-and-delivery problems. Routes stay fixed until then.
 
 ## 8. Techniques to showcase
 
 Regolith Rail is meant to teach. Each technique below becomes something a player
 can use or watch: a building block, a metric, a scenario or a view. Each is paired
 with a documentation page that explains it, cites its sources in §12 and compares
-it with the baseline. The stage in brackets is where it is planned.
+it with the baseline. The stage in brackets is where it is planned. Where a
+classic problem template demonstrates a technique, the entry names it; templates
+arrive in M7a.
 
 The simulator often differs from the textbook setting, and those differences are
 part of the lesson. Unmet demand is lost rather than backordered. Trains limit how
@@ -452,12 +506,12 @@ visits is the review period, and the travel time for cargo is the lead time.
   so longer lines and fewer trains need fuller stations. A sweep of train count and
   speed shows unmet demand growing with the protection interval (Axsäter, 2015,
   pp. 40–41).
-- **Base-stock (order-up-to) policies** [M4]. At every review, raise the position
+- **Base-stock (order-up-to) policies** [M4; template `classic.reorder`]. At every review, raise the position
   to a level made of cycle stock plus safety stock. This is the `order_up_to`
   target, with its level drawn on the stock chart. Station and train capacity cap
   the level in ways the textbook model does not (Axsäter, 2015, pp. 42–43, 113–115;
   Snyder and Shen, 2019, pp. 105–113).
-- **Newsvendor critical ratio** [M10]. Choose the level at which the chance of
+- **Newsvendor critical ratio** [M10; template `classic.newsvendor`]. Choose the level at which the chance of
   meeting demand equals the shortage cost divided by the sum of the shortage and
   overage costs. Resource priority sets the shortage cost and stalled production is
   the overage, so a slider traces the trade-off between them (Axsäter, 2015,
@@ -466,7 +520,7 @@ visits is the review period, and the travel time for cargo is the lead time.
   service level demanded. The cycle service level, fill rate and ready rate can
   differ widely, especially under bursty demand, so all three are reported side by
   side (Axsäter, 2015, pp. 79–81, 86–87; Snyder and Shen, 2019, pp. 105–113).
-- **Min–max (s, S) policies and the economic order quantity** [M4]. Act only when
+- **Min–max (s, S) policies and the economic order quantity** [M4; template `classic.reorder`]. Act only when
   the position falls below a minimum, then restore it to a maximum. Fixed dwell per
   stop plays the part of a fixed ordering cost. The flat cost curve of the economic
   order quantity shows that batch size matters less than the reorder point. This is
@@ -484,7 +538,7 @@ visits is the review period, and the travel time for cargo is the lead time.
 
 ### 8.2 Networks of stations and disruptions
 
-- **Echelon stock** [M10]. In a chain of stock points, decide from a station's own
+- **Echelon stock** [M10; template `classic.serial_chain`]. In a chain of stations, decide from a station's own
   stock plus everything downstream and in transit. In simple serial systems this is
   optimal, and upstream stock is often best kept low. An `echelon_position` target
   removes dead stock at relays (Snyder and Shen, 2019, pp. 191–197; Axsäter, 2015,
@@ -525,7 +579,7 @@ visits is the review period, and the travel time for cargo is the lead time.
   parallel set overall reliability. Batches report the spread across seeds and the
   worst shortfalls, not just means (Snyder and Shen, 2019, pp. 372–387; Eiselt and
   Sandblom, 2022, pp. 440–445, 450–451).
-- **The bullwhip effect** [M8, M10]. Variability grows upstream through forecasting,
+- **The bullwhip effect** [M8, M10; template `classic.serial_chain`]. Variability grows upstream through forecasting,
   rationing and batching, and sharing demand information reduces it. The ratio of
   cargo variance to consumption variance is reported per station. A moving-average
   estimator shows how window length and lead time drive it (Snyder and Shen, 2019,
@@ -561,7 +615,7 @@ visits is the review period, and the travel time for cargo is the lead time.
   and a fixed cost per delivery, deliver only when stock runs out, and re-plan as
   forecasts change. This is the theory behind line-wide planning (Simchi-Levi, Chen
   and Bramel, 2014, pp. 137–143; Eiselt and Sandblom, 2022, pp. 45–49).
-- **Inventory routing** [M8, M10]. Decide jointly when, how much and on which route
+- **Inventory routing** [M8, M10; template `classic.fixed_route_delivery`]. Decide jointly when, how much and on which route
   to deliver. Regolith Rail is inventory routing with a fixed route. A relief-style
   variant scores the worst station's shortfall (Snyder and Shen, 2019, pp. 531–534,
   632–635).
@@ -721,7 +775,9 @@ visits is the review period, and the travel time for cargo is the lead time.
 - Backend services, accounts and a shared leaderboard. Verify links provide
   trust without them; a leaderboard may be reconsidered after M9.
 - Passenger transport.
-- Networks of interconnected lines. The model is one line at a time.
+- Vehicles choosing their own routes, until the research track takes it up.
+- Surviving Mars colonies with several interconnected lines. The `mars` pack
+  models one line at a time, although the core model supports networks.
 - Colony simulation beyond what a station's catchment needs.
 - Game assets, art or copied game code.
 - Other games.

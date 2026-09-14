@@ -15,6 +15,27 @@ At each stop, for every resource the station stores:
 Targets are compared with the *inventory position*: stock plus cargo other trains have
 reserved for the site. See [double dispatch](/docs/failure-modes/double-dispatch).
 
+## How a review is decided
+
+Stations with suppliers are reviewed on a schedule. When `ops.policy` is given a
+`review` table, it orders at each review too. For every resource the station has a
+supplier for:
+
+1. **Target** decides the inventory position the station should reach, with the same
+   target blocks as stops.
+2. The difference between the target and the *inventory position*, which at a review is
+   stock plus orders on the way minus backorders, is ordered when it is positive.
+
+So `ops.order_up_to` orders up to a base-stock level at every review, and `ops.min_max`
+is an (s, S) policy: it orders up to the maximum only when the position has fallen below
+the minimum. Each decision records an `order` trace with the position it started from.
+
+```lua
+return ops.policy {
+  review = { target = ops.min_max { min = 20000, max = 60000 } },
+}
+```
+
 ## The simplest policy
 
 One target for every site reproduces the naive baseline:

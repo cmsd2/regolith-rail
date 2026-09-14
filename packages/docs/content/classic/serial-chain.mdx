@@ -1,0 +1,92 @@
+---
+title: Serial supply chain
+description: Stages in series, each ordering from the one before, and how swings in demand grow upstream.
+section: Classic problems
+order: 3
+---
+
+Template: [`classic.serial_chain`](/docs/scenarios/classic#classic-serial_chain).
+
+## The problem
+
+Beer passes from a brewery through a distributor and a wholesaler to a retailer. Each
+stage orders from the stage before it and waits for shipments, and only the retailer
+sees customers. Customer demand hardly changes, yet orders swing more and more the
+further upstream they go. This is the bullwhip effect, made famous by the beer game
+(Snyder and Shen, 2019, pp. 539–562).
+
+## The scenario
+
+Stations `Stage1` to `StageN` store `Beer` with unlimited room.
+
+- `Stage1` orders from an outside brewery; every later stage orders from the stage
+  before it. Each shipment takes `lead_time`.
+- Customers buy from the last stage each period, from a discrete distribution. Unmet
+  demand is backordered at `backorder_cost` per unit per day.
+- Every stage holds stock at `holding_cost` per unit per day and is reviewed once a
+  period, a minute in.
+- A stage ships what it can when an order arrives and the rest as its own stock
+  arrives.
+
+```lua runnable script
+return classic.serial_chain {}
+```
+
+The defaults are four stages, a two-day lead time, daily reviews, customer demand of
+2, 4 or 6 with weights 1, 2 and 1, and 12 units at every stage to start.
+
+## The reference policy
+
+Each stage uses a moving-average order-up-to policy, a common rule and the one that
+shows the effect most plainly:
+
+1. Estimate the demand since the last review from the fall in the inventory position.
+2. Average the last four estimates.
+3. Order up to that average times the periods an order must cover: the lead time plus
+   one review period.
+
+The inventory position is stock plus orders on the way, less backorders and less the
+orders from the next stage still waiting for stock. Counting what is owed downstream
+needs the `line` information level.
+
+```lua
+-- In the workbench, picking the template loads the full policy.
+local position = stock + on_order - backorders - owed_downstream
+local demand = previous_position - position
+local target = average(last_four_demands) * (lead_time / review_period + 1)
+```
+
+## The reference result
+
+There is no closed form for costs here. Instead, tests check two things over the
+defaults:
+
+- **Conservation.** At every event, the beer in stock and in transit equals the starting
+  stock plus what the brewery shipped less what customers bought.
+- **Variance grows upstream.** Over 20 seeds, after a ten-day warm-up, the variance of
+  each stage's daily orders is larger than that of the stage after it, and the last
+  stage's orders vary more than customer demand, whose variance is 2.
+
+The moving average updates its forecast from noisy recent demand, and the order-up-to
+target multiplies each change by the periods it covers, so every stage passes on a
+louder version of what it saw. A longer window or a shorter lead time damps it; sharing
+customer demand with every stage removes the part caused by forecasting (Snyder and
+Shen, 2019, pp. 539–562; Axsäter, 2015, pp. 167–168).
+
+## Where the simulator differs
+
+- **Information.** In the beer game, players see only their own stage. The reference
+  policy reads orders placed by the next stage to count what it owes, which a real
+  stage would know from its own order book.
+- **Delays.** Orders reach the supplier at once; only shipping takes time. The beer game
+  also delays orders.
+- **Capacity.** The brewery never runs short, and stations have unlimited room.
+- **Better policies.** In a serial chain, base-stock policies on echelon stock, a
+  stage's own stock plus everything downstream and in transit, are optimal (Snyder and
+  Shen, 2019, pp. 191–197; Axsäter, 2015, pp. 192–198). Writing one is a good exercise.
+
+## References
+
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
+  Hoboken, NJ: John Wiley & Sons.

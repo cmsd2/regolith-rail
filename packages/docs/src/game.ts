@@ -8,6 +8,7 @@ export const GAME = "Surviving Mars: Relaunched";
 export const GAME_VERSION = "1.0";
 
 export const EVIDENCE_LEVELS = {
+  assumed: "Chosen to make a scenario work; not yet compared with the game.",
   observed: "Seen by playing the game and watching what happens.",
   "shadow-mode": "Compared against the game by running a policy beside it in a mod.",
   "game-code": "Read from the game's own code.",

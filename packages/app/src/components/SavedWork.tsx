@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { upgradeScenarioRecord } from "../lib/scenario-source.ts";
 import type { SavedItem } from "../lib/storage.ts";
 import { library, useLibrary, useWorkbench, workbench } from "../state/instance.ts";
 import styles from "./EditorPanel.module.css";
@@ -12,15 +13,6 @@ const DRAFT_LABELS = {
   failed: "Draft not saved",
 } as const;
 
-function scenarioTitle(text: string): string {
-  try {
-    const title = (JSON.parse(text) as { title?: unknown }).title;
-    return typeof title === "string" ? title : "scenario";
-  } catch {
-    return "scenario";
-  }
-}
-
 function SavedRow({ item }: { item: SavedItem }) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(item.name);
@@ -28,9 +20,18 @@ function SavedRow({ item }: { item: SavedItem }) {
   const { rename, remove } = library.getState();
 
   function open() {
-    const { setPolicy, setScenarioText } = workbench.getState();
-    if (item.kind === "policy") setPolicy({ name: item.name, source: item.source });
-    else setScenarioText(item.text);
+    const { setPolicy, openScenario } = workbench.getState();
+    if (item.kind === "policy") {
+      setPolicy({ name: item.name, source: item.source });
+      return;
+    }
+    // Saves from before scenario scripts hold JSON text without a kind.
+    const record = upgradeScenarioRecord(
+      item.scenarioKind
+        ? { kind: item.scenarioKind, source: item.text, starterId: null }
+        : { starterId: null, text: item.text },
+    );
+    if (record) openScenario(record);
   }
 
   return (
@@ -92,7 +93,7 @@ export function SavedWork({ kind }: { kind: Kind }) {
 
   if (available === false) return null;
   const defaultName =
-    kind === "policy" ? policyName : scenarioTitle(workbench.getState().scenario.text);
+    kind === "policy" ? policyName : (workbench.getState().scenario.scenario?.title ?? "scenario");
   const current = name ?? defaultName;
 
   async function save() {
@@ -100,13 +101,17 @@ export function SavedWork({ kind }: { kind: Kind }) {
     if (!trimmed) return;
     const state = workbench.getState();
     const savedAt = Date.now();
-    await library
-      .getState()
-      .save(
-        kind === "policy"
-          ? { kind, name: trimmed, source: state.policy.source, savedAt }
-          : { kind, name: trimmed, text: state.scenario.text, savedAt },
-      );
+    await library.getState().save(
+      kind === "policy"
+        ? { kind, name: trimmed, source: state.policy.source, savedAt }
+        : {
+            kind,
+            name: trimmed,
+            text: state.scenario.source,
+            scenarioKind: state.scenario.kind,
+            savedAt,
+          },
+    );
     if (kind === "policy") state.setPolicy({ ...state.policy, name: trimmed });
     setName(null);
   }

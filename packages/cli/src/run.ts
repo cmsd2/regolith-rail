@@ -15,8 +15,65 @@ import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 
 export class CliError extends Error {}
 
-/** Loads a starter scenario by id, or a scenario document from a JSON file. */
-export function loadScenario(spec: string): Scenario {
+/** Whether loading `spec` needs the Lua runtime: scenario scripts and templates do. */
+export const scenarioNeedsLua = (spec: string) => spec.endsWith(".lua");
+
+/** A template call as a one-line script, from `name=value` parameters. */
+export function templateScript(name: string, params: string[]): string {
+  if (!/^[a-z]\w*(\.[a-z]\w*)+$/.test(name)) {
+    throw new CliError(`template names look like classic.reorder, not ${name}`);
+  }
+  const fields = params.map((param) => {
+    const match = /^([a-z_]\w*)=(.*)$/s.exec(param);
+    if (!match) throw new CliError(`template parameters look like name=value, not ${param}`);
+    const [, key, value = ""] = match;
+    // Numbers, booleans and unit helper calls pass through; anything else is a string.
+    const literal =
+      /^-?\d+(\.\d+)?$/.test(value) ||
+      value === "true" ||
+      value === "false" ||
+      /^(units|minutes|hours|sols|days|weeks)\(-?\d+(\.\d+)?\)$/.test(value)
+        ? value
+        : `"${value.replace(/[\\"]/g, "\\$&").replace(/\n/g, "\\n")}"`;
+    return `${key} = ${literal}`;
+  });
+  return `return ${name} { ${fields.join(", ")} }`;
+}
+
+/** Evaluates a scenario script, reporting errors at its lines. */
+export function loadScriptScenario(source: string, label: string, runtime: LuaRuntime): Scenario {
+  const result = runtime.loadScript(source);
+  if (!result.ok) {
+    throw new CliError(
+      [
+        `${label} is not a valid scenario:`,
+        ...result.errors.map((e) => {
+          const where = [e.line === undefined ? "" : `${label}:${e.line}`, e.path ?? ""]
+            .filter(Boolean)
+            .join(" ");
+          return `  ${where ? `${where}: ` : ""}${e.message}`;
+        }),
+      ].join("\n"),
+    );
+  }
+  return result.scenario;
+}
+
+/**
+ * Loads a starter scenario by id, a scenario document from a JSON file, or a scenario script
+ * from a `.lua` file.
+ */
+export function loadScenario(spec: string, runtime?: LuaRuntime): Scenario {
+  if (scenarioNeedsLua(spec)) {
+    let source: string;
+    try {
+      source = readFileSync(spec, "utf8");
+    } catch {
+      throw new CliError(`cannot read scenario script ${spec}`);
+    }
+    if (!runtime) throw new Error(`the Lua runtime is needed to load ${spec}`);
+    return loadScriptScenario(source, spec, runtime);
+  }
   const starter = starterScenarios.find((s) => s.id === spec);
   let document: unknown = starter?.document;
   if (document === undefined) {
@@ -97,7 +154,7 @@ export const needsLua = (spec: string) => !(spec in REFERENCE_POLICIES);
 
 /** Run output as plain JSON: everything except the per-tick arrays, plus the result hash. */
 export function toJson(output: RunOutput) {
-  const { stock: _stock, cargo: _cargo, ...rest } = output;
+  const { stock: _stock, cargo: _cargo, backorders: _backorders, ...rest } = output;
   return { ...rest, hash: hashRun(output) };
 }
 

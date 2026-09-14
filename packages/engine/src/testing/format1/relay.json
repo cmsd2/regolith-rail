@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "id": "relay",
+  "title": "Relay station",
+  "description": "A junction station with no producers or consumers sits between a mine and a dome. Balancing fills it to the line average, tying up stock the dome needs.",
+  "docs": "failure-modes/dead-stock",
+  "durationMs": 864000000,
+  "seed": 1,
+  "informationLevel": "line",
+  "resources": [{ "id": "Metals" }],
+  "stations": [
+    {
+      "id": "Mine",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "distanceToNext": 36000,
+      "producers": [{ "resource": "Metals", "rate": 45000 }]
+    },
+    {
+      "id": "Junction",
+      "resources": [{ "id": "Metals" }],
+      "distanceToNext": 36000
+    },
+    {
+      "id": "Dome",
+      "resources": [{ "id": "Metals", "initial": 15000 }],
+      "consumers": [
+        {
+          "resource": "Metals",
+          "rate": 34000,
+          "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
+        }
+      ]
+    }
+  ],
+  "trains": [
+    {
+      "id": "T1",
+      "start": "Mine",
+      "speed": 5,
+      "dwellMs": 600000,
+      "dwellPerUnitMs": 60000,
+      "capacity": { "shared": 30000 }
+    }
+  ]
+}

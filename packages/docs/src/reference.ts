@@ -1,4 +1,5 @@
 import type { ApiType, OpsBlock } from "@regolith-rail/policy-api";
+import type { Construct } from "@regolith-rail/scenario-kit";
 import { API_PAGE_TITLES } from "./pages.ts";
 
 const blank = (text: string | undefined) => text === undefined || text.trim() === "";
@@ -37,6 +38,46 @@ export function checkReference(types: ApiType[], blocks: OpsBlock[]): string[] {
     for (const param of block.params) {
       if (blank(param.summary)) {
         problems.push(`${name} parameter "${param.name}" has no documentation`);
+      }
+    }
+  }
+  return problems;
+}
+
+/** Names every classic template whose documentation page does not exist. */
+export function checkTemplatePages(described: Construct[], pages: Set<string>): string[] {
+  return described
+    .filter((c) => c.kind === "template" && !pages.has(c.docs))
+    .map((c) => `${c.name} has no page at ${c.docs}`);
+}
+
+/**
+ * Names every scenario construct and construct parameter that has no reference documentation:
+ * blank in the description, or declared by a construct library without being described.
+ */
+export function checkConstructs(
+  described: Construct[],
+  declared: { constructs: Record<string, Record<string, string>>; functions: string[] },
+): string[] {
+  const problems: string[] = [];
+  const byName = new Map(described.map((c) => [c.name, c]));
+  for (const name of [...declared.functions].sort()) {
+    if (!byName.has(name)) problems.push(`${name} has no documentation`);
+  }
+  for (const [name, params] of Object.entries(declared.constructs).sort()) {
+    const construct = byName.get(name);
+    if (!construct) continue;
+    const documented = new Set(construct.params.map((p) => p.name));
+    for (const param of Object.keys(params).sort()) {
+      if (!documented.has(param))
+        problems.push(`${name} parameter "${param}" has no documentation`);
+    }
+  }
+  for (const construct of described) {
+    if (blank(construct.summary)) problems.push(`${construct.name} has no documentation`);
+    for (const param of construct.params) {
+      if (blank(param.summary)) {
+        problems.push(`${construct.name} parameter "${param.name}" has no documentation`);
       }
     }
   }

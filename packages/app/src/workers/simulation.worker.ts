@@ -9,9 +9,11 @@ const tasks = LuaRuntime.load(wasmUrl).then(simulationTasks);
 const api: SimulationWorkerApi = {
   async run(request, progress) {
     const output = (await tasks).run(request, progress);
-    const transfers = [output.stock?.buffer, output.cargo?.buffer].filter(
-      (buffer): buffer is ArrayBuffer => buffer instanceof ArrayBuffer,
-    );
+    const transfers = [
+      output.stock?.buffer,
+      output.cargo?.buffer,
+      output.backorders?.buffer,
+    ].filter((buffer): buffer is ArrayBuffer => buffer instanceof ArrayBuffer);
     return Comlink.transfer(output, transfers);
   },
   async runSeeds(request, progress) {
@@ -19,6 +21,12 @@ const api: SimulationWorkerApi = {
   },
   async check(source) {
     return (await tasks).check(source);
+  },
+  async loadScript(source) {
+    return (await tasks).loadScript(source);
+  },
+  async modReady(policy, scenario) {
+    return (await tasks).modReady(policy, scenario);
   },
 };
 

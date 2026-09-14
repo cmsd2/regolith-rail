@@ -13,6 +13,7 @@ export const checker = new SimulationClient(browserWorkerFactory);
 export const workbench = createWorkbench({
   client: new SimulationClient(browserWorkerFactory),
   pool: new BatchPool(browserWorkerFactory, batchPoolSize()),
+  evaluator: checker,
 });
 
 export const playhead = createPlayhead();

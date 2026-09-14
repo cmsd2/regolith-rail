@@ -2,7 +2,7 @@ import {
   type RunEvent,
   runSimulation,
   type Scenario,
-  type ScenarioInput,
+  type ScenarioV1Input as ScenarioInput,
   validateScenario,
 } from "@regolith-rail/engine";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -51,7 +51,7 @@ describe("Lua runtime", () => {
     const out = run(`
       return {
         on_stop = function(ctx)
-          if ctx.station.id == "A" then ctx.load("Metals", 1000) end
+          if ctx.here.id == "A" then ctx.load("Metals", 1000) end
         end,
       }
     `);
@@ -91,11 +91,11 @@ describe("policy module", () => {
   it("calls on_start once per run", () => {
     const out = run(`
       return {
-        on_start = function(ctx) ctx.log("start", ctx.now, #ctx.line.stations) end,
+        on_start = function(ctx) ctx.log("start", ctx.now, #ctx.station_order, ctx.vehicles.T1.stops[1]) end,
         on_stop = function(ctx) end,
       }
     `);
-    expect(ofKind(out.events, "log").map((e) => e.message)).toEqual(["start 0 2"]);
+    expect(ofKind(out.events, "log").map((e) => e.message)).toEqual(["start 0 2 A"]);
   });
 });
 
@@ -181,7 +181,7 @@ describe("instruction budget", () => {
 describe("context", () => {
   it("is read-only", () => {
     expect(
-      firstError("return { on_stop = function(ctx) ctx.station.stock.Metals = 1 end }"),
+      firstError("return { on_stop = function(ctx) ctx.here.stock.Metals = 1 end }"),
     ).toMatchObject({
       errorKind: "runtime",
       message: "the snapshot is read-only; keep your own data in ctx.memory",
@@ -207,24 +207,23 @@ describe("context", () => {
     expect(a?.every((v) => v >= 0 && v < 1)).toBe(true);
   });
 
-  it("measures distance and travel time along the line", () => {
+  it("measures distance and travel time over arcs", () => {
     const out = run(
-      'return { on_stop = function(ctx) ctx.log(ctx.line.distance("B", "A"), ctx.line.travel_time("A", "B")) end }',
+      'return { on_stop = function(ctx) ctx.log(ctx.distance("B", "A"), ctx.travel_time("A", "B")) end }',
     );
     expect(ofKind(out.events, "log")[0]?.message).toBe("400 40000");
   });
 
-  it("exposes train cargo, space and direction", () => {
+  it("exposes vehicle cargo, space and direction", () => {
     const out = run(
-      "return { on_stop = function(ctx) local t = ctx.train ctx.log(t.id, t.direction, t.cargo.Metals, t.space.Food, t.capacity.shared) end }",
+      "return { on_stop = function(ctx) local t = ctx.vehicle ctx.log(t.id, t.direction, t.cargo.Metals, t.space.Food, t.capacity.shared) end }",
     );
     expect(ofKind(out.events, "log")[0]?.message).toBe("T1 forward 0 30000 30000");
   });
 });
 
 describe("information levels", () => {
-  const readOther =
-    "return { on_stop = function(ctx) ctx.log(ctx.line.stations[2].stock.Metals) end }";
+  const readOther = "return { on_stop = function(ctx) ctx.log(ctx.stations.B.stock.Metals) end }";
 
   it("blocks reading another station's stock at the local level", () => {
     const s = scenario((x) => (x.informationLevel = "local"));
@@ -243,8 +242,8 @@ describe("memory", () => {
   it("keeps memory between stops", () => {
     const out = run(`return { on_stop = function(ctx)
       ctx.memory.count = (ctx.memory.count or 0) + 1
-      ctx.train.memory.seen = true
-      ctx.station.memory.visits = (ctx.station.memory.visits or 0) + 1
+      ctx.vehicle.memory.seen = true
+      ctx.here.memory.visits = (ctx.here.memory.visits or 0) + 1
       ctx.record("count", ctx.memory.count)
     end }`);
     expect(out.records.count?.v).toEqual(
@@ -268,7 +267,7 @@ describe("memory", () => {
         ?.message,
     ).toContain("ctx.memory.t.self contains a cycle");
     expect(
-      firstError("return { on_stop = function(ctx) ctx.memory.s = ctx.station end }")?.message,
+      firstError("return { on_stop = function(ctx) ctx.memory.s = ctx.here end }")?.message,
     ).toContain("ctx.memory.s holds part of the snapshot");
   });
 });
@@ -342,6 +341,6 @@ describe("errors", () => {
 
 describe("run output", () => {
   it("records the Policy API version", () => {
-    expect(run("return { on_stop = function(ctx) end }").apiVersion).toBe(1);
+    expect(run("return { on_stop = function(ctx) end }").apiVersion).toBe(2);
   });
 });

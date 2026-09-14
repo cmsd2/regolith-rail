@@ -1,7 +1,7 @@
 import fc from "fast-check";
 import type { Action, Policy } from "../policy.ts";
 import { Random } from "../random.ts";
-import type { ScenarioInput } from "../scenario/schema.ts";
+import type { ScenarioV1Input } from "../scenario/schema.ts";
 import { scriptedPolicy } from "./policies.ts";
 
 const RESOURCE_NAMES = ["Metals", "Food", "Polymers"];
@@ -23,7 +23,7 @@ const variability = fc.oneof(
 );
 
 /** Valid scenarios with small lines, varied flows, trains and world events. */
-export const arbitraryScenario: fc.Arbitrary<ScenarioInput> = fc
+export const arbitraryScenario: fc.Arbitrary<ScenarioV1Input> = fc
   .record({
     resourceCount: fc.integer({ min: 1, max: 3 }),
     stationCount: fc.integer({ min: 2, max: 4 }),
@@ -153,7 +153,7 @@ export const arbitraryScenario: fc.Arbitrary<ScenarioInput> = fc
         events: fc.tuple(...Array.from({ length: eventCount }, (_, i) => worldEvent(i))),
       })
       .map(
-        ({ stations, trains, events }): ScenarioInput => ({
+        ({ stations, trains, events }): ScenarioV1Input => ({
           format: 1,
           id: "generated",
           title: "Generated",

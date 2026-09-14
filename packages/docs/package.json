@@ -25,6 +25,7 @@
     "@regolith-rail/engine": "workspace:*",
     "@regolith-rail/lua-runtime": "workspace:*",
     "@regolith-rail/policy-api": "workspace:*",
+    "@regolith-rail/scenario-kit": "workspace:*",
     "@shikijs/rehype": "4.4.3",
     "github-slugger": "2.0.0",
     "htmlparser2": "12.0.0",

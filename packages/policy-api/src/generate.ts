@@ -30,11 +30,6 @@ export function snapshotTypesSource(): string {
     }
     lines.push("}", "");
   }
-  lines.push(
-    "/** The stopped train's station, whose stock and capacity are always present. */",
-    "export type CurrentStationSnapshot = StationSnapshot & { stock: Quantities; capacity: Quantities };",
-    "",
-  );
   return lines.join("\n");
 }
 
@@ -59,14 +54,15 @@ export function luaAnnotationsSource(): string {
     "--- A policy module.",
     "---@class Policy",
     "---@field on_start? fun(ctx: StartContext) Called once at the start of each run.",
-    "---@field on_stop fun(ctx: StopContext) Called every time a train stops.",
+    "---@field on_stop? fun(ctx: StopContext) Called every time a vehicle stops.",
+    "---@field on_review? fun(ctx: ReviewContext) Called at every review of a station.",
     "",
   );
   return lines.join("\n");
 }
 
 export interface EditorEntry {
-  /** Dotted path as written in a policy, e.g. `ctx.train.cargo`. */
+  /** Dotted path as written in a policy, e.g. `ctx.vehicle.cargo`. */
   path: string;
   name: string;
   type: string;
@@ -78,7 +74,7 @@ export interface EditorEntry {
   returns?: Field["returns"];
 }
 
-/** Completion and hover data: members of `ctx` in `on_stop`, and the ops library. */
+/** Completion and hover data: members of `ctx` in every hook, and the ops library. */
 export function editorEntries(): EditorEntry[] {
   const entries: EditorEntry[] = [];
   const visit = (type: ApiType, prefix: string, seen: Set<string>) => {
@@ -95,15 +91,25 @@ export function editorEntries(): EditorEntry[] {
         ...(field.params ? { params: field.params } : {}),
         ...(field.returns ? { returns: field.returns } : {}),
       });
-      const nested = typeByName.get(field.lua.replace(/\[\]$/, ""));
+      // Lists and tables keyed by id are both indexed with `[i]` in editor paths.
+      const keyed = /^table<string, (\w+)>$/.exec(field.lua)?.[1];
+      const nested = typeByName.get(keyed ?? field.lua.replace(/\[\]$/, ""));
       if (nested && !seen.has(nested.name)) {
-        const suffix = field.lua.endsWith("[]") ? "[i]" : "";
+        const suffix = keyed || field.lua.endsWith("[]") ? "[i]" : "";
         visit(nested, `${path}${suffix}`, new Set([...seen, nested.name]));
       }
     }
   };
-  const stop = typeByName.get("StopContext");
-  if (stop) visit(stop, "ctx", new Set([stop.name]));
+  // `ctx` differs between hooks; offer every hook's members once, stop context first.
+  for (const name of ["StopContext", "ReviewContext", "StartContext"]) {
+    const context = typeByName.get(name);
+    if (!context) continue;
+    const known = new Set(entries.map((e) => e.path));
+    const before = entries.length;
+    visit(context, "ctx", new Set([context.name]));
+    const added = entries.splice(before).filter((e) => !known.has(e.path));
+    entries.push(...added);
+  }
   for (const block of opsBlocks) {
     const params = block.params
       .map((p) => `${p.name}${p.required ? "" : "?"}: ${p.lua}`)

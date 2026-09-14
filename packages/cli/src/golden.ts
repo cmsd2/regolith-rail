@@ -1,5 +1,5 @@
 import { writeFileSync } from "node:fs";
-import { runGoldenMatrix } from "@regolith-rail/engine";
+import { hashRun, hashRunFormat1, runGoldenMatrixWith } from "@regolith-rail/engine";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { resolvePolicy } from "./run.ts";
 
@@ -8,10 +8,29 @@ export const DEFAULT_GOLDEN_PATH = new URL(
   import.meta.url,
 );
 
-/** Result hashes for the determinism matrix, keyed `policy/scenario/seed`. */
-export async function computeGolden(): Promise<Record<string, string>> {
+/** Hashes recorded before scenario format 2, over the output fields that existed then. */
+export const FORMAT1_GOLDEN_PATH = new URL(
+  "../../../tests/determinism/golden-format1.json",
+  import.meta.url,
+);
+
+/**
+ * Result hashes for the determinism matrix, keyed `policy/scenario/seed`: over the whole
+ * output, and over the fields that existed before scenario format 2.
+ */
+export async function computeGoldens(): Promise<{
+  current: Record<string, string>;
+  format1: Record<string, string>;
+}> {
   const runtime = await LuaRuntime.load();
-  return runGoldenMatrix((name) => resolvePolicy(name, runtime));
+  return runGoldenMatrixWith((name) => resolvePolicy(name, runtime), {
+    current: hashRun,
+    format1: hashRunFormat1,
+  });
+}
+
+export async function computeGolden(): Promise<Record<string, string>> {
+  return (await computeGoldens()).current;
 }
 
 export async function writeGolden(out?: string): Promise<string> {
