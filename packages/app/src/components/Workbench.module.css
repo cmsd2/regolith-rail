@@ -22,7 +22,11 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  /* Always keep room for the scrollbar, so the run view's width never changes as its content grows
+     and shrinks during playback. */
+  overflow-x: auto;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
 }
 
 /* Documentation opens as a last column, so the library, the editor, the run and the docs are all in view. */
