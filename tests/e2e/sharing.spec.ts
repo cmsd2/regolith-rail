@@ -1,6 +1,6 @@
 import { deflateRawSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
-import relay from "../../packages/engine/src/scenario/starters/relay.json" with { type: "json" };
+import relay from "../../packages/engine/src/testing/format1/relay.json" with { type: "json" };
 import { openWorkbench, setEditorText } from "./helpers.ts";
 
 const POLICY = "-- shared policy\nreturn ops.policy { target = ops.balance {} }\n";
@@ -15,7 +15,7 @@ const sharedState = {
   appVersion: "test",
   view: "run",
   policy: { name: "shared.lua", source: POLICY },
-  // Matches the starter's text exactly, so the link names the starter.
+  // The first release's starter document, unedited, so the link names the starter.
   scenario: { starterId: "relay", text: `${JSON.stringify(relay, null, 2)}\n` },
   seed: 7,
   saveReloadTest: false,

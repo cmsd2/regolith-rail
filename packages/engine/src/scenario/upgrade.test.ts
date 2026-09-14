@@ -2,6 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { arbitraryScenario } from "../testing/arbitrary.ts";
 import { minimalScenario } from "../testing/fixtures.ts";
+import { format1Starters } from "../testing/format1-starters.ts";
 import { ScenarioV2 } from "./format2.ts";
 import { ScenarioV1 } from "./schema.ts";
 import { starterScenarios } from "./starters.ts";
@@ -9,17 +10,20 @@ import { upgradeV1 } from "./upgrade.ts";
 import { validateScenario } from "./validate.ts";
 
 describe("format 1 upgrade", () => {
-  it("upgrades every starter scenario to a valid format 2 document", () => {
-    for (const starter of starterScenarios) {
-      const result = validateScenario(starter.document);
-      expect(result.ok ? [] : result.errors, starter.id).toEqual([]);
-      if (!result.ok) continue;
-      expect(result.scenario.format).toBe(2);
+  it("upgrades every first-release starter to exactly the format 2 starter", () => {
+    expect(format1Starters.map((s) => s.id)).toEqual(starterScenarios.map((s) => s.id));
+    for (const starter of format1Starters) {
+      expect((starter.document as { format: number }).format).toBe(1);
+      const upgraded = validateScenario(starter.document);
+      expect(upgraded.ok ? [] : upgraded.errors, starter.id).toEqual([]);
+      const current = validateScenario(starterScenarios.find((s) => s.id === starter.id)?.document);
+      if (!upgraded.ok || !current.ok) throw new Error(`${starter.id} should validate`);
+      expect(upgraded.scenario, starter.id).toEqual(current.scenario);
     }
   });
 
   it("turns two-station into two stations, one arc and one shuttle", () => {
-    const starter = starterScenarios.find((s) => s.id === "two-station");
+    const starter = format1Starters.find((s) => s.id === "two-station");
     const result = validateScenario(starter?.document);
     if (!result.ok) throw new Error("two-station should validate");
     const { scenario } = result;

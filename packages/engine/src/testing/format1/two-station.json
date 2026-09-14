@@ -1,9 +1,9 @@
 {
-  "format": 2,
-  "id": "relay",
-  "title": "Relay station",
-  "description": "A junction station with no producers or consumers sits between a mine and a dome. Balancing fills it to the line average, tying up stock the dome needs.",
-  "docs": "failure-modes/dead-stock",
+  "format": 1,
+  "id": "two-station",
+  "title": "Two stations",
+  "description": "A mining outpost supplies a dome over a long line with one train. Balancing moves at most half the stock difference per visit, so the dome runs short while the mine's station fills and its extractors stall, even though one train could carry enough.",
+  "docs": "failure-modes/half-capacity",
   "durationMs": 864000000,
   "seed": 1,
   "informationLevel": "line",
@@ -12,29 +12,25 @@
     {
       "id": "Mine",
       "resources": [{ "id": "Metals", "initial": 15000 }],
+      "distanceToNext": 72000,
       "producers": [{ "resource": "Metals", "rate": 45000 }]
     },
-    { "id": "Junction", "resources": [{ "id": "Metals" }] },
     {
       "id": "Dome",
       "resources": [{ "id": "Metals", "initial": 15000 }],
       "consumers": [
         {
           "resource": "Metals",
-          "rate": 34000,
+          "rate": 36000,
           "variability": { "kind": "uniform", "rangePercent": 20, "periodMs": 7200000 }
         }
       ]
     }
   ],
-  "arcs": [
-    { "from": "Mine", "to": "Junction", "distance": 36000 },
-    { "from": "Junction", "to": "Dome", "distance": 36000 }
-  ],
-  "vehicles": [
+  "trains": [
     {
       "id": "T1",
-      "route": { "kind": "shuttle", "stops": ["Mine", "Junction", "Dome"], "start": "Mine" },
+      "start": "Mine",
       "speed": 5,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,

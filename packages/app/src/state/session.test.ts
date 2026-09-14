@@ -1,12 +1,16 @@
 import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { describe, expect, it } from "vitest";
-import { formerStarterText, starterSource } from "../lib/scenario-source.ts";
+import relayV1 from "../../../engine/src/testing/format1/relay.json" with { type: "json" };
+import { starterSource } from "../lib/scenario-source.ts";
 import { encodeShare, toShareState } from "../lib/share.ts";
 import { memoryStorage, unavailableStorage, type WorkStorage } from "../lib/storage.ts";
 import { BatchPool, SimulationClient, type WorkerHandle } from "../workers/client.ts";
 import { createLibrary } from "./library.ts";
 import { startSession } from "./session.ts";
 import { createWorkbench } from "./workbench.ts";
+
+/** The relay starter as the first release showed it, in format 1 JSON. */
+const formerRelayText = `${JSON.stringify(relayV1, null, 2)}\n`;
 
 const noWorker = (): WorkerHandle => {
   throw new Error("nothing should run");
@@ -94,7 +98,7 @@ describe("session", () => {
     await storage.saveDraft({
       policy: { name: "draft.lua", source: "return {}" },
       policyB: { name: "b.lua", source: "return {}" },
-      scenario: { starterId: "relay", text: formerStarterText("relay") } as never,
+      scenario: { starterId: "relay", text: formerRelayText } as never,
       seed: 3,
     });
     const { workbench, start } = setup(storage);

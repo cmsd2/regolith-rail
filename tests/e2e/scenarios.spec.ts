@@ -1,6 +1,6 @@
 import { deflateRawSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
-import relay from "../../packages/engine/src/scenario/starters/relay.json" with { type: "json" };
+import relay from "../../packages/engine/src/testing/format1/relay.json" with { type: "json" };
 import { openWorkbench, run, setEditorText } from "./helpers.ts";
 
 const editorText = (page: Page, testId: string) =>

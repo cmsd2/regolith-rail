@@ -1,5 +1,5 @@
 {
-  "format": 2,
+  "format": 1,
   "id": "mixed-line",
   "title": "Mixed line",
   "description": "Five stations trade food, metals and polymers of different importance. Balancing carries goods back and forth between stations that neither produce nor need them, and treats food the same as metals.",
@@ -19,6 +19,7 @@
         { "id": "Food", "capacity": 60000, "initial": 30000 },
         { "id": "Metals", "initial": 10000 }
       ],
+      "distanceToNext": 18000,
       "producers": [{ "resource": "Food", "rate": 60000 }],
       "consumers": [{ "resource": "Metals", "rate": 4000 }]
     },
@@ -28,13 +29,19 @@
         { "id": "Metals", "capacity": 60000, "initial": 30000 },
         { "id": "Food", "initial": 10000 }
       ],
+      "distanceToNext": 24000,
       "producers": [{ "resource": "Metals", "rate": 40000 }],
       "consumers": [{ "resource": "Food", "rate": 8000 }]
     },
-    { "id": "Depot", "resources": [{ "id": "Metals" }, { "id": "Polymers" }, { "id": "Food" }] },
+    {
+      "id": "Depot",
+      "resources": [{ "id": "Metals" }, { "id": "Polymers" }, { "id": "Food" }],
+      "distanceToNext": 18000
+    },
     {
       "id": "Plant",
       "resources": [{ "id": "Polymers", "initial": 15000 }, { "id": "Metals", "initial": 10000 }],
+      "distanceToNext": 30000,
       "producers": [{ "resource": "Polymers", "rate": 24000 }],
       "consumers": [
         {
@@ -66,20 +73,10 @@
       ]
     }
   ],
-  "arcs": [
-    { "from": "Farm", "to": "Mine", "distance": 18000 },
-    { "from": "Mine", "to": "Depot", "distance": 24000 },
-    { "from": "Depot", "to": "Plant", "distance": 18000 },
-    { "from": "Plant", "to": "Dome", "distance": 30000 }
-  ],
-  "vehicles": [
+  "trains": [
     {
       "id": "T1",
-      "route": {
-        "kind": "shuttle",
-        "stops": ["Farm", "Mine", "Depot", "Plant", "Dome"],
-        "start": "Farm"
-      },
+      "start": "Farm",
       "speed": 6,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,
@@ -87,12 +84,8 @@
     },
     {
       "id": "T2",
-      "route": {
-        "kind": "shuttle",
-        "stops": ["Farm", "Mine", "Depot", "Plant", "Dome"],
-        "start": "Dome",
-        "direction": "backward"
-      },
+      "start": "Dome",
+      "direction": "backward",
       "speed": 6,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,

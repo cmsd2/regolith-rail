@@ -62,12 +62,6 @@ export function knownScenario(source: ScenarioSource): Scenario | null {
     : null;
 }
 
-/** The text of a starter as JSON documents were shown before scenario scripts. */
-export function formerStarterText(id: string): string {
-  const starter = starterScenarios.find((s) => s.id === id);
-  return `${JSON.stringify(starter?.document, null, 2)}\n`;
-}
-
 export const documentText = (scenario: Scenario) => `${JSON.stringify(scenario, null, 2)}\n`;
 
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -96,21 +90,23 @@ export function upgradeScenarioRecord(value: unknown): ScenarioSource | null {
     };
   }
   if (typeof value.text !== "string") return null;
-  if (isStarter(starterId) && value.text === formerStarterText(starterId)) {
-    return starterSource(starterId);
-  }
   let text = value.text;
   try {
     const document = JSON.parse(text) as { format?: unknown };
-    if (document.format === 1) {
-      const result = validateScenario(document);
-      if (result.ok) text = documentText(result.scenario);
+    const result = validateScenario(document);
+    if (result.ok && isStarter(starterId) && sameScenario(result.scenario, starterId)) {
+      return starterSource(starterId);
     }
+    if (result.ok && document.format === 1) text = documentText(result.scenario);
   } catch {
     // Text that is not JSON stays as it was, with its errors shown in the editor.
   }
   return { kind: "json", source: text, starterId: null };
 }
+
+/** Whether a document, in any format, is an unedited starter. */
+const sameScenario = (scenario: Scenario, starterId: string) =>
+  JSON.stringify(scenario) === JSON.stringify(starterScenario(starterId));
 
 // --- Documents as scripts -----------------------------------------------------------------
 

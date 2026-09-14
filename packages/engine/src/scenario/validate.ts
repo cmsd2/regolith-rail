@@ -66,6 +66,21 @@ export function validateScenario(input: unknown): ValidationResult {
   }
   const v2 = ScenarioV2.safeParse(input);
   return v2.success
-    ? { ok: true, scenario: v2.data }
+    ? { ok: true, scenario: withFixedRates(v2.data) }
     : { ok: false, errors: errorsFrom(v2.error.issues) };
+}
+
+/**
+ * Gives every flow with a rate and no variability its default, fixed, so documents that differ
+ * only in stating the default validate to the same scenario.
+ */
+function withFixedRates(scenario: Scenario): Scenario {
+  for (const station of scenario.stations) {
+    for (const flow of [...station.producers, ...station.consumers]) {
+      if (flow.rate !== undefined && flow.variability === undefined) {
+        flow.variability = { kind: "fixed" };
+      }
+    }
+  }
+  return scenario;
 }

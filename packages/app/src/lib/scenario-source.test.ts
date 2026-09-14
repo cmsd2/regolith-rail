@@ -2,13 +2,16 @@ import { type Scenario, starterScenario, starterScenarios } from "@regolith-rail
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { classicTemplates, STARTER_SCRIPTS, templateCall } from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
+import relayV1 from "../../../engine/src/testing/format1/relay.json" with { type: "json" };
 import {
   documentToScript,
-  formerStarterText,
   knownScenario,
   starterSource,
   upgradeScenarioRecord,
 } from "./scenario-source.ts";
+
+/** The relay starter as the first release showed it, in format 1 JSON. */
+const formerRelayText = `${JSON.stringify(relayV1, null, 2)}\n`;
 
 let runtime: LuaRuntime;
 beforeAll(async () => {
@@ -80,13 +83,24 @@ describe("scenario records", () => {
   });
 
   it("turn an unedited starter from an older link into its script", () => {
-    expect(upgradeScenarioRecord({ starterId: "relay", text: formerStarterText("relay") })).toEqual(
-      { kind: "script", source: STARTER_SCRIPTS.relay, starterId: "relay" },
-    );
+    expect(upgradeScenarioRecord({ starterId: "relay", text: formerRelayText })).toEqual({
+      kind: "script",
+      source: STARTER_SCRIPTS.relay,
+      starterId: "relay",
+    });
+  });
+
+  it("recognise an unedited starter by its content, whatever the layout", () => {
+    const current = starterScenarios.find((s) => s.id === "relay")?.document;
+    expect(upgradeScenarioRecord({ starterId: "relay", text: JSON.stringify(current) })).toEqual({
+      kind: "script",
+      source: STARTER_SCRIPTS.relay,
+      starterId: "relay",
+    });
   });
 
   it("show an edited format 1 document from an older link upgraded to format 2", () => {
-    const edited = JSON.parse(formerStarterText("relay"));
+    const edited = JSON.parse(formerRelayText);
     edited.title = "My relay";
     const record = upgradeScenarioRecord({ starterId: "relay", text: JSON.stringify(edited) });
     expect(record?.kind).toBe("json");

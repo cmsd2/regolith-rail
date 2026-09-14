@@ -1,5 +1,5 @@
 {
-  "format": 1,
+  "format": 2,
   "id": "two-station",
   "title": "Two stations",
   "description": "A mining outpost supplies a dome over a long line with one train. Balancing moves at most half the stock difference per visit, so the dome runs short while the mine's station fills and its extractors stall, even though one train could carry enough.",
@@ -12,7 +12,6 @@
     {
       "id": "Mine",
       "resources": [{ "id": "Metals", "initial": 15000 }],
-      "distanceToNext": 72000,
       "producers": [{ "resource": "Metals", "rate": 45000 }]
     },
     {
@@ -27,10 +26,11 @@
       ]
     }
   ],
-  "trains": [
+  "arcs": [{ "from": "Mine", "to": "Dome", "distance": 72000 }],
+  "vehicles": [
     {
       "id": "T1",
-      "start": "Mine",
+      "route": { "kind": "shuttle", "stops": ["Mine", "Dome"], "start": "Mine" },
       "speed": 5,
       "dwellMs": 600000,
       "dwellPerUnitMs": 60000,
