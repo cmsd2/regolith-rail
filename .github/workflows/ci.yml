@@ -144,7 +144,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AXIMAR_TOOLS_RELEASE: tools-v0.4.1
-      AXIMAR_TOOLS_SHA256: da2950147db88e47622303ab430c6d1e626457686e96a5ca8e6556c0691d7255
+      AXIMAR_TOOLS_SHA256: 0000000000000000000000000000000000000000000000000000000000000000
     steps:
       - uses: actions/checkout@v7
         with:
