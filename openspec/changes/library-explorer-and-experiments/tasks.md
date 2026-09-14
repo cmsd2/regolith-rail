@@ -12,8 +12,8 @@
 
 ## 3. Storage and migration
 
-- [ ] 3.1 Implement storage version 2 with `items`, `experiments` and `session` stores, and memory and unavailable variants. Verify storage unit tests cover save, list, rename, duplicate and delete for items and experiments.
-- [ ] 3.2 Migrate version 1 saved policies, saved scenarios and the draft into version 2. Built-in content maps to catalogue ids. Old records are deleted only after the new ones commit. Verify unit tests cover each saved item shape, a pre-script draft, an unedited-starter draft, and a failed write that leaves version 1 intact.
+- [x] 3.1 Implement storage version 2 with `items`, `experiments` and `session` stores, and memory and unavailable variants. Verify storage unit tests cover save, list, rename, duplicate and delete for items and experiments.
+- [x] 3.2 Migrate version 1 saved policies, saved scenarios and the draft into version 2. Built-in content maps to catalogue ids. Old records are deleted only after the new ones commit. Verify unit tests cover each saved item shape, a pre-script draft, an unedited-starter draft, and a failed write that leaves version 1 intact.
 
 ## 4. Slots, copy on edit and automatic saving
 
