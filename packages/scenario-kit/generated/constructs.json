@@ -1587,8 +1587,8 @@
           "default": "1"
         }
       ],
-      "docs": "classic/newsvendor",
-      "href": "classic/newsvendor#classic-newsvendor"
+      "docs": "book/newsvendor",
+      "href": "book/newsvendor#classic-newsvendor"
     },
     {
       "name": "classic.reorder",

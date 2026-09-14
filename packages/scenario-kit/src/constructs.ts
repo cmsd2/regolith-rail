@@ -677,7 +677,7 @@ export const marsConstructs: Construct[] = [
 
 const template = (
   name: string,
-  slug: string,
+  docs: string,
   summary: string,
   params: ConstructParam[],
 ): Construct => ({
@@ -687,7 +687,7 @@ const template = (
   summary,
   returns: "scenario document",
   params,
-  docs: `classic/${slug}`,
+  docs,
 });
 
 const seedParam = param("seed", "integer", "Base seed for random demand.", { default: "1" });
@@ -695,7 +695,7 @@ const seedParam = param("seed", "integer", "Base seed for random demand.", { def
 export const classicConstructs: Construct[] = [
   template(
     "newsvendor",
-    "newsvendor",
+    "book/newsvendor",
     "One stand whose unsold stock expires at each daily review, facing random demand each period with lost sales.",
     [
       param("demand", "number|discrete", "Demand in each period.", {
@@ -719,7 +719,7 @@ export const classicConstructs: Construct[] = [
   ),
   template(
     "reorder",
-    "reorder",
+    "classic/reorder",
     "One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.",
     [
       param("demand", "number", "Average demand per day.", {
@@ -750,7 +750,7 @@ export const classicConstructs: Construct[] = [
   ),
   template(
     "serial_chain",
-    "serial-chain",
+    "classic/serial-chain",
     "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",
     [
       param("stages", "integer", "Number of stages, from 2 to 10.", {
@@ -790,7 +790,7 @@ export const classicConstructs: Construct[] = [
   ),
   template(
     "fixed_route_delivery",
-    "fixed-route-delivery",
+    "classic/fixed-route-delivery",
     "A depot supplied from outside and customers that trucks visit on a fixed loop, with lost sales when a customer runs dry.",
     [
       param("customers", "integer", "Number of customers, from 1 to 20.", {

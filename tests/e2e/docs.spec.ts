@@ -154,4 +154,39 @@ test.describe("the book", () => {
     }
     await expect(page.getByRole("navigation", { name: "Documentation" })).toContainText("Contents");
   });
+
+  test("a chapter shows its checks' working in the page before scripts load", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/docs/book/newsvendor");
+    const article = page.getByTestId("doc-article");
+    await expect(article).toContainText("Part II: Inventory · Chapter 4");
+    const check = article.locator('[data-check="maxima:best-order"]').first();
+    await expect(check).toHaveAttribute("data-kind", "maxima");
+    expect(await check.innerHTML()).toContain('expect_equal("best-order", best, 15);');
+    await expect(article.getByTestId("game-note")).toBeVisible();
+    await context.close();
+  });
+
+  test("the old newsvendor page sends readers to its chapter", async ({ page }) => {
+    await page.goto("/docs/classic/newsvendor");
+    await expect(page).toHaveURL(/\/docs\/book\/newsvendor$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
+      "One period under uncertainty: the newsvendor",
+    );
+  });
+
+  test("a chapter opens its scenario in the workbench with the reference policy", async ({
+    page,
+  }) => {
+    await page.goto("/docs/book/newsvendor");
+    await page.getByTestId("open-scenario").click();
+    await expect(page.getByTestId("policy-editor").locator(".cm-content")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expectSlot(page, "scenario", "classic:scenario:classic.newsvendor");
+    await expectSlot(page, "policy", "classic:policy:classic.newsvendor");
+  });
 });

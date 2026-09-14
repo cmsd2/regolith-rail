@@ -11,7 +11,7 @@
 
 ## 3. Checked claims
 
-- [ ] 3.1 Add the `Check` MDX component and build-time resolution of `maxima:`, `python:`, `example:` and `test:` references to their source, shown in a disclosure under the claim. Verify a unit test that resolves each kind from fixture files, and that a standalone page contains the check source in its HTML.
+- [x] 3.1 Add the `Check` MDX component and build-time resolution of `maxima:`, `python:`, `example:` and `test:` references to their source, shown in a disclosure under the claim. Verify a unit test that resolves each kind from fixture files, and that a standalone page contains the check source in its HTML.
 - [x] 3.2 Add the check-reference lint to `docs:check`: in Book pages, every display math node is followed by a `Check`, every exercise answer contains one, and every reference resolves. Verify unit tests for an unchecked equation (naming its line), a renamed notebook cell, and an unknown test title.
 - [x] 3.3 Write the shared Maxima helpers `expect_equal` and `expect_close` as a notebook prelude cell template, and the Python `check_*` runner convention. Verify a fixture notebook with a deliberately wrong value fails with the check's name.
 - [x] 3.4 Add `pnpm docs:claims` (`packages/docs/scripts/claims.ts`). It resolves references, runs each notebook with `aximar-mcp run` in a temporary copy, runs each Python script with `uv run --script`, and reports each failure with page and check. It exits naming a missing tool. Verify by running it against the fixtures, where one passes and one fails with the page named, and with `PATH` lacking `aximar-mcp`.
@@ -24,8 +24,8 @@
 
 ## 5. Chapter 4 as the first full chapter
 
-- [ ] 5.1 Write chapter 4, the newsvendor, absorbing `classic/newsvendor`, with its checks notebook, exercises, side note, references and the `Scenario` action for `classic.newsvendor`. Move the page and add its redirect. Verify `docs:check`, `docs:claims` and the link check pass, and an e2e test opens the chapter's scenario in the workbench.
-- [ ] 5.2 Add the `Scenario` MDX component, which opens a starter with its baseline or a template with its reference policy through the workbench fragment, and require one per chapter in the docs check. Verify an e2e test from chapter 4 and a docs check test for a chapter without one.
+- [x] 5.1 Write chapter 4, the newsvendor, absorbing `classic/newsvendor`, with its checks notebook, exercises, side note, references and the `Scenario` action for `classic.newsvendor`. Move the page and add its redirect. Verify `docs:check`, `docs:claims` and the link check pass, and an e2e test opens the chapter's scenario in the workbench.
+- [x] 5.2 Add the `Scenario` MDX component, which opens a starter with its baseline or a template with its reference policy through the workbench fragment, and require one per chapter in the docs check. Verify an e2e test from chapter 4 and a docs check test for a chapter without one.
 
 ## 6. Chapters 1, 2, 3 and 5
 

@@ -86,7 +86,7 @@ describe("catalogue", () => {
     for (const template of classicTemplates) {
       const scenario = catalogueItem(itemId("classic", "scenario", template.name));
       expect(scenario?.kind === "scenario" && scenario.lesson, template.name).toEqual({
-        docs: expect.stringMatching(/^classic\//),
+        docs: expect.stringMatching(/^(classic|book)\//),
         reference: template.name,
       });
     }

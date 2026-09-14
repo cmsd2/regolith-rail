@@ -1,5 +1,23 @@
 [
   {
+    "id": "book/newsvendor#1",
+    "page": "book/newsvendor",
+    "name": "One period under uncertainty: the newsvendor (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.newsvendor {}"
+  },
+  {
+    "id": "book/newsvendor#2",
+    "page": "book/newsvendor",
+    "name": "One period under uncertainty: the newsvendor (example 2)",
+    "script": false,
+    "scenario": "classic.newsvendor",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
+  },
+  {
     "id": "classic/fixed-route-delivery#1",
     "page": "classic/fixed-route-delivery",
     "name": "Fixed-route delivery (example 1)",
@@ -16,24 +34,6 @@
     "scenario": "classic.fixed_route_delivery",
     "seed": 1,
     "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then target = target + station.capacity.Fuel end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do position = position + order.amount end\n    if target > position then ctx.order(\"Fuel\", target - position) end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then break end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local amount = math.min(short - truck.cargo.Fuel, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then ctx.load(\"Fuel\", amount) end\n    else\n      local amount = math.min(truck.cargo.Fuel, here.capacity.Fuel - here.stock.Fuel)\n      if amount > 0 then ctx.unload(\"Fuel\", amount) end\n    end\n  end,\n}"
-  },
-  {
-    "id": "classic/newsvendor#1",
-    "page": "classic/newsvendor",
-    "name": "Newsvendor (example 1)",
-    "script": true,
-    "scenario": "two-station",
-    "seed": 1,
-    "source": "return classic.newsvendor {}"
-  },
-  {
-    "id": "classic/newsvendor#2",
-    "page": "classic/newsvendor",
-    "name": "Newsvendor (example 2)",
-    "script": false,
-    "scenario": "classic.newsvendor",
-    "seed": 1,
-    "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
   },
   {
     "id": "classic/reorder#1",

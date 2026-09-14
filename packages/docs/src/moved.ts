@@ -2,7 +2,9 @@
  * Pages that moved, by old slug, with the page and anchor they moved to. Old addresses keep
  * working as redirects, the docs panel follows them, and the link check rejects links to them.
  */
-export const MOVED_PAGES: Readonly<Record<string, string>> = {};
+export const MOVED_PAGES: Readonly<Record<string, string>> = {
+  "classic/newsvendor": "book/newsvendor",
+};
 
 /** Where a documentation target such as `failure-modes/double-dispatch` lives now. */
 export function movedTarget(

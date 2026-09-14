@@ -1,5 +1,10 @@
 import { type RunEvent, type RunOutput, runSimulation, type Scenario } from "@regolith-rail/engine";
-import { classicTemplates, type TemplateParams, templateCall } from "@regolith-rail/scenario-kit";
+import {
+  classicTemplates,
+  constructs,
+  type TemplateParams,
+  templateCall,
+} from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type LuaPolicy, LuaRuntime } from "./policy.ts";
 
@@ -48,8 +53,9 @@ describe("classic templates", () => {
       const stated = runtime.evaluateScript(templateCall(t.name, t.defaults));
       expect(bare.ok && stated.ok).toBe(true);
       expect(bare.ok && bare.document).toEqual(stated.ok && stated.document);
+      // The Lua library names the same page as the construct's description.
       expect(load(`return ${t.name} {}`).docs).toBe(
-        `classic/${t.name.slice("classic.".length).replace(/_/g, "-")}`,
+        constructs.find((c) => c.name === t.name)?.docs,
       );
     });
 
