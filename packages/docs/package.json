@@ -15,7 +15,9 @@
     "check": "node scripts/check.ts",
     "links": "node scripts/links.ts",
     "search-index": "node scripts/search-index.ts",
-    "generate": "node scripts/generate-examples.ts"
+    "generate": "node scripts/generate-examples.ts",
+    "claims": "node scripts/claims.ts",
+    "new-checks": "node scripts/new-checks.ts"
   },
   "devDependencies": {
     "@types/hast": "^3.0.5",

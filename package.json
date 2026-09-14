@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tests && tsc -p tools && pnpm -r --no-bail typecheck",
     "test": "vitest run",
     "docs:check": "node packages/docs/scripts/check.ts",
+    "docs:claims": "node packages/docs/scripts/claims.ts",
     "docs:links": "node packages/docs/scripts/links.ts",
     "check": "biome ci --error-on-warnings . && pnpm typecheck && vitest run",
     "test:determinism": "vite build -c tests/determinism/vite.config.ts && playwright test tests/determinism",
