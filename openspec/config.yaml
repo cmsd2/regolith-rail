@@ -37,7 +37,7 @@ context: |
   drives editor help and documentation.
   Categories: Vanilla (local, line) and Extended. A site is one station and one
   resource. Inventory position is on hand plus inbound minus promised. The
-  baseline is the naive policy reproducing the game for a stated game version.
+  baseline is the balance-stock policy reproducing the game for a stated game version.
   The bound is the hindsight-optimal result for a scenario and seed.
 
   Policy language: a sandboxed Lua subset matching the Lua version the game

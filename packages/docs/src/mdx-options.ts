@@ -5,7 +5,9 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import remarkMdxFrontmatter from "remark-mdx-frontmatter";
 import type { PluggableList } from "unified";
+import { remarkChecks } from "./claims.ts";
 import { remarkExamples, remarkHeadingIds } from "./markdown.ts";
+import { remarkScenarioLinks } from "./scenario-links.ts";
 
 /** MDX compiler options for documentation pages. Highlighting and maths happen at build time. */
 export const mdxOptions: { remarkPlugins: PluggableList; rehypePlugins: PluggableList } = {
@@ -15,7 +17,10 @@ export const mdxOptions: { remarkPlugins: PluggableList; rehypePlugins: Pluggabl
     remarkGfm,
     remarkMath,
     remarkHeadingIds,
+    // Checks read the page's runnable examples, so they resolve before examples are wrapped.
+    remarkChecks,
     remarkExamples,
+    remarkScenarioLinks,
   ],
   rehypePlugins: [
     rehypeKatex,

@@ -13,7 +13,7 @@ import {
 } from "../workers/client.ts";
 import { simulationTasks } from "../workers/simulate.ts";
 import { createPlayhead } from "./playhead.ts";
-import { createWorkbench, DEFAULT_SCENARIO } from "./workbench.ts";
+import { createWorkbench, DEFAULT_SCENARIO, toSessionRecord } from "./workbench.ts";
 
 let runtime: LuaRuntime;
 beforeAll(async () => {
@@ -63,14 +63,14 @@ function workbench(options: { hang?: boolean } = {}) {
 }
 
 describe("workbench store", () => {
-  it("starts with two-station and the naive baseline", () => {
+  it("starts with two-station and the balancing baseline", () => {
     const state = workbench().getState();
     expect(state.scenario.starterId).toBe(DEFAULT_SCENARIO);
     expect(state.scenario.scenario?.id).toBe("two-station");
-    expect(state.policy.name).toBe("naive");
+    expect(state.policy.name).toBe("balance-stock");
     expect(state.slots).toEqual({
       scenario: "builtin:scenario:two-station",
-      policy: "builtin:policy:naive",
+      policy: "builtin:policy:balance-stock",
       compare: "builtin:policy:supply-to-demand",
     });
   });
@@ -144,40 +144,54 @@ describe("workbench store", () => {
     expect(store.getState().scenario.template).toBeUndefined();
   });
 
+  it("restores slots saved when the balancing baseline was called naive under its new id", () => {
+    const store = workbench();
+    const saved = toSessionRecord(store.getState());
+    store.getState().loadLibrary([], {
+      ...saved,
+      slots: { ...saved.slots, policy: "builtin:policy:naive", compare: "builtin:policy:naive" },
+    });
+    expect(store.getState().slots).toMatchObject({
+      policy: "builtin:policy:balance-stock",
+      compare: "builtin:policy:balance-stock",
+    });
+    expect(store.getState().policy.name).toBe("balance-stock");
+  });
+
   it("copies a built-in policy on its first edit and edits the copy after that", () => {
     const store = workbench();
-    const naive = catalogueItem("builtin:policy:naive");
+    const baseline = catalogueItem("builtin:policy:balance-stock");
     store.getState().setPolicySource("-- one\nreturn {}");
     const first = store.getState();
     expect(first.slots.policy).toMatch(/^mine:policy:/);
     expect(first.items[first.slots.policy]).toMatchObject({
-      name: "naive (copy)",
+      name: "balance-stock (copy)",
       source: "mine",
-      origin: "builtin:policy:naive",
+      origin: "builtin:policy:balance-stock",
       content: "-- one\nreturn {}",
     });
-    expect(first.policy).toEqual({ name: "naive (copy)", source: "-- one\nreturn {}" });
+    expect(first.policy).toEqual({ name: "balance-stock (copy)", source: "-- one\nreturn {}" });
 
     store.getState().setPolicySource("-- two\nreturn {}");
     const second = store.getState();
     expect(second.slots.policy).toBe(first.slots.policy);
     expect(Object.keys(second.items)).toHaveLength(1);
     expect(second.policy.source).toBe("-- two\nreturn {}");
-    expect(catalogueItem("builtin:policy:naive")).toBe(naive);
-    expect(naive?.content).not.toContain("-- two");
+    expect(catalogueItem("builtin:policy:balance-stock")).toBe(baseline);
+    expect(baseline?.content).not.toContain("-- two");
 
     // A second copy of the built-in gets the next free name.
-    store.getState().fillSlot("policy", "builtin:policy:naive");
+    store.getState().fillSlot("policy", "builtin:policy:balance-stock");
     store.getState().setPolicySource("-- three\nreturn {}");
-    expect(store.getState().policy.name).toBe("naive (copy 2)");
+    expect(store.getState().policy.name).toBe("balance-stock (copy 2)");
   });
 
   it("fills slots only with items of their kind, and runs nothing", () => {
     const store = workbench();
     store.getState().fillSlot("policy", "builtin:scenario:relay");
-    expect(store.getState().slots.policy).toBe("builtin:policy:naive");
-    store.getState().fillSlot("compare", "builtin:policy:naive");
-    expect(store.getState().policyB.name).toBe("naive");
+    expect(store.getState().slots.policy).toBe("builtin:policy:balance-stock");
+    store.getState().fillSlot("compare", "builtin:policy:balance-stock");
+    expect(store.getState().policyB.name).toBe("balance-stock");
     expect(store.getState().run.status).toBe("idle");
   });
 
@@ -212,8 +226,8 @@ describe("workbench store", () => {
     const id = store.getState().slots.policy;
     store.getState().renameItem(id, "buffer");
     expect(store.getState().policy.name).toBe("buffer");
-    store.getState().renameItem("builtin:policy:naive", "nope");
-    expect(catalogueItem("builtin:policy:naive")?.name).toBe("naive");
+    store.getState().renameItem("builtin:policy:balance-stock", "nope");
+    expect(catalogueItem("builtin:policy:balance-stock")?.name).toBe("balance-stock");
 
     const copy = store.getState().duplicateItem(id);
     expect(copy && store.getState().items[copy]?.name).toBe("buffer (copy)");
@@ -295,14 +309,14 @@ describe("workbench store", () => {
       "example:policy:docs/failure-modes/disruption-recovery#1",
     );
     store.getState().applyBaseline();
-    expect(store.getState().slots.policy).toBe("builtin:policy:naive");
+    expect(store.getState().slots.policy).toBe("builtin:policy:balance-stock");
 
     store.getState().setPolicySource("-- mine\nreturn {}");
     store.getState().compareFixWithBaseline();
     const comparing = store.getState();
     expect(comparing.slots).toMatchObject({
       policy: "example:policy:docs/failure-modes/disruption-recovery#1",
-      compare: "builtin:policy:naive",
+      compare: "builtin:policy:balance-stock",
     });
     expect(comparing.view).toBe("batch");
     expect(comparing.batch).toMatchObject({ compare: true, status: "idle" });
@@ -318,6 +332,21 @@ describe("workbench store", () => {
     expect(store.getState().policy.source).toBe(
       newsvendor.reference({ ...params, lost_cost: 11 }).policy,
     );
+  });
+
+  it("opens a chapter's scenario with the policy its lesson starts from", () => {
+    const store = workbench();
+    store.getState().openLessonScenario("classic:scenario:classic.newsvendor");
+    expect(store.getState().slots).toMatchObject({
+      scenario: "classic:scenario:classic.newsvendor",
+      policy: "classic:policy:classic.newsvendor",
+    });
+    store.getState().openLessonScenario("builtin:scenario:relay");
+    expect(store.getState().slots).toMatchObject({
+      scenario: "builtin:scenario:relay",
+      policy: "builtin:policy:balance-stock",
+    });
+    expect(store.getState().view).toBe("run");
   });
 
   it("opens a documentation example without changing the player's work", () => {
@@ -350,8 +379,8 @@ describe("workbench store", () => {
     store.getState().addItem(imported.item);
     store.getState().fillSlot("policy", imported.item.id);
     expect(store.getState().policy).toEqual({ name: "buffer", source: "-- buffer\nreturn {}" });
-    store.getState().addItem({ ...imported.item, id: "builtin:policy:naive" });
-    expect(store.getState().itemById("builtin:policy:naive")?.name).toBe("naive");
+    store.getState().addItem({ ...imported.item, id: "builtin:policy:balance-stock" });
+    expect(store.getState().itemById("builtin:policy:balance-stock")?.name).toBe("balance-stock");
   });
 
   it("runs the current policy and scenario", async () => {

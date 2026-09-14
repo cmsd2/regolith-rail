@@ -62,7 +62,10 @@ describe("session", () => {
     expect(target.hashCleared()).toBe(true);
     const shared = Object.values(state.items).filter((i) => i.kind === "experiment");
     expect(shared).toHaveLength(1);
-    expect(shared[0]).toMatchObject({ source: "shared", name: "Relay station · naive (copy)" });
+    expect(shared[0]).toMatchObject({
+      source: "shared",
+      name: "Relay station · balance-stock (copy)",
+    });
   });
 
   it("keeps one shared experiment for a link opened on two visits", async () => {
@@ -114,7 +117,21 @@ describe("session", () => {
     const missing = setup();
     await missing.start("#example.nowhere.9");
     expect(missing.workbench.getState().notices.map((n) => n.topic)).toEqual(["example-unknown"]);
-    expect(missing.workbench.getState().slots.policy).toBe("builtin:policy:naive");
+    expect(missing.workbench.getState().slots.policy).toBe("builtin:policy:balance-stock");
+  });
+
+  it("opens a chapter's scenario from its fragment, or says it no longer exists", async () => {
+    const found = setup();
+    await found.start("#scenario.builtin:scenario:relay");
+    expect(found.workbench.getState().slots).toMatchObject({
+      scenario: "builtin:scenario:relay",
+      policy: "builtin:policy:balance-stock",
+    });
+    expect(found.hashCleared()).toBe(true);
+
+    const missing = setup();
+    await missing.start("#scenario.classic:scenario:classic.nothing");
+    expect(missing.workbench.getState().notices.map((n) => n.topic)).toEqual(["scenario-unknown"]);
   });
 
   it("reports a damaged link and restores the saved slots", async () => {
@@ -138,13 +155,13 @@ describe("session", () => {
     first.workbench.getState().setSeed(12);
     await settle();
     expect(first.library.getState().draft).toBe("saved");
-    expect((await storage.listItems()).map((i) => i.name)).toEqual(["naive (copy)"]);
+    expect((await storage.listItems()).map((i) => i.name)).toEqual(["balance-stock (copy)"]);
     stop();
 
     const second = setup(storage);
     await second.start();
     const state = second.workbench.getState();
-    expect(state.policy).toEqual({ name: "naive (copy)", source: "-- edited\nreturn {}" });
+    expect(state.policy).toEqual({ name: "balance-stock (copy)", source: "-- edited\nreturn {}" });
     expect(state.slots.scenario).toBe("builtin:scenario:relay");
     expect(state.seed).toBe(12);
   });
@@ -184,7 +201,7 @@ describe("session", () => {
     await start();
     expect(workbench.getState().slots).toEqual({
       scenario: "builtin:scenario:two-station",
-      policy: "builtin:policy:naive",
+      policy: "builtin:policy:balance-stock",
       compare: "builtin:policy:supply-to-demand",
     });
     expect(workbench.getState().seed).toBe(5);
@@ -194,7 +211,7 @@ describe("session", () => {
     const former = memoryStorage();
     await former.saveDraft({
       policy: { name: "draft.lua", source: "return {}" },
-      policyB: { name: "b.lua", source: BUILT_IN_POLICIES.naive },
+      policyB: { name: "b.lua", source: BUILT_IN_POLICIES["balance-stock"] },
       scenario: { starterId: "relay", text: formerRelayText } as never,
       seed: 3,
     });
@@ -202,7 +219,7 @@ describe("session", () => {
     await start();
     const state = workbench.getState();
     expect(state.slots.scenario).toBe("builtin:scenario:relay");
-    expect(state.slots.compare).toBe("builtin:policy:naive");
+    expect(state.slots.compare).toBe("builtin:policy:balance-stock");
     expect(state.policy).toEqual({ name: "Draft policy", source: "return {}" });
     expect(state.scenario).toMatchObject({ kind: "script", status: "ready" });
     expect(state.scenario.scenario?.id).toBe("relay");
@@ -217,6 +234,6 @@ describe("session", () => {
     expect(workbench.getState().notices.map((n) => n.topic)).toEqual(["storage-unavailable"]);
     expect(workbench.getState().loaded).toBe(true);
     workbench.getState().setPolicySource("-- kept for now\nreturn {}");
-    expect(workbench.getState().policy.name).toBe("naive (copy)");
+    expect(workbench.getState().policy.name).toBe("balance-stock (copy)");
   });
 });

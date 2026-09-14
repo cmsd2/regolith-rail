@@ -31,7 +31,7 @@ Roles per resource stop the back-and-forth, and [ops.priority](/docs/ops/priorit
 gives limited train space to the resources that matter most. This policy, like the
 built-in `supply-to-demand.lua`, does both:
 
-```lua runnable scenario=mixed-line
+```lua runnable scenario=mixed-line fix
 return ops.policy {
   classify = ops.roles.manual {
     Farm = { Food = "supply", Metals = "demand" },
@@ -40,7 +40,11 @@ return ops.policy {
     Plant = { Polymers = "supply", Metals = "demand" },
     Dome = "demand",
   },
-  target = { supply = ops.drain {}, demand = ops.fill {}, relay = ops.pass_through {} },
+  target = {
+    supply = ops.drain {},
+    demand = ops.fill {},
+    relay = ops.pass_through {},
+  },
   plan = ops.lookahead {},
   allocate = ops.priority {},
 }

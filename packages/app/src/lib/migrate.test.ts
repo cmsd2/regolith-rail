@@ -23,7 +23,7 @@ const saved: SavedItem[] = [
 ];
 
 const draft = (overrides: Partial<Draft> = {}): Draft => ({
-  policy: { name: "naive.lua", source: BUILT_IN_POLICIES.naive },
+  policy: { name: "balance-stock.lua", source: BUILT_IN_POLICIES["balance-stock"] },
   policyB: { name: "supply-to-demand.lua", source: BUILT_IN_POLICIES["supply-to-demand"] },
   scenario: { kind: "script", source: STARTER_SCRIPTS.relay as string, starterId: "relay" },
   seed: 3,
@@ -57,7 +57,7 @@ describe("migration from saved work and drafts", () => {
     expect(session).toMatchObject({
       slots: {
         scenario: "builtin:scenario:relay",
-        policy: "builtin:policy:naive",
+        policy: "builtin:policy:balance-stock",
         compare: "builtin:policy:supply-to-demand",
       },
       seed: 3,

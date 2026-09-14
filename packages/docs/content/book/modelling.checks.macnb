@@ -1,0 +1,90 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "code",
+   "source": "/* prelude: shared by every checks notebook. Keep in sync with packages/docs/checks/prelude.mac. */\nexpect_equal(name, got, want) :=\n  if is(equal(radcan(ratsimp(got - want)), 0)) then true\n  else error(\"check failed:\", name, \"got\", got, \"want\", want)$\nexpect_close(name, got, want, tol) :=\n  if is(abs(float(got - want)) <= tol) then true\n  else error(\"check failed:\", name, \"got\", float(got), \"want\", float(want), \"tolerance\", tol)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* The two-station scenario, in seconds and units: one arc, one train, one resource. */\ndistance: 72000$\nspeed: 5$\ndwell_base: 600$\ndwell_per_unit: 60$\ntrain_capacity: 30$\nstation_capacity: 30$\nconsumption_per_day: 36$\nproduction_per_day: 45$\nday: 86400$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: leg-time */\nleg: distance / speed$\nexpect_equal(\"leg-seconds\", leg, 14400);\nexpect_equal(\"leg-hours\", leg / 3600, 4);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: capacity-bound */\n/* The slowest round trip moves a full load at both stops. */\nslowest_trip: 2 * leg + 2 * (dwell_base + dwell_per_unit * train_capacity)$\nexpect_equal(\"slowest-trip-hours\", slowest_trip / 3600, 28/3);\ntrips_per_day: day / slowest_trip$\nexpect_equal(\"trips-per-day\", trips_per_day, 18/7);\nexpect_equal(\"capacity-per-day\", train_capacity * trips_per_day, 540/7);\nexpect_close(\"capacity-per-day-decimal\", train_capacity * trips_per_day, 77.1, 0.05);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: take-everything */\n/* Taking everything: even over the slowest round trip, the mine makes more than the dome uses. */\nslowest_days: (2 * leg + 2 * (dwell_base + dwell_per_unit * train_capacity)) / day$\nexpect_equal(\"mine-output-per-trip\", production_per_day * slowest_days, 35/2);\nexpect_equal(\"dome-use-per-trip\", consumption_per_day * slowest_days, 14);\nexpect_equal(\"load-fits-train\", is(production_per_day * slowest_days <= train_capacity), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: half-difference */\n/* Moving each station to the average of two: the load at the fuller station is half the difference. */\nexpect_equal(\"half-difference\", m - (m + d) / 2, (m - d) / 2);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: steady-load */\n/* A steady cycle: each trip carries what the dome uses during one round trip, L = c T, and T = travel + two dwells for L units. */\nkill(L, T)$\nsolution: solve([T = 2 * leg + 2 * (dwell_base + dwell_per_unit * L), L = consumption_per_day * T / day], [L, T])[1]$\nexpect_equal(\"steady-trip-seconds\", rhs(solution[2]), 600000/19);\nexpect_close(\"steady-trip-hours\", rhs(solution[2]) / 3600, 8.77, 0.005);\nexpect_equal(\"steady-load\", rhs(solution[1]), 250/19);\nexpect_close(\"steady-load-decimal\", rhs(solution[1]), 13.16, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: required-gap */\n/* Balancing loads half the difference, so a steady load L needs the mine to hold 2 L more than the dome. */\ngap: 2 * 250/19$\nexpect_equal(\"required-gap\", gap, 500/19);\nexpect_close(\"required-gap-decimal\", gap, 26.3, 0.05);\nexpect_close(\"gap-share-of-storage\", gap / station_capacity, 0.877, 0.0005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: surplus */\nexpect_equal(\"surplus-per-day\", production_per_day - consumption_per_day, 9);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-peak-demand */\n/* At the top of its variability the dome uses 20% more; the steady load and the gap it needs grow past the station's storage. */\nkill(L2, T2)$\npeak: consumption_per_day * 6/5$\nsolution2: solve([T2 = 2 * leg + 2 * (dwell_base + dwell_per_unit * L2), L2 = peak * T2 / day], [L2, T2])[1]$\nexpect_equal(\"peak-load\", rhs(solution2[1]), 750/47);\nexpect_equal(\"peak-gap\", 2 * rhs(solution2[1]), 1500/47);\nexpect_close(\"peak-gap-decimal\", 2 * rhs(solution2[1]), 31.91, 0.005);\nexpect_equal(\"peak-gap-exceeds-storage\", is(2 * rhs(solution2[1]) > station_capacity), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-faster-train */\nkill(L3, T3)$\nsolution3: solve([T3 = 2 * (distance / 10) + 2 * (dwell_base + dwell_per_unit * L3), L3 = consumption_per_day * T3 / day], [L3, T3])[1]$\nexpect_equal(\"faster-load\", rhs(solution3[1]), 130/19);\nexpect_close(\"faster-gap\", 2 * rhs(solution3[1]), 13.68, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  }
+ ]
+}

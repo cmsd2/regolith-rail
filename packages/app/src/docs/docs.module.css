@@ -314,3 +314,134 @@
     max-height: none;
   }
 }
+
+.navPart h3 {
+  margin: 0.5rem 0 0.15rem 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bookContents,
+.bookContents ol {
+  padding-left: 1.5rem;
+}
+
+.bookContents > li {
+  list-style: none;
+}
+
+.bookContents h2 {
+  margin: 1.25rem 0 0.25rem;
+  font-size: 17px;
+}
+
+.coming {
+  color: var(--muted);
+}
+
+.chapterNav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.gameNote {
+  margin: 1.5rem 0;
+  padding: 0.5rem 1rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+
+.gameNoteLabel {
+  margin: 0 0 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.check {
+  margin: -0.25rem 0 1rem;
+  font-size: 13px;
+}
+
+.check summary {
+  width: fit-content;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.checkLabel {
+  margin: 0.25rem 0;
+  color: var(--muted);
+}
+
+.checkSource {
+  margin: 0.25rem 0 0;
+  padding: 0.5rem 0.75rem;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.checkError {
+  color: var(--bad);
+  font-size: 13px;
+}
+
+.answer {
+  margin: 0.25rem 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-left: 3px solid var(--border);
+}
+
+.answer summary {
+  width: fit-content;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.scenario {
+  margin: 1rem 0;
+}
+
+.scenario figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--focus);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+
+.scenarioLink {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.article .scenarioLink code {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 0.2em;
+}
+
+.article .scenarioLink:hover code,
+.article .scenarioLink:focus-visible code {
+  text-decoration-style: solid;
+}

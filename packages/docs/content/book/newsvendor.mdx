@@ -1,0 +1,207 @@
+---
+title: "One period under uncertainty: the newsvendor"
+description: Choosing one quantity before demand is known, when too much and too little both cost.
+section: Book
+part: 2
+chapter: 4
+---
+
+## What you will learn
+
+- To write down the expected cost of a single order placed before random demand.
+- To find the best order by comparing the cost of one unit too many with one unit too
+  few, and to read that comparison as a probability, the critical ratio.
+- To run the classic newsvendor scenario, and to see in a batch comparison why the cost
+  curve is lopsided.
+
+## The problem
+
+Some decisions are made once, before the uncertainty they face is resolved. A bakery
+bakes before the shop opens. A stall buys newspapers at dawn. A depot stocks spare parts
+for a single season. What is left over at the end is worth little or nothing, and a
+customer who finds the shelf empty buys elsewhere.
+
+Order too much and you pay for stock that is wasted. Order too little and you forgo
+sales you could have made. Neither mistake can be put right afterwards, so the question
+is how to balance them before demand is known. Operations research calls this the
+newsvendor problem, after the newspaper stall. It is the simplest setting in which
+uncertainty changes the right decision, and the reasoning it teaches runs through the
+rest of this part (Axsäter, 2015, pp. 95–97; Snyder and Shen, 2019, pp. 90–101).
+
+## The model
+
+Let one unit cost $c$ to buy, and let each unit of demand that finds no stock cost $p$,
+the loss of an unmade sale. Demand $D$ is random with a known distribution. Order $Q$
+units, and the period costs $cQ$ for the purchase plus $p$ for each unit of demand above
+$Q$. The expected cost is
+
+$$
+C(Q) = cQ + p\,\mathbb{E}\left[(D - Q)^+\right],
+$$
+
+<Check ref="maxima:best-cost" />
+
+where $(x)^+$ means $\max(x, 0)$.
+
+### One more unit
+
+Instead of minimising $C$ directly, ask what one more unit changes. Its purchase adds
+$c$ for certain. It saves $p$ only if demand turns out to be above $Q$, which happens
+with probability $P(D > Q)$. For whole units, the change is
+
+$$
+C(Q + 1) - C(Q) = c - p\,P(D > Q).
+$$
+
+<Check ref="maxima:marginal-cost" />
+
+As $Q$ grows, $P(D > Q)$ shrinks, so the change starts negative and turns positive.
+The best order is the first $Q$ at which adding a unit stops paying: the smallest $Q$
+with
+
+$$
+P(D \le Q) \ge \frac{p - c}{p}.
+$$
+
+<Check ref="maxima:marginal-cost" />
+
+### The critical ratio
+
+The right-hand side is the critical ratio. It is often written with two named costs:
+the underage cost $c_u$, what a unit too few gives up, here $p - c$; and the overage
+cost $c_o$, what a unit too many wastes, here $c$. Then the ratio is
+
+$$
+\frac{c_u}{c_u + c_o} = \frac{p - c}{p}.
+$$
+
+<Check ref="maxima:critical-ratio" />
+
+The ratio says how much protection is worth buying. When a lost sale costs much more
+than a wasted unit, the ratio is close to 1 and the order covers nearly every outcome.
+When the two costs are close, the order sits nearer the middle of the distribution.
+
+### A worked case
+
+Take demand of 5, 10, 15, 20 or 25 units with weights 1, 2, 3, 2 and 1, a unit cost of
+2 and a lost-demand cost of 5. The critical ratio is $3/5$. Demand is at most 10 with
+probability $1/3$ and at most 15 with probability $2/3$, so 15 is the smallest order
+that reaches the ratio.
+
+<Check ref="maxima:best-order" />
+
+The expected shortfall at 15 is $20/9$ units, and the expected cost is
+
+$$
+C(15) = 2 \times 15 + 5 \times \frac{20}{9} = \frac{370}{9} \approx 41.11.
+$$
+
+<Check ref="maxima:best-cost" />
+
+The cost curve is not symmetric. Ordering 10 costs $430/9 \approx 47.78$, while ordering
+20 costs $385/9 \approx 42.78$. Falling short is dearer than overshooting, because a lost
+sale costs more than a wasted unit.
+
+<Check ref="maxima:cost-either-side" />
+
+## In the simulator
+
+The `classic.newsvendor` template builds this problem as a scenario. One station stores
+the product with unlimited room. Each day's demand is drawn from a discrete
+distribution and spread over the day, and demand that finds no stock is lost. Stock
+expires at each daily review, so nothing carries over. At the review the station orders
+from an outside supplier with no lead time, and the order arrives before that day's
+demand. The defaults are the worked case above, over 30 days.
+
+<Scenario template="classic.newsvendor" />
+
+```lua runnable script
+return classic.newsvendor {}
+```
+
+The reference policy orders up to the critical-ratio quantity at every review. Since
+the leftovers have just expired, that means ordering exactly 15 units:
+
+```lua runnable scenario=classic.newsvendor
+return ops.policy {
+  review = { target = ops.order_up_to { level = 15000 } },
+}
+```
+
+Amounts in policies are in thousandths of a unit, so 15 units is `15000`. A test runs
+the template with this policy for 400 seeds, and checks that the analytic 41.11 lies
+inside the 99% confidence interval of the simulated mean cost per day.
+
+<Check ref="test:reaches the analytic expected cost at the critical-ratio quantity over 400 seeds" />
+
+To see the lopsided curve, open **Batch**, tick **Compare**, and compare the reference
+policy with copies ordering 10 and 20. The total cost metric rises on both sides of 15,
+by more below it than above.
+
+<Check ref="maxima:cost-either-side" />
+
+## Where the simulator differs
+
+- **Timing.** Demand arrives through the day rather than all at once. Only the day's
+  total affects the cost, so the expected cost is the same, but the station runs out
+  part way through a busy day rather than at its end.
+- **Whole cost units.** Costs are whole numbers per unit, so an example with prices in
+  fractions needs scaling.
+- **No salvage.** Unsold stock is worth nothing. It appears in the
+  [expired stock](/docs/metrics#expired-stock) metric, not as a cost, because its cost
+  was paid when it was bought.
+
+## Exercises
+
+1. With the worked case's demand and costs, how many units are left over on average
+   when you order 15?
+
+<Answer>
+
+On average $20/9 \approx 2.22$ units, from $\mathbb{E}\left[(15 - D)^+\right]$: 10 left
+with probability $1/9$ and 5 left with probability $2/9$.
+
+<Check ref="maxima:expected-leftover" />
+
+</Answer>
+
+2. Suppose unsold units can be sold off for 1 each at the end of the day. How does the
+   critical ratio change, and what is the best order for the worked case's demand?
+
+<Answer>
+
+A wasted unit now costs $c - s = 1$ instead of 2, while a lost sale still gives up
+$p - c = 3$. The ratio becomes $3 / (3 + 1) = 3/4$. Demand is at most 15 with
+probability $2/3$ and at most 20 with probability $8/9$, so the best order rises to 20.
+
+<Check ref="maxima:salvage" />
+
+</Answer>
+
+3. Demand is instead roughly normal, with mean 100 and standard deviation 20, and the
+   costs are as in the worked case. About how many units should be ordered?
+
+<Answer>
+
+The order is the $3/5$ quantile of demand, $100 + 20z$ with $z \approx 0.2533$, which is
+about 105.07 units.
+
+<Check ref="maxima:normal-demand" />
+
+</Answer>
+
+<GameNote>
+
+A rail line has no stock that expires, but the newsvendor's trade-off appears whenever
+a train leaves a station for a long round trip. Whatever the train leaves behind has to
+last until it returns. Leaving too little starves the consumers there. Leaving too much
+fills storage that the next delivery, or another station, could have used. Chapter 3
+returns to this as the protection interval.
+
+</GameNote>
+
+## References
+
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
+  Hoboken, NJ: John Wiley & Sons.

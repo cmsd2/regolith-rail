@@ -169,6 +169,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.5.13
         version: 2.5.13
+      '@johnnymorganz/stylua':
+        specifier: 2.5.2
+        version: 2.5.2
       '@playwright/test':
         specifier: 1.63.0
         version: 1.63.0
@@ -211,6 +214,9 @@ importers:
       '@codemirror/view':
         specifier: ^6.43.11
         version: 6.43.11
+      '@johnnymorganz/stylua':
+        specifier: 2.5.2
+        version: 2.5.2
       '@mdx-js/rollup':
         specifier: 3.1.1
         version: 3.1.1(rollup@4.63.2)
@@ -443,6 +449,10 @@ importers:
         version: 7.0.2
 
   packages/scenario-kit:
+    dependencies:
+      '@johnnymorganz/stylua':
+        specifier: 2.5.2
+        version: 2.5.2
     devDependencies:
       '@types/node':
         specifier: ^24.13.4
@@ -618,6 +628,9 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@johnnymorganz/stylua@2.5.2':
+    resolution: {integrity: sha512-iYcv5DvYk+2DZo7ms2sY6NNQISNU/glgQGJU8T/KRm/csMjqolBKZXyakmiYSgK7+U/eCDwzoDuG0TqLWH2TIg==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -3393,6 +3406,8 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
 
   '@floating-ui/utils@0.2.12': {}
+
+  '@johnnymorganz/stylua@2.5.2': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:

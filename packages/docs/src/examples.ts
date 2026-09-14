@@ -18,6 +18,8 @@ export interface Example {
   source: string;
   /** Whether the example is a scenario script rather than a policy. */
   script: boolean;
+  /** Whether the example is its starter scenario's suggested fix. */
+  fix: boolean;
   scenario: string;
   seed: number;
   /** Log lines the run must begin with, when the page states them. */
@@ -40,6 +42,7 @@ export function extractExamples(page: string, tree: Root): Example[] {
       line: node.position?.start.line ?? 0,
       source: node.value,
       script: meta.script,
+      fix: meta.fix,
       scenario: meta.scenario,
       seed: meta.seed,
       ...(output ? { output } : {}),
@@ -59,6 +62,8 @@ export interface ExampleEntry {
   /** Named after its page, numbered when the page has several runnable examples. */
   name: string;
   script: boolean;
+  /** Present on the example that is its starter scenario's suggested fix. */
+  fix?: true;
   scenario: string;
   seed: number;
   source: string;
@@ -80,11 +85,56 @@ export function exampleIndex(
       page: page.slug,
       name: examples.length > 1 ? `${title} (example ${example.index})` : title,
       script: example.script,
+      ...(example.fix ? { fix: true as const } : {}),
       scenario: example.scenario,
       seed: example.seed,
       source: example.source,
     }));
   });
+}
+
+/**
+ * Problems with starters' suggested fixes: each starter's page must mark exactly one policy
+ * example on that starter as its fix.
+ */
+export function checkStarterFixes(
+  starters: readonly { id: string; docs?: string | undefined }[],
+  pages: readonly { slug: string; tree: Root }[],
+): string[] {
+  const problems: string[] = [];
+  for (const starter of starters) {
+    if (!starter.docs) continue;
+    const slug = starter.docs.split("#")[0] as string;
+    const page = pages.find((p) => p.slug === slug);
+    if (!page) continue;
+    const fixes = extractExamples(slug, page.tree).filter(
+      (e) => e.fix && !e.script && e.scenario === starter.id,
+    );
+    if (fixes.length !== 1) {
+      problems.push(
+        `${starter.id}: ${slug} marks ${fixes.length} fix examples on it; mark exactly one \`lua runnable scenario=${starter.id} fix\``,
+      );
+    }
+  }
+  return problems;
+}
+
+/** The widest line a runnable example may use, matching the scripts the site ships. */
+export const EXAMPLE_LINE_WIDTH = 80;
+
+/** Problems with runnable examples whose lines are too long to read in the editor. */
+export function checkExampleWidth(examples: readonly Example[]): string[] {
+  return examples.flatMap((example) =>
+    example.source
+      .split("\n")
+      .flatMap((line, i) =>
+        line.length > EXAMPLE_LINE_WIDTH
+          ? [
+              `${exampleName(example)}: line ${i + 1} is ${line.length} characters; wrap it within ${EXAMPLE_LINE_WIDTH}`,
+            ]
+          : [],
+      ),
+  );
 }
 
 /** Names the problem when the committed examples index differs from the documentation. */

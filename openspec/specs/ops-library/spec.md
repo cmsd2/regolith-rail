@@ -14,7 +14,7 @@ SHALL return a policy module that can be returned directly from a policy file.
 #### Scenario: One-line baseline
 - **WHEN** a policy file contains `return ops.policy { target = ops.balance {} }`
 - **THEN** its event log, ignoring decision traces, is identical to that of
-  `naive.lua` on every starter scenario and seed from 1 to 50
+  `balance-stock.lua` on every starter scenario and seed from 1 to 50
 
 ### Requirement: Pipeline stages
 A declarative policy SHALL run the stages classify, target, plan and allocate
@@ -22,7 +22,7 @@ at every stop, in that order, followed by execution of the resulting loads and
 unloads. `target` SHALL be required. When `classify` is omitted every site
 SHALL have the role `any`; when `plan` is omitted no cargo SHALL be reserved
 for other stations; when `allocate` is omitted each site's load or unload SHALL
-be issued in the order the station lists its resources, as the naive baseline
+be issued in the order the station lists its resources, as the balancing baseline
 does, leaving the engine to clamp them. When an allocation block is given, all
 unloads SHALL be issued before loads.
 

@@ -26,9 +26,13 @@ Give the junction the relay role, so trains pass it by and carry cargo on to whe
 is needed. [Lookahead](/docs/ops/lookahead) keeps the cargo on board for the dome
 rather than unloading it at the first station with room.
 
-```lua runnable scenario=relay
+```lua runnable scenario=relay fix
 return ops.policy {
-  classify = ops.roles.manual { Mine = "supply", Junction = "relay", Dome = "demand" },
+  classify = ops.roles.manual {
+    Mine = "supply",
+    Junction = "relay",
+    Dome = "demand",
+  },
   target = {
     supply = ops.drain {},
     relay = ops.pass_through {},

@@ -13,7 +13,7 @@ At each stop, for every resource the station stores:
    load or unload action.
 
 Targets are compared with the *inventory position*: stock plus cargo other trains have
-reserved for the site. See [double dispatch](/docs/failure-modes/double-dispatch).
+reserved for the site. See [double dispatch](/docs/book/base-stock#case-study-double-dispatch).
 
 ## How a review is decided
 
@@ -38,7 +38,7 @@ return ops.policy {
 
 ## The simplest policy
 
-One target for every site reproduces the naive baseline:
+One target for every site reproduces the balancing baseline:
 
 ```lua runnable
 return ops.policy { target = ops.balance {} }
@@ -64,8 +64,12 @@ leave the site alone. An error inside a custom function names the stage it happe
 ```lua runnable scenario=relay
 return ops.policy {
   classify = function(site, ctx)
-    if site.station == "Mine" then return "supply" end
-    if site.station == "Dome" then return "demand" end
+    if site.station == "Mine" then
+      return "supply"
+    end
+    if site.station == "Dome" then
+      return "demand"
+    end
     return "relay"
   end,
   target = {

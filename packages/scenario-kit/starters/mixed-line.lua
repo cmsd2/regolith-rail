@@ -3,7 +3,10 @@
 return mars.line {
   id = "mixed-line",
   title = "Mixed line",
-  description = "Five stations trade food, metals and polymers of different importance. Balancing carries goods back and forth between stations that neither produce nor need them, and treats food the same as metals.",
+  description = "Five stations trade food, metals and polymers of different "
+    .. "importance. Balancing carries goods back and forth between stations "
+    .. "that neither produce nor need them, and treats food the same as "
+    .. "metals.",
   docs = "failure-modes/ping-pong",
   duration = sols(10),
   resources = { "Metals", "Polymers", "Food" },
@@ -12,7 +15,10 @@ return mars.line {
       id = "Farm",
       capacity = { Food = 60 },
       stock = { Food = 30, Metals = 10 },
-      buildings = { mars.farm { rate = 60 }, mars.consumer { resource = "Metals", rate = 4 } },
+      buildings = {
+        mars.farm { rate = 60 },
+        mars.consumer { resource = "Metals", rate = 4 },
+      },
     },
     mars.small_station {
       id = "Mine",
@@ -23,7 +29,10 @@ return mars.line {
         mars.consumer { resource = "Food", rate = 8 },
       },
     },
-    mars.small_station { id = "Depot", resources = { "Metals", "Polymers", "Food" } },
+    mars.small_station {
+      id = "Depot",
+      resources = { "Metals", "Polymers", "Food" },
+    },
     mars.small_station {
       id = "Plant",
       stock = { Polymers = 15, Metals = 10 },
@@ -41,7 +50,11 @@ return mars.line {
           consumes = {
             { "Food", 45, variability = 20 },
             { "Polymers", 16 },
-            { "Metals", 16, variability = bursts { on_ppm = 1500, off_ppm = 1500 } },
+            {
+              "Metals",
+              16,
+              variability = bursts { on_ppm = 1500, off_ppm = 1500 },
+            },
           },
         },
       },

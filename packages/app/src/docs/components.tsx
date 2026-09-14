@@ -1,12 +1,23 @@
-import { EVIDENCE_LEVELS, GAME, GAME_VERSION, isEvidenceLevel } from "@regolith-rail/docs";
+import {
+  BOOK,
+  EVIDENCE_LEVELS,
+  GAME,
+  GAME_VERSION,
+  isEvidenceLevel,
+  isWritten,
+  partNumeral,
+} from "@regolith-rail/docs";
 import { POLICY_API_VERSION, starterScenarios } from "@regolith-rail/engine";
 import { classicTemplates } from "@regolith-rail/scenario-kit";
 import type { MDXComponents } from "mdx/types";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { useNavigate } from "react-router";
+import { catalogueItem } from "../lib/catalogue.ts";
+import { itemId } from "../lib/library.ts";
 import { DocLink, DocsMode } from "./DocLink.tsx";
 import styles from "./docs.module.css";
 import { openExample } from "./open-example.ts";
+import { openPolicy, openScenario } from "./open-scenario.ts";
 
 const scenarioTitle = (id: string) =>
   classicTemplates.find((t) => t.name === id)?.title ??
@@ -101,10 +112,190 @@ export function BuildInfo() {
   );
 }
 
+/**
+ * The check behind a claim, filled in at build time: what it is, where it lives and, for Maxima
+ * and Python checks, the code that verifies it.
+ */
+export function Check({
+  ref: reference,
+  kind,
+  label,
+  file,
+  source,
+  error,
+}: {
+  ref: string;
+  kind?: string;
+  label?: string;
+  file?: string;
+  source?: string;
+  error?: string;
+}) {
+  if (error) {
+    return (
+      <p className={styles.checkError} data-testid="check" data-check={reference}>
+        Unresolved check: {error}
+      </p>
+    );
+  }
+  return (
+    <details className={styles.check} data-testid="check" data-check={reference} data-kind={kind}>
+      <summary>Check</summary>
+      <p className={styles.checkLabel}>
+        {label}
+        {file && (
+          <>
+            , in <code>{file}</code>
+          </>
+        )}
+      </p>
+      {source && (
+        <pre className={styles.checkSource}>
+          <code>{source}</code>
+        </pre>
+      )}
+    </details>
+  );
+}
+
+/** An exercise's answer, hidden until the reader asks for it. */
+export function Answer({ children }: { children: ReactNode }) {
+  return (
+    <details className={styles.answer} data-testid="answer">
+      <summary>Answer</summary>
+      {children}
+    </details>
+  );
+}
+
+/**
+ * A scenario or template named in a chapter's text, which opens in the workbench with the policy the
+ * book starts it from when clicked.
+ */
+export function ScenarioLink({
+  starter,
+  template,
+  children,
+}: {
+  starter?: string;
+  template?: string;
+  children: ReactNode;
+}) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const id = starter
+    ? itemId("builtin", "scenario", starter)
+    : itemId("classic", "scenario", template ?? "");
+  const name = catalogueItem(id)?.name ?? id;
+  return (
+    <button
+      type="button"
+      className={styles.scenarioLink}
+      title={`Open ${name} in the workbench, ${template ? "with its reference policy" : "with the balancing baseline"}`}
+      onClick={() => void openScenario(id, mode, navigate)}
+      data-testid="scenario-link"
+      data-item-id={id}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** A built-in policy named in a chapter's text, which goes into the workbench's Policy slot when clicked. */
+export function PolicyLink({ policy, children }: { policy: string; children: ReactNode }) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const id = itemId("builtin", "policy", policy);
+  return (
+    <button
+      type="button"
+      className={styles.scenarioLink}
+      title={`Put the built-in ${policy} policy in the workbench's run`}
+      onClick={() => void openPolicy(id, mode, navigate)}
+      data-testid="policy-link"
+      data-item-id={id}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** A chapter's scenario, with an action that opens it in the workbench ready to run. */
+export function Scenario({ starter, template }: { starter?: string; template?: string }) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const [opened, setOpened] = useState(false);
+  const id = starter
+    ? itemId("builtin", "scenario", starter)
+    : itemId("classic", "scenario", template ?? "");
+  const item = catalogueItem(id);
+  return (
+    <figure className={styles.scenario} data-testid="chapter-scenario" data-item-id={id}>
+      <figcaption>
+        <span>
+          Scenario: <strong>{item?.name ?? id}</strong>
+          {template ? ", with its reference policy" : ", with the balancing baseline"}
+        </span>
+        <button
+          type="button"
+          onClick={() => void openScenario(id, mode, navigate).then(() => setOpened(true))}
+          data-testid="open-scenario"
+        >
+          {opened && mode === "panel" ? "Opened in workbench" : "Open in workbench"}
+        </button>
+      </figcaption>
+    </figure>
+  );
+}
+
+/** A chapter's side note connecting its topic to rail lines in the game, set apart from the main text. */
+export function GameNote({ children }: { children: ReactNode }) {
+  return (
+    <aside className={styles.gameNote} aria-label="On the rail line" data-testid="game-note">
+      <p className={styles.gameNoteLabel}>On the rail line</p>
+      {children}
+    </aside>
+  );
+}
+
+/** The book's parts and chapters, with chapters not yet written marked as coming later. */
+export function BookContents() {
+  return (
+    <ol className={styles.bookContents} data-testid="book-contents">
+      {BOOK.map((part) => (
+        <li key={part.part} data-testid={`book-part-${part.part}`}>
+          <h2>
+            Part {partNumeral(part.part)}: {part.title}
+            {!isWritten(part) && <span className={styles.coming}> (coming later)</span>}
+          </h2>
+          <ol start={part.chapters[0]?.chapter}>
+            {part.chapters.map((c) => (
+              <li key={c.chapter}>
+                {c.slug ? (
+                  <DocLink href={`/docs/${c.slug}`}>{c.title}</DocLink>
+                ) : (
+                  <span className={styles.coming}>{c.title}</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export const mdxComponents: MDXComponents = {
   a: DocLink,
+  Answer,
+  BookContents,
   BuildInfo,
+  Check,
   Example,
+  GameNote,
+  PolicyLink,
+  Scenario,
+  ScenarioLink,
   Evidence,
   Callout,
 };

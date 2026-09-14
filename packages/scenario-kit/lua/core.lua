@@ -122,7 +122,10 @@ local function construct(name, params, required, build)
   return function(args)
     local line = kit.caller_line()
     if type(args) ~= "table" or kit.kind_of(args) ~= nil then
-      fail(name, "expects a table of parameters, such as " .. name .. " { ... }")
+      fail(
+        name,
+        "expects a table of parameters, such as " .. name .. " { ... }"
+      )
     end
     for key in pairs(args) do
       if type(key) ~= "string" or params[key] == nil then
@@ -152,8 +155,15 @@ local function check_type(name, key, value, expected)
 end
 
 local function id_param(name, key, value)
-  if type(value) ~= "string" or not string.match(value, "^[A-Za-z][A-Za-z0-9_-]*$") then
-    fail(name, key .. " must be an id that starts with a letter and uses letters, digits, _ or -")
+  if
+    type(value) ~= "string"
+    or not string.match(value, "^[A-Za-z][A-Za-z0-9_-]*$")
+  then
+    fail(
+      name,
+      key
+        .. " must be an id that starts with a letter and uses letters, digits, _ or -"
+    )
   end
   return value
 end
@@ -184,7 +194,11 @@ local function duration(name, key, value, default)
     fail(name, key .. " must not be negative")
   end
   if value ~= math.floor(value) then
-    fail(name, key .. " must be a whole number of milliseconds; use a unit helper, such as hours(1.5)")
+    fail(
+      name,
+      key
+        .. " must be a whole number of milliseconds; use a unit helper, such as hours(1.5)"
+    )
   end
   return value
 end
@@ -213,7 +227,10 @@ local function multiplier(name, key, value, default)
   end
   local permille = exact(value, 1000)
   if permille == nil then
-    fail(name, key .. " of " .. show(value) .. " has more than three decimal places")
+    fail(
+      name,
+      key .. " of " .. show(value) .. " has more than three decimal places"
+    )
   end
   return permille
 end
@@ -254,7 +271,10 @@ end
 function core.discrete(values)
   local line = kit.caller_line()
   if type(values) ~= "table" or not is_list(values) or #values == 0 then
-    fail("discrete", "expects a list of { value, weight } pairs, such as discrete { { 2, 1 }, { 3, 1 } }")
+    fail(
+      "discrete",
+      "expects a list of { value, weight } pairs, such as discrete { { 2, 1 }, { 3, 1 } }"
+    )
   end
   local out = {}
   for i, pair in ipairs(values) do
@@ -273,7 +293,10 @@ end
 
 local function weights(name, key, entry, i)
   if entry.weight <= 0 or entry.weight ~= math.floor(entry.weight) then
-    fail(name, key .. " weight " .. i .. " must be a whole number greater than zero")
+    fail(
+      name,
+      key .. " weight " .. i .. " must be a whole number greater than zero"
+    )
   end
   return entry.weight
 end
@@ -288,7 +311,10 @@ local function amount_distribution(name, key, value)
   end
   local values = {}
   for i, entry in ipairs(value.discrete) do
-    values[i] = { value = quantity(name, key, entry.value), weight = weights(name, key, entry, i) }
+    values[i] = {
+      value = quantity(name, key, entry.value),
+      weight = weights(name, key, entry, i),
+    }
   end
   return { kind = "discrete", values = values }
 end
@@ -306,20 +332,31 @@ local function duration_distribution(name, key, value, default)
   end
   local values = {}
   for i, entry in ipairs(value.discrete) do
-    values[i] = { value = duration(name, key, entry.value), weight = weights(name, key, entry, i) }
+    values[i] = {
+      value = duration(name, key, entry.value),
+      weight = weights(name, key, entry, i),
+    }
   end
   return { kind = "discrete", values = values }
 end
 
 -- Resources and stations ------------------------------------------------------------------
 
-core.resource = construct("resource", { id = "string", priority = "integer" }, { "id" }, function(p, name)
-  return { id = id_param(name, "id", p.id), priority = whole(name, "priority", p.priority, 1) }
-end)
+core.resource = construct(
+  "resource",
+  { id = "string", priority = "integer" },
+  { "id" },
+  function(p, name)
+    return {
+      id = id_param(name, "id", p.id),
+      priority = whole(name, "priority", p.priority, 1),
+    }
+  end
+)
 
 core.store = construct("store", {
   resource = "string",
-  capacity = "units|\"unlimited\"",
+  capacity = 'units|"unlimited"',
   initial = "units",
   expires = "boolean",
   holding_cost = "integer",
@@ -334,19 +371,30 @@ core.store = construct("store", {
     id = id_param(name, "resource", p.resource),
     capacity = capacity,
     initial = quantity(name, "initial", p.initial, 0),
-    expires = p.expires ~= nil and check_type(name, "expires", p.expires, "boolean") or false,
+    expires = p.expires ~= nil
+        and check_type(name, "expires", p.expires, "boolean")
+      or false,
     holdingCost = whole(name, "holding_cost", p.holding_cost),
   }
 end)
 
 --- Variability for a flow with a rate.
-core.uniform = construct("uniform", { range = "integer", period = "duration" }, { "range" }, function(p, name)
-  local range = whole(name, "range", p.range)
-  if range > 100 then
-    fail(name, "range must be a percentage from 0 to 100")
+core.uniform = construct(
+  "uniform",
+  { range = "integer", period = "duration" },
+  { "range" },
+  function(p, name)
+    local range = whole(name, "range", p.range)
+    if range > 100 then
+      fail(name, "range must be a percentage from 0 to 100")
+    end
+    return {
+      kind = "uniform",
+      rangePercent = range,
+      periodMs = duration(name, "period", p.period, HOUR),
+    }
   end
-  return { kind = "uniform", rangePercent = range, periodMs = duration(name, "period", p.period, HOUR) }
-end)
+)
 
 core.bursts = construct(
   "bursts",
@@ -366,47 +414,72 @@ core.bursts = construct(
   end
 )
 
-core.poisson = construct("poisson", { per_sol = "number", size = "units|discrete" }, { "per_sol" }, function(p, name)
-  local per_sol = p.per_sol
-  if type(per_sol) ~= "number" or per_sol < 0 then
-    fail(name, "per_sol must be a number of arrivals per sol that is not negative")
+core.poisson = construct(
+  "poisson",
+  { per_sol = "number", size = "units|discrete" },
+  { "per_sol" },
+  function(p, name)
+    local per_sol = p.per_sol
+    if type(per_sol) ~= "number" or per_sol < 0 then
+      fail(
+        name,
+        "per_sol must be a number of arrivals per sol that is not negative"
+      )
+    end
+    local arrivals = exact(per_sol, 1000)
+    if arrivals == nil then
+      fail(
+        name,
+        "per_sol of " .. show(per_sol) .. " has more than three decimal places"
+      )
+    end
+    local size = p.size
+    if size == nil then
+      size = 1
+    end
+    return {
+      arrivalsPerSol = arrivals,
+      size = amount_distribution(name, "size", size),
+    }
   end
-  local arrivals = exact(per_sol, 1000)
-  if arrivals == nil then
-    fail(name, "per_sol of " .. show(per_sol) .. " has more than three decimal places")
-  end
-  local size = p.size
-  if size == nil then
-    size = 1
-  end
-  return { arrivalsPerSol = arrivals, size = amount_distribution(name, "size", size) }
-end)
+)
 
 core.per_period = construct(
   "per_period",
   { period = "duration", amount = "units|discrete" },
   { "period", "amount" },
   function(p, name)
-    return { periodMs = duration(name, "period", p.period), amount = amount_distribution(name, "amount", p.amount) }
+    return {
+      periodMs = duration(name, "period", p.period),
+      amount = amount_distribution(name, "amount", p.amount),
+    }
   end
 )
 
-core.trace = construct("trace", { period = "duration", amounts = "units[]" }, { "period", "amounts" }, function(p, name)
-  if type(p.amounts) ~= "table" or not is_list(p.amounts) then
-    fail(name, "amounts must be a list of quantities in units")
+core.trace = construct(
+  "trace",
+  { period = "duration", amounts = "units[]" },
+  { "period", "amounts" },
+  function(p, name)
+    if type(p.amounts) ~= "table" or not is_list(p.amounts) then
+      fail(name, "amounts must be a list of quantities in units")
+    end
+    local amounts = {}
+    for i, value in ipairs(p.amounts) do
+      amounts[i] = quantity(name, "amounts[" .. i .. "]", value)
+    end
+    return { periodMs = duration(name, "period", p.period), amounts = amounts }
   end
-  local amounts = {}
-  for i, value in ipairs(p.amounts) do
-    amounts[i] = quantity(name, "amounts[" .. i .. "]", value)
-  end
-  return { periodMs = duration(name, "period", p.period), amounts = amounts }
-end)
+)
 
 --- Multipliers over time: profile { { sols(0), 1 }, { sols(10), 2 } }.
 function core.profile(points)
   local line = kit.caller_line()
   if type(points) ~= "table" or not is_list(points) or #points == 0 then
-    fail("profile", "expects a list of { time, multiplier } pairs, such as profile { { sols(0), 1 }, { sols(5), 2 } }")
+    fail(
+      "profile",
+      "expects a list of { time, multiplier } pairs, such as profile { { sols(0), 1 }, { sols(5), 2 } }"
+    )
   end
   local out = {}
   for i, point in ipairs(points) do
@@ -414,8 +487,16 @@ function core.profile(points)
       fail("profile", "point " .. i .. " must be a { time, multiplier } pair")
     end
     out[i] = {
-      atMs = duration("profile", "point " .. i .. " time", point.at or point[1]),
-      multiplierPermille = multiplier("profile", "point " .. i .. " multiplier", point.multiplier or point[2]),
+      atMs = duration(
+        "profile",
+        "point " .. i .. " time",
+        point.at or point[1]
+      ),
+      multiplierPermille = multiplier(
+        "profile",
+        "point " .. i .. " multiplier",
+        point.multiplier or point[2]
+      ),
     }
   end
   return kit.mark({ profile = out }, "profile", line)
@@ -447,12 +528,14 @@ end
 local function flow(p, name)
   local out = { resource = id_param(name, "resource", p.resource) }
   out.rate = quantity(name, "rate", p.rate)
-  out.variability = expect_kind(name, "variability", p.variability, { "uniform", "bursts" })
+  out.variability =
+    expect_kind(name, "variability", p.variability, { "uniform", "bursts" })
   if out.variability == nil and out.rate ~= nil then
     out.variability = { kind = "fixed" }
   end
   out.poisson = expect_kind(name, "poisson", p.poisson, { "poisson" })
-  out.perPeriod = expect_kind(name, "per_period", p.per_period, { "per_period" })
+  out.perPeriod =
+    expect_kind(name, "per_period", p.per_period, { "per_period" })
   out.trace = expect_kind(name, "trace", p.trace, { "trace" })
   local profile = expect_kind(name, "profile", p.profile, { "profile" })
   if profile then
@@ -481,15 +564,24 @@ local function with(base, extra)
   return out
 end
 
-core.producer = construct("producer", with(FLOW_PARAMS, { stall_cost = "integer" }), { "resource" }, function(p, name)
-  local out = flow(p, name)
-  out.stallCost = whole(name, "stall_cost", p.stall_cost)
-  return out
-end)
+core.producer = construct(
+  "producer",
+  with(FLOW_PARAMS, { stall_cost = "integer" }),
+  { "resource" },
+  function(p, name)
+    local out = flow(p, name)
+    out.stallCost = whole(name, "stall_cost", p.stall_cost)
+    return out
+  end
+)
 
 core.consumer = construct(
   "consumer",
-  with(FLOW_PARAMS, { unmet = '"lost"|"backorder"', lost_cost = "integer", backorder_cost = "integer" }),
+  with(FLOW_PARAMS, {
+    unmet = '"lost"|"backorder"',
+    lost_cost = "integer",
+    backorder_cost = "integer",
+  }),
   { "resource" },
   function(p, name)
     local out = flow(p, name)
@@ -510,39 +602,54 @@ local function batch_amounts(name, key, value)
     local resource, amount = entry[1], entry[2]
     if resource == nil then
       if type(amount) ~= "table" then
-        fail(name, key .. " entry " .. i .. " must be a { resource, amount } pair")
+        fail(
+          name,
+          key .. " entry " .. i .. " must be a { resource, amount } pair"
+        )
       end
-      resource, amount = amount.resource or amount[1], amount.amount or amount[2]
+      resource, amount =
+        amount.resource or amount[1], amount.amount or amount[2]
     end
     local milli = quantity(name, key .. "." .. tostring(resource), amount)
     if milli == nil or milli <= 0 then
-      fail(name, key .. "." .. tostring(resource) .. " must be greater than zero")
+      fail(
+        name,
+        key .. "." .. tostring(resource) .. " must be greater than zero"
+      )
     end
     out[i] = { resource = id_param(name, key, resource), amount = milli }
   end
   return out
 end
 
-core.converter = construct(
-  "converter",
-  { inputs = "table<string, units>", outputs = "table<string, units>", rate = "number", variability = "uniform|bursts" },
-  { "rate" },
-  function(p, name)
-    if type(p.rate) ~= "number" or p.rate < 0 then
-      fail(name, "rate must be a number of batches per sol that is not negative")
-    end
-    local rate = exact(p.rate, 1000)
-    if rate == nil then
-      fail(name, "rate of " .. show(p.rate) .. " has more than three decimal places")
-    end
-    return {
-      inputs = batch_amounts(name, "inputs", p.inputs),
-      outputs = batch_amounts(name, "outputs", p.outputs),
-      rate = rate,
-      variability = expect_kind(name, "variability", p.variability, { "uniform", "bursts" }) or { kind = "fixed" },
-    }
+core.converter = construct("converter", {
+  inputs = "table<string, units>",
+  outputs = "table<string, units>",
+  rate = "number",
+  variability = "uniform|bursts",
+}, { "rate" }, function(p, name)
+  if type(p.rate) ~= "number" or p.rate < 0 then
+    fail(name, "rate must be a number of batches per sol that is not negative")
   end
-)
+  local rate = exact(p.rate, 1000)
+  if rate == nil then
+    fail(
+      name,
+      "rate of " .. show(p.rate) .. " has more than three decimal places"
+    )
+  end
+  return {
+    inputs = batch_amounts(name, "inputs", p.inputs),
+    outputs = batch_amounts(name, "outputs", p.outputs),
+    rate = rate,
+    variability = expect_kind(
+      name,
+      "variability",
+      p.variability,
+      { "uniform", "bursts" }
+    ) or { kind = "fixed" },
+  }
+end)
 
 core.supplier = construct("supplier", {
   resource = "string",
@@ -556,7 +663,12 @@ core.supplier = construct("supplier", {
   return {
     resource = id_param(name, "resource", p.resource),
     from = p.from == nil and "external" or id_param(name, "from", p.from),
-    leadTime = duration_distribution(name, "lead_time", p.lead_time, { kind = "fixed", value = 0 }),
+    leadTime = duration_distribution(
+      name,
+      "lead_time",
+      p.lead_time,
+      { kind = "fixed", value = 0 }
+    ),
     minOrder = quantity(name, "min_order", p.min_order),
     maxOrder = quantity(name, "max_order", p.max_order),
     orderCost = whole(name, "order_cost", p.order_cost),
@@ -564,9 +676,17 @@ core.supplier = construct("supplier", {
   }
 end)
 
-core.review = construct("review", { period = "duration", offset = "duration" }, { "period" }, function(p, name)
-  return { periodMs = duration(name, "period", p.period), offsetMs = duration(name, "offset", p.offset, 0) }
-end)
+core.review = construct(
+  "review",
+  { period = "duration", offset = "duration" },
+  { "period" },
+  function(p, name)
+    return {
+      periodMs = duration(name, "period", p.period),
+      offsetMs = duration(name, "offset", p.offset, 0),
+    }
+  end
+)
 
 --- Builds a list from items made with one construct, where a string stands for that construct's defaults.
 local function built_list(name, key, value, kinds, from_string, from_keyed)
@@ -612,12 +732,22 @@ core.station = construct("station", {
   position = "{ x: number, y: number }",
 }, { "id", "resources" }, function(p, name)
   local out = { id = id_param(name, "id", p.id) }
-  out.resources = built_list(name, "resources", p.resources, { "store" }, function(resource)
-    return core.store({ resource = resource })
-  end, function(resource, params)
-    local args = with(params_table(name, "resources", resource, params), { resource = resource })
-    return core.store(args)
-  end)
+  out.resources = built_list(
+    name,
+    "resources",
+    p.resources,
+    { "store" },
+    function(resource)
+      return core.store({ resource = resource })
+    end,
+    function(resource, params)
+      local args = with(
+        params_table(name, "resources", resource, params),
+        { resource = resource }
+      )
+      return core.store(args)
+    end
+  )
   if #out.resources == 0 then
     fail(name, "resources must list at least one resource")
   end
@@ -646,13 +776,18 @@ local function positive_whole(name, key, value)
   return n
 end
 
-core.arc = construct("arc", { from = "string", to = "string", distance = "integer" }, { "from", "to", "distance" }, function(p, name)
-  return {
-    from = id_param(name, "from", p.from),
-    to = id_param(name, "to", p.to),
-    distance = positive_whole(name, "distance", p.distance),
-  }
-end)
+core.arc = construct(
+  "arc",
+  { from = "string", to = "string", distance = "integer" },
+  { "from", "to", "distance" },
+  function(p, name)
+    return {
+      from = id_param(name, "from", p.from),
+      to = id_param(name, "to", p.to),
+      distance = positive_whole(name, "distance", p.distance),
+    }
+  end
+)
 
 local function station_id(name, key, value)
   if kit.kind_of(value) == "station" then
@@ -676,7 +811,10 @@ core.line = construct(
       local distance = p.distances
       if type(distance) == "table" then
         if #distance ~= #stations - 1 then
-          fail(name, "distances must list one distance fewer than there are stations")
+          fail(
+            name,
+            "distances must list one distance fewer than there are stations"
+          )
         end
         distance = distance[i]
       end
@@ -710,32 +848,51 @@ core.shuttle = construct(
       kind = "shuttle",
       stops = stops(name, p.stops),
       start = p.start ~= nil and station_id(name, "start", p.start) or nil,
-      direction = one_of(name, "direction", p.direction, { "forward", "backward" }, "forward"),
+      direction = one_of(
+        name,
+        "direction",
+        p.direction,
+        { "forward", "backward" },
+        "forward"
+      ),
     }
   end
 )
 
-core.loop = construct("loop", { stops = "string[]", start = "string" }, { "stops" }, function(p, name)
-  return {
-    kind = "loop",
-    stops = stops(name, p.stops),
-    start = p.start ~= nil and station_id(name, "start", p.start) or nil,
-  }
-end)
+core.loop = construct(
+  "loop",
+  { stops = "string[]", start = "string" },
+  { "stops" },
+  function(p, name)
+    return {
+      kind = "loop",
+      stops = stops(name, p.stops),
+      start = p.start ~= nil and station_id(name, "start", p.start) or nil,
+    }
+  end
+)
 
 core.timetable = construct(
   "timetable",
   { stops = "string[]", departures = "duration[]" },
   { "stops", "departures" },
   function(p, name)
-    if type(p.departures) ~= "table" or not is_list(p.departures) or #p.departures == 0 then
+    if
+      type(p.departures) ~= "table"
+      or not is_list(p.departures)
+      or #p.departures == 0
+    then
       fail(name, "departures must list at least one departure time")
     end
     local departures = {}
     for i, at in ipairs(p.departures) do
       departures[i] = duration(name, "departures[" .. i .. "]", at)
     end
-    return { kind = "timetable", stops = stops(name, p.stops), departuresMs = departures }
+    return {
+      kind = "timetable",
+      stops = stops(name, p.stops),
+      departuresMs = departures,
+    }
   end
 )
 
@@ -754,7 +911,8 @@ core.vehicle = construct("vehicle", {
   elseif type(p.capacity) == "table" and not is_list(p.capacity) then
     local per = {}
     for resource, amount in pairs(p.capacity) do
-      per[id_param(name, "capacity", resource)] = quantity(name, "capacity." .. resource, amount)
+      per[id_param(name, "capacity", resource)] =
+        quantity(name, "capacity." .. resource, amount)
     end
     capacity = { perResource = per }
   else
@@ -762,7 +920,12 @@ core.vehicle = construct("vehicle", {
   end
   return {
     id = id_param(name, "id", p.id),
-    route = expect_kind(name, "route", p.route, { "shuttle", "loop", "timetable" }),
+    route = expect_kind(
+      name,
+      "route",
+      p.route,
+      { "shuttle", "loop", "timetable" }
+    ),
     speed = positive_whole(name, "speed", p.speed),
     dwellMs = duration(name, "dwell", p.dwell, 10000),
     dwellPerUnitMs = duration(name, "dwell_per_unit", p.dwell_per_unit, 1000),
@@ -819,7 +982,11 @@ core.event = construct("event", {
 }, { "id", "duration", "effects" }, function(p, name)
   local schedule
   if p.start ~= nil and p.chance_ppm == nil then
-    schedule = { kind = "fixed", startMs = duration(name, "start", p.start), durationMs = duration(name, "duration", p.duration) }
+    schedule = {
+      kind = "fixed",
+      startMs = duration(name, "start", p.start),
+      durationMs = duration(name, "duration", p.duration),
+    }
   elseif p.chance_ppm ~= nil and p.start == nil then
     if p.check_every == nil then
       fail(name, "check_every is needed with chance_ppm")
@@ -831,7 +998,10 @@ core.event = construct("event", {
       durationMs = duration(name, "duration", p.duration),
     }
   else
-    fail(name, "needs either start, for a fixed time, or chance_ppm and check_every, for a random event")
+    fail(
+      name,
+      "needs either start, for a fixed time, or chance_ppm and check_every, for a random event"
+    )
   end
   local effects = built_list(name, "effects", p.effects, { "effect" })
   if #effects == 0 then
@@ -839,7 +1009,8 @@ core.event = construct("event", {
   end
   return {
     id = id_param(name, "id", p.id),
-    label = p.label ~= nil and check_type(name, "label", p.label, "string") or p.id,
+    label = p.label ~= nil and check_type(name, "label", p.label, "string")
+      or p.id,
     schedule = schedule,
     effects = effects,
   }
@@ -875,7 +1046,10 @@ core.scenario = construct("scenario", {
   local events = built_list(name, "events", p.events, { "event" })
   if p.parts ~= nil then
     if type(p.parts) ~= "table" or not is_list(p.parts) then
-      fail(name, "parts must be a list of tables with stations, arcs, vehicles or events")
+      fail(
+        name,
+        "parts must be a list of tables with stations, arcs, vehicles or events"
+      )
     end
     for _, part in ipairs(p.parts) do
       append(stations, part.stations)
@@ -885,11 +1059,20 @@ core.scenario = construct("scenario", {
     end
   end
 
-  local resources = built_list(name, "resources", p.resources, { "resource" }, function(id)
-    return core.resource({ id = id })
-  end, function(id, params)
-    return core.resource(with(params_table(name, "resources", id, params), { id = id }))
-  end)
+  local resources = built_list(
+    name,
+    "resources",
+    p.resources,
+    { "resource" },
+    function(id)
+      return core.resource({ id = id })
+    end,
+    function(id, params)
+      return core.resource(
+        with(params_table(name, "resources", id, params), { id = id })
+      )
+    end
+  )
   if p.resources == nil then
     -- Every resource a station stores, in the order stations first store them.
     local seen = {}
@@ -903,17 +1086,31 @@ core.scenario = construct("scenario", {
     end
   end
 
-  local title = p.title ~= nil and check_type(name, "title", p.title, "string") or p.id
+  local title = p.title ~= nil and check_type(name, "title", p.title, "string")
+    or p.id
   return {
     format = 2,
     id = id_param(name, "id", p.id),
     title = title,
-    description = p.description ~= nil and check_type(name, "description", p.description, "string") or title,
+    description = p.description ~= nil
+        and check_type(name, "description", p.description, "string")
+      or title,
     docs = p.docs ~= nil and check_type(name, "docs", p.docs, "string") or nil,
     durationMs = duration(name, "duration", p.duration),
     seed = whole(name, "seed", p.seed, 1),
-    informationLevel = one_of(name, "information", p.information, { "local", "line" }, "line"),
-    sampleIntervalMs = duration(name, "sample_interval", p.sample_interval, HOUR),
+    informationLevel = one_of(
+      name,
+      "information",
+      p.information,
+      { "local", "line" },
+      "line"
+    ),
+    sampleIntervalMs = duration(
+      name,
+      "sample_interval",
+      p.sample_interval,
+      HOUR
+    ),
     resources = resources,
     stations = stations,
     arcs = arcs,

@@ -677,7 +677,7 @@ export const marsConstructs: Construct[] = [
 
 const template = (
   name: string,
-  slug: string,
+  docs: string,
   summary: string,
   params: ConstructParam[],
 ): Construct => ({
@@ -687,7 +687,7 @@ const template = (
   summary,
   returns: "scenario document",
   params,
-  docs: `classic/${slug}`,
+  docs,
 });
 
 const seedParam = param("seed", "integer", "Base seed for random demand.", { default: "1" });
@@ -695,7 +695,7 @@ const seedParam = param("seed", "integer", "Base seed for random demand.", { def
 export const classicConstructs: Construct[] = [
   template(
     "newsvendor",
-    "newsvendor",
+    "book/newsvendor",
     "One stand whose unsold stock expires at each daily review, facing random demand each period with lost sales.",
     [
       param("demand", "number|discrete", "Demand in each period.", {
@@ -719,7 +719,7 @@ export const classicConstructs: Construct[] = [
   ),
   template(
     "reorder",
-    "reorder",
+    "book/order-quantities",
     "One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.",
     [
       param("demand", "number", "Average demand per day.", {
@@ -749,8 +749,82 @@ export const classicConstructs: Construct[] = [
     ],
   ),
   template(
+    "safety_stock",
+    "book/safety-stock",
+    "One store reviewed on a schedule, facing Poisson demand with backorders and a supplier whose lead time may vary, with a target cycle service level for its reference policy.",
+    [
+      param("demand", "number", "Average demand per day, arriving one unit at a time.", {
+        default: "10",
+        unit: "units per day",
+      }),
+      param(
+        "lead_time",
+        "integer|discrete",
+        "Time from order to delivery, fixed or drawn for each order. The longest and shortest must differ by less than the review period.",
+        { default: "discrete { { days(1), 1 }, { days(3), 1 } }", unit: "ms" },
+      ),
+      param("review_period", "integer", "Time between reviews.", {
+        default: "weeks(1)",
+        unit: "ms",
+      }),
+      param(
+        "target_service",
+        "number",
+        "Chance that a review cycle ends with no customers waiting, which the reference policy's order-up-to level aims for.",
+        { default: "0.95" },
+      ),
+      param("holding_cost", "integer", "Cost per unit held per day.", { default: "1" }),
+      param("backorder_cost", "integer", "Cost per unit backordered per day.", { default: "10" }),
+      param("initial", "number", "Stock at the start of a run.", { default: "0", unit: "units" }),
+      param("duration", "integer", "Length of a run.", { default: "weeks(10)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+  template(
+    "forecasting",
+    "book/forecasting",
+    "One store reviewed daily whose demand grows by a trend and may rise and fall with a season, with or without Poisson noise, and a reference policy that forecasts by exponential smoothing.",
+    [
+      param("level", "number", "Demand on the first day.", { default: "20", unit: "units" }),
+      param("trend", "number", "How much demand grows each day.", {
+        default: "1",
+        unit: "units per day",
+      }),
+      param(
+        "season_length",
+        "integer",
+        "Days in a season, with demand raised in its first half and lowered in its second; 0 for none.",
+        { default: "0", range: [0, 365] },
+      ),
+      param("season_amplitude", "number", "Fraction by which a season raises and lowers demand.", {
+        default: "0",
+      }),
+      param(
+        "noise",
+        "boolean",
+        "Poisson arrivals around each day's demand instead of exactly that amount.",
+        { default: "false" },
+      ),
+      param("alpha", "number", "Weight the reference policy's forecast gives the latest day.", {
+        default: "0.2",
+      }),
+      param("lead_time", "integer", "Time from order to delivery, in whole days.", {
+        default: "days(2)",
+        unit: "ms",
+      }),
+      param("safety", "number", "Stock the reference policy holds above its forecast.", {
+        default: "0",
+        unit: "units",
+      }),
+      param("holding_cost", "integer", "Cost per unit held per day.", { default: "1" }),
+      param("backorder_cost", "integer", "Cost per unit backordered per day.", { default: "10" }),
+      param("duration", "integer", "Length of a run.", { default: "days(60)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+  template(
     "serial_chain",
-    "serial-chain",
+    "classic/serial-chain",
     "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",
     [
       param("stages", "integer", "Number of stages, from 2 to 10.", {
@@ -790,7 +864,7 @@ export const classicConstructs: Construct[] = [
   ),
   template(
     "fixed_route_delivery",
-    "fixed-route-delivery",
+    "classic/fixed-route-delivery",
     "A depot supplied from outside and customers that trucks visit on a fixed loop, with lost sales when a customer runs dry.",
     [
       param("customers", "integer", "Number of customers, from 1 to 20.", {

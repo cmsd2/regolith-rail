@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
-import { exampleFragment } from "../lib/examples.ts";
+import { exampleFragment, policyFragment, scenarioFragment } from "../lib/examples.ts";
 import {
   experimentFromShareState,
   experimentName,
@@ -38,8 +38,16 @@ export async function startSession(options: SessionOptions): Promise<() => void>
   const now = options.now ?? Date.now;
   const storage = await options.storage;
   await library.getState().attach(storage);
-  const { notify, setLoaded, loadLibrary, addSharedExperiment, openExperiment, openExample } =
-    workbench.getState();
+  const {
+    notify,
+    setLoaded,
+    loadLibrary,
+    addSharedExperiment,
+    openExperiment,
+    openExample,
+    openLessonScenario,
+    fillSlot,
+  } = workbench.getState();
 
   if (options.formerStorage) {
     const former = await options.formerStorage;
@@ -92,6 +100,18 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     options.clearHash();
     if (workbench.getState().itemById(example)?.example) openExample(example);
     else notify("warning", "example-unknown", "That documentation example no longer exists.");
+  }
+  const lesson = scenarioFragment(options.hash);
+  if (lesson !== null) {
+    options.clearHash();
+    if (workbench.getState().itemById(lesson)?.kind === "scenario") openLessonScenario(lesson);
+    else notify("warning", "scenario-unknown", "That scenario no longer exists.");
+  }
+  const policy = policyFragment(options.hash);
+  if (policy !== null) {
+    options.clearHash();
+    if (workbench.getState().itemById(policy)?.kind === "policy") fillSlot("policy", policy);
+    else notify("warning", "policy-unknown", "That policy no longer exists.");
   }
   if (!storage.available) {
     notify(

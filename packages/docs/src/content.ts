@@ -3,6 +3,7 @@ import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Root } from "mdast";
 import { assignHeadingIds, frontmatterOf, parseMdx } from "./markdown.ts";
+import { MOVED_PAGES } from "./moved.ts";
 import { isSection, referenceAnchors, referencePages } from "./pages.ts";
 
 export const CONTENT_DIR = fileURLToPath(new URL("../content/", import.meta.url));
@@ -61,6 +62,8 @@ export function docPaths(root = CONTENT_DIR): string[] {
   const slugs = new Set([
     ...readContentPages(root).map((p) => p.slug),
     ...referencePages().map((p) => p.slug),
+    // Moved pages leave a redirect behind.
+    ...Object.keys(MOVED_PAGES),
   ]);
   return [...slugs].sort().map((slug) => (slug === "" ? "/docs" : `/docs/${slug}`));
 }

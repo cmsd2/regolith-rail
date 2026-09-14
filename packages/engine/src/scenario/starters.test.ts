@@ -23,7 +23,9 @@ describe("starter scenarios", () => {
       expect(result.ok ? [] : result.errors).toEqual([]);
       if (!result.ok) return;
       expect(result.scenario.id).toBe(starter.id);
-      expect(result.scenario.docs).toMatch(/^failure-modes\//);
+      expect(result.scenario.docs).toMatch(
+        /^(failure-modes\/[\w-]+|book\/[\w-]+#case-study-[\w-]+)$/,
+      );
     });
 
     it(`${starter.id} uses game-sized stations`, () => {

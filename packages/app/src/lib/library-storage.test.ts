@@ -62,12 +62,16 @@ describe("library storage", () => {
 
   it("duplicates items and experiments into Mine under a copy name", async () => {
     const storage = memoryLibraryStorage();
-    const naive = catalogueItem("builtin:policy:naive") as PolicyItem;
-    const first = duplicated(naive, [], 3);
-    const second = duplicated(naive, [first], 4);
+    const baseline = catalogueItem("builtin:policy:balance-stock") as PolicyItem;
+    const first = duplicated(baseline, [], 3);
+    const second = duplicated(baseline, [first], 4);
     const copy = duplicated(experiment(), [], 5);
-    expect(first).toMatchObject({ source: "mine", name: "naive (copy)", origin: naive.id });
-    expect(second.name).toBe("naive (copy 2)");
+    expect(first).toMatchObject({
+      source: "mine",
+      name: "balance-stock (copy)",
+      origin: baseline.id,
+    });
+    expect(second.name).toBe("balance-stock (copy 2)");
     expect(copy).toMatchObject({ kind: "experiment", name: "Reorder run (copy)" });
     await storage.writeItems([first, second, copy]);
     expect(await storage.listItems()).toHaveLength(3);

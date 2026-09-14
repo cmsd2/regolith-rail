@@ -20,6 +20,24 @@ export function exampleFragment(hash: string): ItemId | null {
   );
 }
 
+/** The fragment that puts a policy in the run of a fresh workbench: `#policy.<item id>`. */
+export const policyFragmentFor = (id: ItemId) => `#policy.${id}`;
+
+/** The policy item a fragment names, or null when the fragment is not a policy's. */
+export function policyFragment(hash: string): ItemId | null {
+  const match = /^#policy\.(.+)$/.exec(hash);
+  return match ? decodeURIComponent(match[1] as string) : null;
+}
+
+/** The fragment that opens a chapter's scenario in a fresh workbench: `#scenario.<item id>`. */
+export const scenarioFragmentFor = (id: ItemId) => `#scenario.${id}`;
+
+/** The scenario item a fragment names, or null when the fragment is not a scenario's. */
+export function scenarioFragment(hash: string): ItemId | null {
+  const match = /^#scenario\.(.+)$/.exec(hash);
+  return match ? decodeURIComponent(match[1] as string) : null;
+}
+
 /**
  * The documentation example item with this source and kind, as a page renders it. When several
  * pages show the same example, the item from the given page is preferred.

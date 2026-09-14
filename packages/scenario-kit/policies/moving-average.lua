@@ -24,7 +24,8 @@ local function inventory_position(ctx, here, resource)
     local other = ctx.stations[id]
     if other ~= here then
       for _, order in ipairs(other.on_order or {}) do
-        if order.from == here.id and order.resource == resource and order.arrives_at == nil then
+        local waiting = order.arrives_at == nil
+        if order.from == here.id and order.resource == resource and waiting then
           position = position - order.amount
         end
       end

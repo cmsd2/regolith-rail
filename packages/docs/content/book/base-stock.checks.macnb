@@ -1,0 +1,90 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "code",
+   "source": "/* prelude: shared by every checks notebook. Keep in sync with packages/docs/checks/prelude.mac. */\nexpect_equal(name, got, want) :=\n  if is(equal(radcan(ratsimp(got - want)), 0)) then true\n  else error(\"check failed:\", name, \"got\", got, \"want\", want)$\nexpect_close(name, got, want, tol) :=\n  if is(abs(float(got - want)) <= tol) then true\n  else error(\"check failed:\", name, \"got\", float(got), \"want\", float(want), \"tolerance\", tol)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* Base stock with Poisson demand: the smallest level whose chance of covering demand reaches a ratio. */\nload(distrib)$\nbase_stock(mean, ratio) := block([s: 0], while cdf_poisson(s, mean) < ratio do s: s + 1, s)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: inventory-position */\n/* On hand 5, 7 on order, 2 backordered: the position is 10, and ordering up to 13 orders 3. */\nposition(on_hand, on_order, backorders) := on_hand + on_order - backorders$\nexpect_equal(\"position\", position(5, 7, 2), 10);\nexpect_equal(\"order-to-level\", 13 - position(5, 7, 2), 3);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: protection-interval */\n/* Four a day over a lead time of 2 days and a review period of 6 hours. */\nexpect_equal(\"interval-days\", 2 + 6/24, 9/4);\nexpect_equal(\"interval-mean\", 4 * (2 + 6/24), 9);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: critical-fractile */\nexpect_equal(\"fractile\", 10 / (10 + 1), 10/11);\nexpect_equal(\"fractile-general\", subst([b = 10, h = 1], b / (b + h)), 10/11);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: base-stock-level */\nexpect_equal(\"level\", base_stock(9, 10/11), 13);\nexpect_equal(\"below-level\", is(cdf_poisson(12, 9) < 10/11), true);\nexpect_equal(\"at-level\", is(cdf_poisson(13, 9) >= 10/11), true);\nexpect_close(\"cover-at-level\", cdf_poisson(13, 9), 0.926, 0.0005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: repeated-orders */\n/* Ordering from stock on hand repeats the same shortage at every review until the first order arrives. */\nexpect_equal(\"reviews-before-arrival\", 2 / (6/24), 8);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: longer-review */\n/* Reviewing once a day instead: demand over 3 days has mean 12. */\nexpect_equal(\"daily-mean\", 4 * (2 + 1), 12);\nexpect_equal(\"daily-level\", base_stock(12, 10/11), 17);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: dearer-backorders */\nexpect_equal(\"dearer-ratio\", 20 / (20 + 1), 20/21);\nexpect_equal(\"dearer-level\", base_stock(9, 20/21), 14);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: shorter-lead-time */\nexpect_equal(\"short-lead-mean\", 4 * (1 + 6/24), 5);\nexpect_equal(\"short-lead-level\", base_stock(5, 10/11), 8);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: two-trains-travel */\n/* Two trains: legs of 30000 and 42000 at speed 5; the factory uses 40 and the dome 42 units a day. */\nfactory_leg: 30000 / 5$\ndome_trip: (30000 + 42000) / 5$\nexpect_equal(\"factory-leg-minutes\", factory_leg / 60, 100);\nexpect_equal(\"dome-trip-hours\", dome_trip / 3600, 4);\nexpect_close(\"factory-use-on-leg\", 40 * factory_leg / 86400, 2.78, 0.005);\nexpect_equal(\"dome-use-on-trip\", 42 * dome_trip / 86400, 7);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  }
+ ]
+}

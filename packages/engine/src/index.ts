@@ -11,7 +11,7 @@ export { FORMAT1_METRICS, hashRun, hashRunFormat1 } from "./hash.ts";
 export * from "./output.ts";
 export * from "./policy.ts";
 export { batchSeeds, hashString32, Random, streamFor } from "./random.ts";
-export { naiveReferencePolicy } from "./reference/naive.ts";
+export { balanceStockReferencePolicy } from "./reference/balance-stock.ts";
 export * from "./scenario/format2.ts";
 export { scenarioJsonSchema, scenarioJsonSchemaText } from "./scenario/json-schema.ts";
 export * from "./scenario/schema.ts";

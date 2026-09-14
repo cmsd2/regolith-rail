@@ -86,7 +86,7 @@ test.describe("sharing", () => {
     await openWorkbench(page, `/${hash.slice(0, hash.length - 20)}`);
     await expect(page.getByTestId("notice-share-damaged")).toContainText("damaged");
     await expectSlot(page, "scenario", "builtin:scenario:two-station");
-    expect(await editorText(page, "policy-editor")).toContain("on_stop");
+    expect(await editorText(page, "policy-editor")).toContain("ops.balance");
   });
 
   test("a link from another Policy API version opens with a warning", async ({ page }) => {
@@ -128,7 +128,7 @@ test.describe("local saving", () => {
     // Editing the built-in baseline made a copy of it under Mine.
     await expectSlot(page, "policy", /^mine:policy:/);
     const id = (await page.getByTestId("slot-policy").getAttribute("data-item-id")) as string;
-    await expect(await showItem(page, id)).toContainText("naive (copy)");
+    await expect(await showItem(page, id)).toContainText("balance-stock (copy)");
 
     await libraryRow(page, id).click();
     await page.getByTestId("item-rename").click();

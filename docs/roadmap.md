@@ -124,7 +124,7 @@ The exact vanilla rules are not yet confirmed; see §10.
 | Information level | How much a policy may see: `local`, `line`, `line+history`, `colony`. |
 | Category | Vanilla (`local`, `line`: what a mod could plausibly read) or Extended (more). Scores are compared within a category. |
 | Inventory position | Stock on hand plus cargo on its way, minus stock already promised elsewhere. |
-| Baseline | The naive policy reproducing the game's behaviour for a stated game version. |
+| Baseline | The balance-stock policy reproducing the game's behaviour for a stated game version. |
 | Bound | The best result any policy could achieve on a scenario, computed with full knowledge of the future. |
 
 ## 7. Stages
@@ -165,7 +165,7 @@ install, its mod tools documentation and in-game observation.
 - Game mechanics documentation pages tagged with game version and evidence.
 
 **Done when** each question above has an answer or is recorded as unanswerable
-with the consequences stated, and the naive baseline's rules are written down.
+with the consequences stated, and the balancing baseline's rules are written down.
 
 **Notes** No game code is copied into the repository. Findings are described
 in our own words.
@@ -183,7 +183,7 @@ events are states that scale supply or demand for a time window.
   randomised production and consumption, scheduled and random events.
 - Separate random streams per source so changing one part of a scenario does
   not disturb the others.
-- Naive baseline implemented directly in TypeScript as a reference.
+- Balancing baseline implemented directly in TypeScript as a reference.
 - Event log and time series output for a run.
 - Core metrics: unmet demand (priority-weighted), stalled production,
   delivered throughput, empty distance, dwell time, oscillation count,
@@ -216,10 +216,10 @@ hashes in Node, Chromium, Firefox and WebKit.
 - Save/load test mode that reloads the policy mid-run and restores memory.
 - Policy API v1 spec with generated TypeScript types, Lua editor annotations
   and shared test cases.
-- `naive.lua` baseline.
+- `balance-stock.lua` baseline.
 - Language and Policy API reference documentation.
 
-**Done when** `naive.lua` produces results identical to the TypeScript reference
+**Done when** `balance-stock.lua` produces results identical to the TypeScript reference
 on every starter scenario and seed, and runaway, sandbox-escaping and
 order-dependent test policies are all caught and reported.
 
@@ -250,10 +250,10 @@ demonstrating scenario for every block.
 - Each block declares the information it reads, so a policy's category is
   known before it runs.
 - Decision traces explaining each block's output.
-- The naive baseline expressed as a one-line `ops` policy, matching `naive.lua`.
+- The balancing baseline expressed as a one-line `ops` policy, matching `balance-stock.lua`.
 - A documentation page, live example and demonstrating scenario for each block.
 
-**Done when** the one-line baseline matches `naive.lua`, a policy combining
+**Done when** the one-line baseline matches `balance-stock.lua`, a policy combining
 inventory position, roles and lookahead measurably fixes double dispatch and
 ping-pong on the relevant scenarios, and every block is documented.
 
@@ -300,10 +300,13 @@ baseline breaks down as demand rises.
 
 Can start alongside M3; content grows with every later stage.
 
-**Status** Delivered, except live widgets and the encyclopedia beyond the
-failure-mode, metric and game mechanics pages. Documentation sections are
-organised as getting started, guides, failure modes, reference and game
-mechanics.
+**Status** Delivered, except live widgets. The encyclopedia is becoming a book,
+*Operations research on the line*: Parts I (Foundations) and II (Inventory) are
+written, with a scenario in every chapter and every formula and number checked
+by Maxima, Python or the simulator in CI. Parts III (Networks), IV
+(Optimisation) and V (Dynamics) are to come. Documentation sections are
+organised as getting started, the book, guides, failure modes, reference and
+game mechanics.
 
 **Deliverables**
 - In-app documentation panel and prerendered public pages under `/docs`.
@@ -442,7 +445,7 @@ this stage is reduced to what is possible, and the reasons are documented.
 - Adapter mod for Relaunched that builds the Policy API snapshot from game
   objects and runs a policy without affecting the game.
 - Logging of vanilla decisions, policy decisions and station stock over time.
-- Comparison of `naive.lua` against actual vanilla decisions.
+- Comparison of `balance-stock.lua` against actual vanilla decisions.
 - Import of game logs into the simulator as calibrated scenarios.
 - Fitting of an interpretable model to logged vanilla decisions to confirm or
   correct the baseline.
@@ -450,7 +453,7 @@ this stage is reduced to what is possible, and the reasons are documented.
   cases.
 - Modding guide in the docs.
 
-**Done when** `naive.lua` in shadow mode matches vanilla decisions on the test
+**Done when** `balance-stock.lua` in shadow mode matches vanilla decisions on the test
 lines, or every difference is explained and the baseline updated under a new
 version label.
 
@@ -492,7 +495,8 @@ can use or watch: a building block, a metric, a scenario or a view. Each is pair
 with a documentation page that explains it, cites its sources in §12 and compares
 it with the baseline. The stage in brackets is where it is planned. Where a
 classic problem template demonstrates a technique, the entry names it; templates
-arrive in M7a.
+arrive in M7a. Where a chapter of the book teaches a technique, the entry names the
+chapter.
 
 The simulator often differs from the textbook setting, and those differences are
 part of the lesson. Unmet demand is lost rather than backordered. Trains limit how
@@ -505,30 +509,30 @@ missed. Every page says which assumptions hold and which do not.
 A site behaves like a single stocking point. A visit is a review, the time between
 visits is the review period, and the travel time for cargo is the lead time.
 
-- **Inventory position** [M4]. Decide from stock plus cargo already heading for a
+- **Inventory position** [M4; book chapter 3]. Decide from stock plus cargo already heading for a
   site, not stock on hand, because what a station holds after the lead time is its
   position now minus the demand in between. `plan` reservations compute it. Stock
   and position are charted together, and removing the position shows over-delivery
   and oscillation (Axsäter, 2015, pp. 39–40; Snyder and Shen, 2019, p. 50).
-- **Periodic review** [M10]. Stock must cover the review period plus the lead time,
+- **Periodic review** [M10; book chapter 3]. Stock must cover the review period plus the lead time,
   so longer lines and fewer trains need fuller stations. A sweep of train count and
   speed shows unmet demand growing with the protection interval (Axsäter, 2015,
   pp. 40–41).
-- **Base-stock (order-up-to) policies** [M4; template `classic.reorder`]. At every review, raise the position
+- **Base-stock (order-up-to) policies** [M4; template `classic.reorder`; book chapter 3]. At every review, raise the position
   to a level made of cycle stock plus safety stock. This is the `order_up_to`
   target, with its level drawn on the stock chart. Station and train capacity cap
   the level in ways the textbook model does not (Axsäter, 2015, pp. 42–43, 113–115;
   Snyder and Shen, 2019, pp. 105–113).
-- **Newsvendor critical ratio** [M10; template `classic.newsvendor`]. Choose the level at which the chance of
+- **Newsvendor critical ratio** [M10; template `classic.newsvendor`; book chapter 4]. Choose the level at which the chance of
   meeting demand equals the shortage cost divided by the sum of the shortage and
   overage costs. Resource priority sets the shortage cost and stalled production is
   the overage, so a slider traces the trade-off between them (Axsäter, 2015,
   pp. 95–97; Snyder and Shen, 2019, pp. 90–101; Taha, 2017, pp. 618–620).
-- **Safety stock and service levels** [M10]. Safety stock grows quickly with the
+- **Safety stock and service levels** [M10; template `classic.safety_stock`; book chapter 6]. Safety stock grows quickly with the
   service level demanded. The cycle service level, fill rate and ready rate can
   differ widely, especially under bursty demand, so all three are reported side by
   side (Axsäter, 2015, pp. 79–81, 86–87; Snyder and Shen, 2019, pp. 105–113).
-- **Min–max (s, S) policies and the economic order quantity** [M4; template `classic.reorder`]. Act only when
+- **Min–max (s, S) policies and the economic order quantity** [M4; template `classic.reorder`; book chapter 5]. Act only when
   the position falls below a minimum, then restore it to a maximum. Fixed dwell per
   stop plays the part of a fixed ordering cost. The flat cost curve of the economic
   order quantity shows that batch size matters less than the reorder point. This is
@@ -540,7 +544,7 @@ visits is the review period, and the travel time for cargo is the lead time.
   empirically and compares it with the textbook level, which motivates search and
   learning (Axsäter, 2015, pp. 97–99; Snyder and Shen, 2019, pp. 136–138;
   Simchi-Levi, Chen and Bramel, 2014, pp. 169–172).
-- **Random lead times** [M10]. Variable visit intervals add to the safety stock
+- **Random lead times** [M10; template `classic.safety_stock`; book chapter 6]. Variable visit intervals add to the safety stock
   needed even when demand is steady. The run log supplies the interval variance
   (Axsäter, 2015, pp. 100–101; Snyder and Shen, 2019, pp. 166–167).
 
@@ -650,7 +654,7 @@ visits is the review period, and the travel time for cargo is the lead time.
 
 ### 8.4 Randomness, simulation and statistics
 
-- **Geometric waits and Poisson processes** [M7]. A storm that starts with a small
+- **Geometric waits and Poisson processes** [M7; book chapter 2]. A storm that starts with a small
   chance at every check has geometric, nearly exponential waiting times, and is
   never "due". A storm clock plots the gaps against both curves (Brémaud, 2020,
   pp. 23–25, 423–428; Taha, 2017, pp. 656–660).
@@ -667,7 +671,7 @@ visits is the review period, and the travel time for cargo is the lead time.
   throughput into the average time goods spend at a station. Known queueing results
   also validate the engine (Brémaud, 2020, pp. 500–502; Taha, 2017, pp. 667–668;
   Eiselt and Sandblom, 2022, p. 475).
-- **Monte Carlo and the number of seeds** [M6]. Standard error falls with the square
+- **Monte Carlo and the number of seeds** [M6; book chapter 2]. Standard error falls with the square
   root of the number of runs, so halving an interval takes four times the seeds. The
   batch view recommends a seed count for a target precision (Brémaud, 2020, p. 369;
   Wasserman, 2004, pp. 404–405; MacKay, 2003, pp. 357–358).
@@ -675,12 +679,12 @@ visits is the review period, and the travel time for cargo is the lead time.
   inverse transform sampling turns uniform draws into other distributions. A toy
   generator with a short cycle contrasts with the engine's generator (Taha, 2017,
   pp. 720–722; Eiselt and Sandblom, 2022, pp. 475–478; Brémaud, 2020, pp. 370–371).
-- **Common random numbers and paired comparison** [M6]. Running both policies on
+- **Common random numbers and paired comparison** [M6; book chapter 2]. Running both policies on
   the same randomness correlates their results, so the variance of the difference
   drops. A paired versus independent toggle shows the interval shrink. Separate
   random streams per source keep the two runs aligned (Wasserman, 2004, pp. 52,
   154–155; Eiselt and Sandblom, 2022, pp. 483–485).
-- **Confidence intervals and practical significance** [M6]. A difference is
+- **Confidence intervals and practical significance** [M6; book chapter 2]. A difference is
   significant when its interval excludes zero, but it may still be too small to
   matter, so players can set the smallest difference they care about (Wasserman,
   2004, pp. 155, 170).
@@ -700,7 +704,7 @@ visits is the review period, and the travel time for cargo is the lead time.
 
 ### 8.5 Forecasting and estimation
 
-- **Moving averages and exponential smoothing** [M4, M10]. Forecast consumption
+- **Moving averages and exponential smoothing** [M4, M10; template `classic.forecasting`; book chapter 7]. Forecast consumption
   between visits, with Holt's method adding a trend, and track forecast error. A
   storm shows the trade-off between lag and responsiveness, and a demand ramp shows
   why the trend term matters (Snyder and Shen, 2019, pp. 6–17).
@@ -839,6 +843,8 @@ visits is the review period, and the travel time for cargo is the lead time.
 - Hernández-Lerma, O., Laura-Guarachi, L.R., Mendoza-Palacios, S. and
   González-Sánchez, D. (2023) *An introduction to optimal control theory: the
   dynamic programming approach*. Cham: Springer (Texts in Applied Mathematics, 76).
+- Law, A.M. (2015) *Simulation modeling and analysis*. 5th edn. New York:
+  McGraw-Hill Education.
 - MacKay, D.J.C. (2003) *Information theory, inference, and learning algorithms*.
   Cambridge: Cambridge University Press.
 - Särkkä, S. (2013) *Bayesian filtering and smoothing*. Cambridge: Cambridge

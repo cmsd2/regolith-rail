@@ -1,14 +1,12 @@
 import {
-  hashRun,
   type RunEvent,
   type RunOutput,
   runSimulation,
   type Scenario,
   type ScenarioV1Input as ScenarioInput,
-  starterScenarios,
   validateScenario,
 } from "@regolith-rail/engine";
-import { BUILT_IN_POLICIES, OPS_LIBRARY } from "@regolith-rail/policy-api";
+import { OPS_LIBRARY } from "@regolith-rail/policy-api";
 import { beforeAll, describe, expect, it } from "vitest";
 import { checkPolicySource } from "./check.ts";
 import { type LuaPolicyOptions, LuaRuntime } from "./policy.ts";
@@ -97,29 +95,6 @@ describe("declarative policies", () => {
     );
     expect(loadError(out)?.message).toBe("ops.order_up_to has no parameter named levle");
   });
-
-  it("reproduce naive.lua with one line, ignoring traces", () => {
-    const withoutTraces = (out: RunOutput) => ({
-      ...out,
-      events: out.events.filter((e) => e.kind !== "trace"),
-    });
-    const onePolicy = runtime.createPolicy("return ops.policy { target = ops.balance {} }");
-    const naive = runtime.createPolicy(BUILT_IN_POLICIES.naive);
-    for (const starter of starterScenarios) {
-      const result = validateScenario(starter.document);
-      if (!result.ok) throw new Error("invalid starter");
-      for (let seed = 1; seed <= 50; seed++) {
-        const expected = runSimulation(result.scenario, naive, { seed, detail: "summary" });
-        const actual = withoutTraces(
-          runSimulation(result.scenario, onePolicy, { seed, detail: "summary" }),
-        );
-        if (hashRun(actual) !== hashRun(expected)) {
-          expect(actual.events, `${starter.id} seed ${seed}`).toEqual(expected.events);
-        }
-        expect(hashRun(actual), `${starter.id} seed ${seed}`).toBe(hashRun(expected));
-      }
-    }
-  }, 600_000);
 });
 
 describe("roles", () => {

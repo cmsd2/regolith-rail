@@ -85,7 +85,7 @@ export const opsBlocks: OpsBlock[] = [
     stage: "target",
     level: "line",
     summary:
-      "Targets the average stock of the resource across the stations that store it, as the naive baseline does.",
+      "Targets the average stock of the resource across the stations that store it, as the balancing baseline does.",
     params: [],
     docs: docs("balance"),
   },

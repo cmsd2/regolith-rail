@@ -28,12 +28,15 @@ test.describe("library explorer", () => {
       await expect(libraryRow(page, `builtin:scenario:${id}`)).toBeVisible();
     }
     await expect(libraryRow(page, "classic:scenario:classic.newsvendor")).toBeVisible();
-    await expect(libraryRow(page, "builtin:policy:naive")).toHaveCount(0);
+    await expect(libraryRow(page, "builtin:policy:balance-stock")).toHaveCount(0);
 
     await page.getByTestId("library-tab-policy").click();
-    await expect(libraryRow(page, "builtin:policy:naive")).toBeVisible();
+    await expect(libraryRow(page, "builtin:policy:balance-stock")).toBeVisible();
     await expect(libraryRow(page, "builtin:policy:supply-to-demand")).toBeVisible();
-    await expect(libraryRow(page, "builtin:policy:naive")).toHaveAttribute("aria-current", "true");
+    await expect(libraryRow(page, "builtin:policy:balance-stock")).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
   });
 
   test("links to its guide in the documentation panel", async ({ page }) => {
@@ -47,8 +50,8 @@ test.describe("library explorer", () => {
     const row = await showItem(page, "builtin:policy:supply-to-demand");
     await row.click();
     await expect(page.getByTestId("item-description")).toContainText("ops blocks");
-    await expectSlot(page, "policy", "builtin:policy:naive");
-    expect(await editorText(page, "policy-editor")).toContain("Naive baseline");
+    await expectSlot(page, "policy", "builtin:policy:balance-stock");
+    expect(await editorText(page, "policy-editor")).toContain("Balance stock");
 
     await page.getByTestId("item-use").click();
     await expectSlot(page, "policy", "builtin:policy:supply-to-demand");
@@ -91,9 +94,9 @@ test.describe("library explorer", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("choosing")).toHaveCount(0);
 
-    await chooseForSlot(page, "compare", "builtin:policy:naive");
-    await expectSlot(page, "policy", "builtin:policy:naive");
-    await expect(page.getByTestId("batch-policy-b")).toContainText("naive");
+    await chooseForSlot(page, "compare", "builtin:policy:balance-stock");
+    await expectSlot(page, "policy", "builtin:policy:balance-stock");
+    await expect(page.getByTestId("batch-policy-b")).toContainText("balance-stock");
 
     await page.getByTestId("batch-choose-policy-b").click();
     await expect(page.getByTestId("choosing")).toContainText("Compare slot");
@@ -111,7 +114,7 @@ test.describe("library explorer", () => {
     await page.getByTestId("slot-fix").click();
     await expectSlot(page, "policy", "example:policy:docs/failure-modes/disruption-recovery#1");
     await page.getByTestId("slot-baseline").click();
-    await expectSlot(page, "policy", "builtin:policy:naive");
+    await expectSlot(page, "policy", "builtin:policy:balance-stock");
     await expect(page.getByTestId("run-tab-metrics")).toHaveCount(0);
 
     await page.getByTestId("tab-policy").click();
@@ -120,7 +123,7 @@ test.describe("library explorer", () => {
     await expect(page.getByTestId("batch-config")).toBeVisible();
     await expect(page.getByTestId("batch-compare")).toBeChecked();
     await expectSlot(page, "policy", "example:policy:docs/failure-modes/disruption-recovery#1");
-    await expectSlot(page, "compare", "builtin:policy:naive");
+    await expectSlot(page, "compare", "builtin:policy:balance-stock");
     await expect(page.getByTestId("batch-metrics")).toHaveCount(0);
     await page.getByTestId("view-run").click();
 
@@ -128,6 +131,16 @@ test.describe("library explorer", () => {
     await expect(page.getByTestId("slot-fix")).toHaveCount(0);
     await page.getByTestId("slot-reference").click();
     await expectSlot(page, "policy", "classic:policy:classic.reorder");
+  });
+
+  test("lists the safety stock template under classic problems with its reference policy", async ({
+    page,
+  }) => {
+    await openWorkbench(page);
+    await expect(libraryRow(page, "classic:scenario:classic.safety_stock")).toBeVisible();
+    await openItem(page, "classic:scenario:classic.safety_stock");
+    await page.getByTestId("slot-reference").click();
+    await expectSlot(page, "policy", "classic:policy:classic.safety_stock");
   });
 
   test("groups policies by fit to the scenario and marks those that cannot act", async ({
@@ -143,14 +156,14 @@ test.describe("library explorer", () => {
       .locator('[role="treeitem"]')
       .evaluateAll((items) => items.map((i) => i.getAttribute("data-item-id") ?? i.textContent));
     expect(order.indexOf("example:policy:docs/failure-modes/disruption-recovery#1")).toBeLessThan(
-      order.indexOf("builtin:policy:naive"),
+      order.indexOf("builtin:policy:balance-stock"),
     );
 
     await openItem(page, "classic:scenario:classic.reorder");
     await page.getByTestId("library-tab-policy").click();
-    const naive = libraryRow(page, "builtin:policy:naive");
-    await expect(naive).toHaveAttribute("data-unfit", "true", { timeout: 30_000 });
-    await naive.click();
+    const baseline = libraryRow(page, "builtin:policy:balance-stock");
+    await expect(baseline).toHaveAttribute("data-unfit", "true", { timeout: 30_000 });
+    await baseline.click();
     await expect(page.getByTestId("item-unfit")).toContainText("no vehicles");
   });
 
@@ -160,13 +173,13 @@ test.describe("library explorer", () => {
     await openWorkbench(page);
     await setEditorText(page, "policy-editor", "-- my baseline\nreturn {}\n");
     await expectSlot(page, "policy", /^mine:policy:/);
-    await expect(page.getByTestId("slot-policy")).toContainText("copied from naive");
+    await expect(page.getByTestId("slot-policy")).toContainText("copied from balance-stock");
     await expect(page.getByTestId("saving-status")).toHaveText("Saved");
     await page.reload();
-    await expect(page.getByTestId("slot-policy-name")).toHaveText("naive (copy)");
+    await expect(page.getByTestId("slot-policy-name")).toHaveText("balance-stock (copy)");
     expect(await editorText(page, "policy-editor")).toContain("-- my baseline");
-    await openItem(page, "builtin:policy:naive");
-    await expectSlot(page, "policy", "builtin:policy:naive");
+    await openItem(page, "builtin:policy:balance-stock");
+    await expectSlot(page, "policy", "builtin:policy:balance-stock");
     await expect(page.getByTestId("policy-editor").locator(".cm-content")).not.toContainText(
       "-- my baseline",
     );
@@ -174,17 +187,17 @@ test.describe("library explorer", () => {
 
   test("duplicates, exports and deletes items", async ({ page }) => {
     await openWorkbench(page);
-    await (await showItem(page, "builtin:policy:naive")).click();
+    await (await showItem(page, "builtin:policy:balance-stock")).click();
     await page.getByTestId("item-duplicate").click();
-    const copy = rows(page, "mine:policy:", "naive (copy)");
+    const copy = rows(page, "mine:policy:", "balance-stock (copy)");
     await expect(copy).toHaveCount(1);
 
     await copy.click();
     const download = page.waitForEvent("download");
     await page.getByTestId("item-export").click();
     const file = await download;
-    expect(file.suggestedFilename()).toBe("naive (copy).lua");
-    expect(await readFile(await file.path(), "utf8")).toContain("Naive baseline");
+    expect(file.suggestedFilename()).toBe("balance-stock (copy).lua");
+    expect(await readFile(await file.path(), "utf8")).toContain("Balance stock");
 
     await page.getByTestId("item-delete").click();
     await page.getByTestId("item-delete-confirm").click();

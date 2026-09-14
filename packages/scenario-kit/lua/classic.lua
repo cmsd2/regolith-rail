@@ -21,7 +21,12 @@ local function count(name, key, value, default, low, high)
   if value == nil then
     return default
   end
-  if type(value) ~= "number" or value ~= math.floor(value) or value < low or value > high then
+  if
+    type(value) ~= "number"
+    or value ~= math.floor(value)
+    or value < low
+    or value > high
+  then
     fail(name, key .. " must be a whole number from " .. low .. " to " .. high)
   end
   return value
@@ -57,19 +62,22 @@ classic.newsvendor = construct("classic.newsvendor", {
 }, {}, function(p, name)
   local period = p.period or days(1)
   local periods = count(name, "periods", p.periods, 30, 1, 1000)
-  local demand = p.demand or discrete({ { 5, 1 }, { 10, 2 }, { 15, 3 }, { 20, 2 }, { 25, 1 } })
+  local demand = p.demand
+    or discrete({ { 5, 1 }, { 10, 2 }, { 15, 3 }, { 20, 2 }, { 25, 1 } })
   return scenario({
     id = "newsvendor",
     title = "Newsvendor",
     description = "A stand orders papers once a day before facing random demand. Unsold papers are worthless the next day and demand that finds no paper is lost, so the order balances the cost of too many against the cost of too few.",
-    docs = "classic/newsvendor",
+    docs = "book/newsvendor",
     information = "local",
     duration = period * periods,
     seed = p.seed,
     stations = {
       station({
         id = "Stand",
-        resources = { store({ resource = "Papers", capacity = "unlimited", expires = true }) },
+        resources = {
+          store({ resource = "Papers", capacity = "unlimited", expires = true }),
+        },
         consumers = {
           consumer({
             resource = "Papers",
@@ -77,7 +85,9 @@ classic.newsvendor = construct("classic.newsvendor", {
             lost_cost = p.lost_cost or 5,
           }),
         },
-        suppliers = { supplier({ resource = "Papers", unit_cost = p.unit_cost or 2 }) },
+        suppliers = {
+          supplier({ resource = "Papers", unit_cost = p.unit_cost or 2 }),
+        },
         review = review({ period = period, offset = minutes(1) }),
       }),
     },
@@ -100,7 +110,8 @@ classic.reorder = construct("classic.reorder", {
 }, {}, function(p, name)
   local demand = p.demand or 10
   local random = flag(name, "random", p.random, false)
-  local shortage = choice(name, "shortage", p.shortage, "backorder", "lost", "backorder")
+  local shortage =
+    choice(name, "shortage", p.shortage, "backorder", "lost", "backorder")
   local shortage_cost = p.shortage_cost or 10
   local flow = { resource = "Goods", unmet = shortage }
   if random then
@@ -117,7 +128,7 @@ classic.reorder = construct("classic.reorder", {
     id = "reorder",
     title = "Reorder",
     description = "A store sells goods from stock and reorders from a supplier who delivers after a lead time. Holding stock costs money, every order has a fixed cost, and running out costs more, so the policy chooses when to order and how much.",
-    docs = "classic/reorder",
+    docs = "book/order-quantities",
     information = "local",
     duration = p.duration or days(20),
     seed = p.seed,
@@ -141,7 +152,207 @@ classic.reorder = construct("classic.reorder", {
             unit_cost = p.unit_cost or 0,
           }),
         },
-        review = review({ period = p.review_period or hours(1), offset = minutes(1) }),
+        review = review({
+          period = p.review_period or hours(1),
+          offset = minutes(1),
+        }),
+      }),
+    },
+  })
+end)
+
+-- The shortest and longest of a fixed or discrete lead time, in milliseconds.
+local function lead_time_range(name, value)
+  if type(value) == "number" then
+    return value, value
+  end
+  if kit.kind_of(value) ~= "discrete" then
+    fail(name, "lead_time must be a duration or discrete { ... } of durations")
+  end
+  local low, high
+  for _, entry in ipairs(value.discrete) do
+    low = (low == nil or entry.value < low) and entry.value or low
+    high = (high == nil or entry.value > high) and entry.value or high
+  end
+  return low, high
+end
+
+classic.safety_stock = construct("classic.safety_stock", {
+  demand = "number",
+  lead_time = "duration|discrete",
+  review_period = "duration",
+  target_service = "number",
+  holding_cost = "integer",
+  backorder_cost = "integer",
+  initial = "number",
+  duration = "duration",
+  seed = "integer",
+}, {}, function(p, name)
+  local review_period = p.review_period or weeks(1)
+  local lead_time = p.lead_time or discrete({ { days(1), 1 }, { days(3), 1 } })
+  local low, high = lead_time_range(name, lead_time)
+  if high - low >= review_period then
+    fail(
+      name,
+      "lead times must differ by less than the review period, so that orders never overtake each other"
+    )
+  end
+  local target = p.target_service or 0.95
+  if type(target) ~= "number" or target <= 0 or target >= 1 then
+    fail(name, "target_service must be a number between 0 and 1, such as 0.95")
+  end
+  return scenario({
+    id = "safety-stock",
+    title = "Safety stock",
+    description = "A store reviewed on a schedule faces random demand and a supplier whose lead time varies. Stock above the average demand protects against running short before the next delivery, and the target service level says how often a cycle may end with customers waiting.",
+    docs = "book/safety-stock",
+    information = "local",
+    duration = p.duration or weeks(10),
+    seed = p.seed,
+    stations = {
+      station({
+        id = "Shop",
+        resources = {
+          store({
+            resource = "Goods",
+            capacity = "unlimited",
+            initial = p.initial or 0,
+            holding_cost = p.holding_cost or 1,
+          }),
+        },
+        consumers = {
+          consumer({
+            resource = "Goods",
+            poisson = poisson({ per_sol = p.demand or 10, size = 1 }),
+            unmet = "backorder",
+            backorder_cost = p.backorder_cost or 10,
+          }),
+        },
+        suppliers = {
+          supplier({
+            resource = "Goods",
+            lead_time = lead_time,
+            order_cost = 0,
+          }),
+        },
+        review = review({ period = review_period, offset = minutes(1) }),
+      }),
+    },
+  })
+end)
+
+classic.forecasting = construct("classic.forecasting", {
+  level = "number",
+  trend = "number",
+  season_length = "integer",
+  season_amplitude = "number",
+  noise = "boolean",
+  alpha = "number",
+  lead_time = "duration",
+  safety = "number",
+  holding_cost = "integer",
+  backorder_cost = "integer",
+  duration = "duration",
+  seed = "integer",
+}, {}, function(p, name)
+  local level = p.level or 20
+  local trend = p.trend or 1
+  local season_length = count(name, "season_length", p.season_length, 0, 0, 365)
+  local amplitude = p.season_amplitude or 0
+  if type(amplitude) ~= "number" or amplitude < 0 or amplitude >= 1 then
+    fail(
+      name,
+      "season_amplitude must be a number from 0 up to, but not including, 1"
+    )
+  end
+  local noise = flag(name, "noise", p.noise, false)
+  local alpha = p.alpha or 0.2
+  if type(alpha) ~= "number" or alpha <= 0 or alpha > 1 then
+    fail(name, "alpha must be a number greater than 0 and at most 1")
+  end
+  local lead_time = p.lead_time or days(2)
+  if
+    type(lead_time) ~= "number"
+    or lead_time < 0
+    or lead_time % days(1) ~= 0
+  then
+    fail(name, "lead_time must be a whole number of days, such as days(2)")
+  end
+  local duration = p.duration or days(60)
+  local periods = math.floor(duration / days(1))
+  -- Demand in period k, from 0: the level plus k trends, raised in the first half of each season
+  -- and lowered in the second, rounded to thousandths.
+  local function demand(k)
+    local factor = 1
+    if season_length > 1 and amplitude > 0 then
+      factor = (k % season_length) < math.floor(season_length / 2)
+          and 1 + amplitude
+        or 1 - amplitude
+    end
+    local amount = (level + trend * k) * factor
+    if amount < 0 then
+      fail(name, "demand in period " .. (k + 1) .. " would be negative")
+    end
+    return math.floor(amount * 1000 + 0.5) / 1000
+  end
+  local flow = {
+    resource = "Goods",
+    unmet = "backorder",
+    backorder_cost = p.backorder_cost or 10,
+  }
+  if noise then
+    -- Poisson arrivals whose rate steps to each period's demand.
+    local points = {}
+    for k = 0, periods - 1 do
+      local rate = demand(k)
+      if rate > 100 then
+        fail(
+          name,
+          "with noise, demand can be at most 100 a day, but period "
+            .. (k + 1)
+            .. " needs "
+            .. rate
+        )
+      end
+      points[#points + 1] = { days(k), rate }
+      points[#points + 1] = { days(k + 1) - 1, rate }
+    end
+    flow.poisson = poisson({ per_sol = 1, size = 1 })
+    flow.profile = profile(points)
+  else
+    local amounts = {}
+    for k = 0, periods - 1 do
+      amounts[k + 1] = demand(k)
+    end
+    flow.trace = trace({ period = days(1), amounts = amounts })
+  end
+  return scenario({
+    id = "forecasting",
+    title = "Forecasting",
+    description = "A store whose demand grows, and may rise and fall with the seasons, orders each day from a supplier with a lead time. A policy has to forecast demand from what it has seen, and a forecast that lags behind growing demand leaves the store short.",
+    docs = "book/forecasting",
+    information = "local",
+    duration = duration,
+    seed = p.seed,
+    stations = {
+      station({
+        id = "Shop",
+        resources = {
+          store({
+            resource = "Goods",
+            capacity = "unlimited",
+            holding_cost = p.holding_cost or 1,
+          }),
+        },
+        consumers = { consumer(flow) },
+        suppliers = {
+          supplier({
+            resource = "Goods",
+            lead_time = lead_time,
+            order_cost = 0,
+          }),
+        },
+        review = review({ period = days(1), offset = minutes(1) }),
       }),
     },
   })
@@ -185,7 +396,9 @@ classic.serial_chain = construct("classic.serial_chain", {
         }),
       },
       consumers = consumers,
-      suppliers = { supplier({ resource = "Beer", from = from, lead_time = lead_time }) },
+      suppliers = {
+        supplier({ resource = "Beer", from = from, lead_time = lead_time }),
+      },
       review = review({ period = period, offset = minutes(1) }),
     })
   end
@@ -224,9 +437,20 @@ classic.fixed_route_delivery = construct("classic.fixed_route_delivery", {
   local stations = {
     station({
       id = "Depot",
-      resources = { store({ resource = "Fuel", capacity = "unlimited", initial = p.depot_initial or 60 }) },
-      suppliers = { supplier({ resource = "Fuel", lead_time = p.lead_time or days(1) }) },
-      review = review({ period = p.review_period or days(1), offset = minutes(1) }),
+      resources = {
+        store({
+          resource = "Fuel",
+          capacity = "unlimited",
+          initial = p.depot_initial or 60,
+        }),
+      },
+      suppliers = {
+        supplier({ resource = "Fuel", lead_time = p.lead_time or days(1) }),
+      },
+      review = review({
+        period = p.review_period or days(1),
+        offset = minutes(1),
+      }),
     }),
   }
   local stops = { "Depot" }
@@ -242,13 +466,20 @@ classic.fixed_route_delivery = construct("classic.fixed_route_delivery", {
           initial = p.customer_initial or 10,
         }),
       },
-      consumers = { consumer({ resource = "Fuel", rate = p.demand or 4, lost_cost = p.lost_cost or 5 }) },
+      consumers = {
+        consumer({
+          resource = "Fuel",
+          rate = p.demand or 4,
+          lost_cost = p.lost_cost or 5,
+        }),
+      },
     })
     arcs[i] = arc({ from = stops[i], to = id, distance = distance })
     stops[i + 1] = id
   end
   if customers > 1 then
-    arcs[customers + 1] = arc({ from = stops[customers + 1], to = "Depot", distance = distance })
+    arcs[customers + 1] =
+      arc({ from = stops[customers + 1], to = "Depot", distance = distance })
   end
   local fleet = {}
   for i = 1, vehicles do

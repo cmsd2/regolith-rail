@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { hashRun } from "./hash.ts";
 import { type LineState, type RunEvent, stateAt } from "./output.ts";
 import { emptyOutcome, POLICY_API_VERSION } from "./policy.ts";
-import { naiveReferencePolicy } from "./reference/naive.ts";
+import { balanceStockReferencePolicy } from "./reference/balance-stock.ts";
 import type { ScenarioV1Input as ScenarioInput } from "./scenario/schema.ts";
 import { starterScenarios } from "./scenario/starters.ts";
 import { validateScenario } from "./scenario/validate.ts";
@@ -495,12 +495,12 @@ describe("stops and actions", () => {
   });
 });
 
-describe("reference naive policy", () => {
+describe("reference balance-stock policy", () => {
   for (const starter of starterScenarios) {
     it(`runs ${starter.id} to completion`, () => {
       const result = validateScenario(starter.document);
       if (!result.ok) throw new Error("invalid starter");
-      const out = runSimulation(result.scenario, naiveReferencePolicy());
+      const out = runSimulation(result.scenario, balanceStockReferencePolicy());
       expect(out.aborted).toBe(false);
       expect(out.metrics.stops).toBeGreaterThan(10);
       expect(out.metrics.policyErrors).toBe(0);
@@ -515,7 +515,7 @@ describe("run output", () => {
       const result = validateScenario(starter.document);
       if (!result.ok) throw new Error("invalid starter");
       const captured = new Map<number, LineState>();
-      const out = runSimulation(result.scenario, naiveReferencePolicy(), {
+      const out = runSimulation(result.scenario, balanceStockReferencePolicy(), {
         inspect: (state) => captured.set(state.t, state),
       });
       const times = [...captured.keys()];
@@ -595,11 +595,11 @@ describe("determinism", () => {
   it("repeats a run exactly", () => {
     const result = validateScenario(starterScenarios[3]?.document);
     if (!result.ok) throw new Error("invalid starter");
-    const a = runSimulation(result.scenario, naiveReferencePolicy(), { seed: 5 });
-    const b = runSimulation(result.scenario, naiveReferencePolicy(), { seed: 5 });
+    const a = runSimulation(result.scenario, balanceStockReferencePolicy(), { seed: 5 });
+    const b = runSimulation(result.scenario, balanceStockReferencePolicy(), { seed: 5 });
     expect(JSON.stringify(a.events)).toBe(JSON.stringify(b.events));
     expect(hashRun(a)).toBe(hashRun(b));
-    const c = runSimulation(result.scenario, naiveReferencePolicy(), { seed: 6 });
+    const c = runSimulation(result.scenario, balanceStockReferencePolicy(), { seed: 6 });
     expect(hashRun(c)).not.toBe(hashRun(a));
   });
 });

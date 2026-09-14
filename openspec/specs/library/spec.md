@@ -25,7 +25,7 @@ Scenarios, Policies and Saved runs.
 #### Scenario: Built-in content listed
 - **WHEN** a new visitor opens the workbench
 - **THEN** the Scenarios list shows the five Mars starter scenarios under Built in and the classic templates
-  under Classic problems, and the Policies list shows the naive and supply-to-demand policies
+  under Classic problems, and the Policies list shows the balance-stock and supply-to-demand policies
 
 #### Scenario: Keyboard navigation
 - **WHEN** the player focuses a list and uses the arrow keys and Enter
@@ -52,19 +52,19 @@ The workbench SHALL show the current run as slots.
   unchanged
 
 #### Scenario: Choose a comparison policy
-- **WHEN** the player, in the batch view with comparison on, chooses policy B and uses the naive policy
-- **THEN** the Compare slot shows naive and the Policy slot is unchanged
+- **WHEN** the player, in the batch view with comparison on, chooses policy B and uses the balance-stock policy
+- **THEN** the Compare slot shows balance-stock and the Policy slot is unchanged
 
 ### Requirement: Scenario lessons
 The Scenario slot SHALL show what the scenario teaches and offer the policies that go with it. Lessons SHALL
-be phrased against the naive baseline, so they make sense whatever policy is in the Policy slot.
+be phrased against the balancing baseline, so they make sense whatever policy is in the Policy slot.
 
 - **Starter scenarios:**
   - a Why the baseline fails link to the documentation page;
-  - a Use the baseline action that fills the Policy slot with the naive baseline;
+  - a Use the baseline action that fills the Policy slot with the balancing baseline;
   - a Use the suggested fix action that fills the Policy slot with the fix that page suggests;
   - a Compare fix with baseline action that switches to the batch view with comparison on, the fix in the
-    Policy slot and the naive baseline in the Compare slot.
+    Policy slot and the balancing baseline in the Compare slot.
 - **Classic templates:** a link to the problem's page, the template's parameters, and a Use the reference
   policy action that fills the Policy slot with the reference policy for the current parameters.
 - **Other scenarios:** no lesson actions are shown.
@@ -78,7 +78,7 @@ be phrased against the naive baseline, so they make sense whatever policy is in 
 - **WHEN** the Scenario slot holds `storm-shock`, the Policy slot holds a Mine policy, and the player chooses
   Compare fix with baseline
 - **THEN** the batch view is shown with comparison on, the Policy slot holds the suggested fix and the Compare
-  slot holds the naive baseline, and no batch starts
+  slot holds the balancing baseline, and no batch starts
 
 #### Scenario: Use the reference policy
 - **WHEN** the Scenario slot holds `classic.reorder` and the player chooses Use the reference policy
@@ -143,9 +143,9 @@ Items under Built in, Examples, Classic problems and Shared with me SHALL be rea
   Deleting an item that fills a slot SHALL leave the slot's contents in place as an unsaved copy.
 
 #### Scenario: Editing a built-in policy
-- **WHEN** the player uses the naive policy and types a comment into the editor
-- **THEN** a policy named "naive (copy)" appears under Mine with the comment, the Policy slot shows it, and
-  the built-in naive policy is unchanged
+- **WHEN** the player uses the balance-stock policy and types a comment into the editor
+- **THEN** a policy named "balance-stock (copy)" appears under Mine with the comment, the Policy slot shows it, and
+  the built-in balance-stock policy is unchanged
 
 #### Scenario: Automatic saving
 - **WHEN** the player edits a Mine policy and closes the tab without any further action

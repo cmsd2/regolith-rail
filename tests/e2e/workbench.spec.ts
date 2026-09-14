@@ -10,10 +10,10 @@ import {
 } from "./helpers.ts";
 
 test.describe("first visit", () => {
-  test("shows two-station with the naive baseline, ready to run", async ({ page }) => {
+  test("shows two-station with the balancing baseline, ready to run", async ({ page }) => {
     await openWorkbench(page);
     await expectSlot(page, "scenario", "builtin:scenario:two-station");
-    await expect(page.getByTestId("policy-editor")).toContainText("Naive baseline");
+    await expect(page.getByTestId("policy-editor")).toContainText("Balance stock");
     await expect(page.getByTestId("run")).toBeEnabled();
     await run(page);
     await expect(page.getByTestId("stop-inspector")).toContainText("Stop");
@@ -34,6 +34,24 @@ test.describe("policy editor", () => {
     await expect(page.locator(".cm-tooltip-lint")).toContainText(
       "goto and labels are not available",
     );
+  });
+
+  test("formats Lua with StyLua, and says why when it does not parse", async ({ page }) => {
+    await openWorkbench(page);
+    await setEditorText(page, "policy-editor", "return {on_stop=function(ctx) ctx.log('a') end}\n");
+    await page.getByTestId("format-lua").click();
+    const content = page.getByTestId("policy-editor").locator(".cm-content");
+    await expect(content).toContainText('ctx.log("a")', { timeout: 30_000 });
+    await expect(content.locator(".cm-line").nth(1)).toHaveText("  on_stop = function(ctx)");
+
+    await setEditorText(page, "policy-editor", "return {\n");
+    await page.getByTestId("format-lua").click();
+    await expect(page.getByTestId("format-error")).toContainText("unexpected");
+    await expect(content.locator(".cm-line").first()).toHaveText("return {");
+
+    await page.getByTestId("tab-scenario").click();
+    await page.getByTestId("scenario-kind-json").click();
+    await expect(page.getByTestId("format-lua")).toBeDisabled();
   });
 
   test("shows hover help for ops blocks with a documentation link", async ({ page }) => {

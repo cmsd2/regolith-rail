@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import {
-  naiveReferencePolicy,
+  balanceStockReferencePolicy,
   runGoldenMatrix,
   type Scenario,
   starterScenario,
@@ -42,9 +42,9 @@ describe("starter scenarios as Mars scripts", () => {
     const scripted = new Map(Object.entries(STARTER_SCRIPTS).map(([id, s]) => [id, load(s)]));
     const hashes = runGoldenMatrix(
       (name) =>
-        name === "reference:naive"
-          ? naiveReferencePolicy()
-          : runtime.createPolicy(BUILT_IN_POLICIES.naive),
+        name === "reference:balance-stock"
+          ? balanceStockReferencePolicy()
+          : runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]),
       (id) => scripted.get(id) as Scenario,
     );
     expect(hashes).toEqual(golden);

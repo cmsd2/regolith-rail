@@ -58,5 +58,5 @@ Every starter scenario SHALL be written as a Mars pack script. Each script SHALL
 runs are identical to the runs of the starter scenario it replaces, so golden result hashes do not change.
 
 #### Scenario: Starter results unchanged
-- **WHEN** the `two-station` Mars script is run with the naive baseline on seeds 1 to 20
+- **WHEN** the `two-station` Mars script is run with the balancing baseline on seeds 1 to 20
 - **THEN** every result hash equals the golden hash recorded before this change

@@ -13,11 +13,20 @@ how far its inventory position is below its target, limited by its free space.
 
 A train's reservations are rebuilt from its cargo at every stop.
 
+Shortfalls are measured when the train stops, not for when it will arrive. On a long
+line, stations ahead keep consuming while the train travels, so lookahead can load too
+little for them. The [double dispatch case study](/docs/book/base-stock#case-study-double-dispatch)
+measures the effect.
+
 ## Example
 
 ```lua runnable scenario=two-trains
 return ops.policy {
-  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  classify = ops.roles.manual {
+    Mine = "supply",
+    Factory = "demand",
+    Dome = "demand",
+  },
   target = { supply = ops.drain {}, demand = ops.fill {} },
   plan = ops.lookahead {},
 }

@@ -1,8 +1,8 @@
 import { readFileSync } from "node:fs";
 import {
+  balanceStockReferencePolicy,
   type Detail,
   hashRun,
-  naiveReferencePolicy,
   type Policy,
   type RunOutput,
   runSimulation,
@@ -103,7 +103,13 @@ export function loadScenario(spec: string, runtime?: LuaRuntime): Scenario {
 }
 
 const REFERENCE_POLICIES: Record<string, () => Policy> = {
-  "reference:naive": naiveReferencePolicy,
+  "reference:balance-stock": balanceStockReferencePolicy,
+};
+
+/** Names policies had before they were renamed, still accepted on the command line. */
+const RENAMED_POLICIES: Record<string, string> = {
+  "reference:naive": "reference:balance-stock",
+  "lua:naive": "lua:balance-stock",
 };
 
 export const POLICY_HELP = [
@@ -113,11 +119,12 @@ export const POLICY_HELP = [
 ].join(", ");
 
 /**
- * Resolves a policy: a TypeScript reference (`reference:naive`), a built-in
- * Lua policy (`lua:naive`), or a Lua file. Lua that cannot load is reported
+ * Resolves a policy: a TypeScript reference (`reference:balance-stock`), a built-in
+ * Lua policy (`lua:balance-stock`), or a Lua file. Lua that cannot load is reported
  * before any run starts.
  */
 export function resolvePolicy(spec: string, runtime: LuaRuntime | undefined): Policy {
+  spec = RENAMED_POLICIES[spec] ?? spec;
   const reference = REFERENCE_POLICIES[spec];
   if (reference) return reference();
 

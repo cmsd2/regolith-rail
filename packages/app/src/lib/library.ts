@@ -89,7 +89,7 @@ export type LibraryItem = ScenarioItem | PolicyItem | ExperimentItem;
 const KIND_NAMES = new Set<string>(["scenario", "policy", "experiment"]);
 const SOURCE_NAMES = new Set<string>(SOURCES.map((s) => s.source));
 
-/** An item id such as `builtin:policy:naive`. The key may itself contain colons. */
+/** An item id such as `builtin:policy:balance-stock`. The key may itself contain colons. */
 export const itemId = (source: ItemSource, kind: ItemKind, key: string): ItemId =>
   `${source}:${kind}:${key}`;
 
@@ -125,7 +125,7 @@ export const newMineId = (kind: ItemKind): ItemId => itemId("mine", kind, crypto
 
 const COPY_SUFFIX = / \(copy(?: \d+)?\)$/;
 
-/** The first free name for a copy: "naive (copy)", then "naive (copy 2)", and so on. */
+/** The first free name for a copy: "balance-stock (copy)", then "balance-stock (copy 2)", and so on. */
 export function copyName(original: string, taken: Iterable<string>): string {
   const used = new Set(taken);
   const stem = original.replace(COPY_SUFFIX, "");

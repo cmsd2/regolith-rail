@@ -1,0 +1,190 @@
+---
+title: "Order quantities: EOQ and (s, S)"
+description: How much to order when every order has a fixed cost, and the reorder point that says when.
+section: Book
+part: 2
+chapter: 5
+---
+
+## What you will learn
+
+- To balance the fixed cost of ordering against the cost of holding stock, and derive
+  the economic order quantity.
+- To see why the cost barely changes near the best quantity, and what that means for
+  rounding and estimation errors.
+- To combine an order quantity with a reorder point in an (s, S) policy, and run it.
+
+## The problem
+
+Chapter 3 ordered at every review, as much as the position had fallen. That suits
+stock whose orders cost nothing to place. Many orders do cost something whatever their
+size: a delivery, a set-up, paperwork. Ordering little and often then wastes those fixed
+costs, while ordering a lot at once fills the shelves with stock that costs money to
+hold.
+
+The economic order quantity answers how much to order when demand is steady. It is one
+of the oldest results in operations research, and its reasoning, trading a cost that
+falls with the quantity against one that rises, appears in many other decisions
+(Axsäter, 2015, pp. 45–48; Taha, 2017, pp. 507–510).
+
+## The model
+
+### The economic order quantity
+
+Let demand be a steady $D$ units a day, let each order cost $K$, and let each unit held
+cost $h$ a day. Order $Q$ units whenever stock runs out. There are $D/Q$ orders a day,
+and stock falls steadily from $Q$ to zero, so on average half an order is held. The cost
+a day is
+
+$$
+C(Q) = \frac{KD}{Q} + \frac{hQ}{2}.
+$$
+
+<Check ref="maxima:eoq" />
+
+The first term falls as $Q$ grows and the second rises. Setting the derivative to zero
+gives the economic order quantity and its cost:
+
+$$
+Q^* = \sqrt{\frac{2KD}{h}}, \qquad C(Q^*) = \sqrt{2KDh}.
+$$
+
+<Check ref="maxima:eoq" />
+
+At $Q^*$ the two terms are equal: the best quantity spends as much on ordering as on
+holding.
+
+<Check ref="maxima:eoq-terms-balance" />
+
+With $D = 10$, $K = 20$ and $h = 1$, the order is 20 units, placed every two days, and
+the cost is 20 a day.
+
+<Check ref="maxima:eoq-defaults" />
+
+### A flat bottom
+
+Order $x$ times the best quantity and the cost is
+
+$$
+\frac{C(xQ^*)}{C(Q^*)} = \frac{1}{2}\left(x + \frac{1}{x}\right)
+$$
+
+<Check ref="maxima:flat-cost" />
+
+times the best. Ordering half again as much costs only about 8.3% more, and ordering
+double or half as much costs 25% more. An estimate of $D$ or $K$ that is somewhat wrong,
+or a quantity rounded to a convenient size, costs little.
+
+<Check ref="maxima:flat-cost" />
+
+For the worked case, ordering 10 or 40 at a time costs 25 a day, and ordering 30 costs
+about 21.67.
+
+<Check ref="maxima:order-sizes" />
+
+### When to order: (s, S)
+
+The quantity says how much. With a lead time and periodic reviews, the station also
+needs a reorder point $s$: order when the position falls below the demand expected before
+the order could arrive, and order up to $S = s + Q^*$. This is an (s, S) policy (Axsäter,
+2015, pp. 115–116).
+
+With 10 units a day, no lead time and hourly reviews, the next hour's demand is
+$10/24$ of a unit, 417 thousandths rounded up. The policy orders up to $417 + 20{,}000 =
+20{,}417$ thousandths whenever the position falls below 417.
+
+<Check ref="maxima:reorder-point" />
+
+When demand is random, the reorder point also carries safety stock. Chapter 6 sets it.
+
+## In the simulator
+
+The `classic.reorder` template, with its default steady demand, is this model. Demand is
+10 units a day, orders cost 20 and arrive immediately, and holding costs 1 a unit a day.
+
+<Scenario template="classic.reorder" />
+
+```lua runnable script
+return classic.reorder {}
+```
+
+The reference policy is the (s, S) policy above:
+
+```lua runnable scenario=classic.reorder
+return ops.policy {
+  review = { target = ops.min_max { min = 417, max = 20417 } },
+}
+```
+
+A test reviews every minute instead of every hour, so the reorder point is 7 thousandths,
+and checks that the simulated cost is within one cost unit of 20 a day, with no unmet
+demand.
+
+<Check ref="test:costs the economic order quantity's analytic cost with steady demand and no lead time" />
+
+Try other quantities by changing `max`. With reviews every minute, ordering 10 or 40 at
+a time costs 25 a day in the simulator, as the model predicts.
+
+<Check ref="test:on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit" />
+
+## Where the simulator differs
+
+- **Whole orders in a finite run.** The model averages over an endless cycle. A run of
+  20 days places a whole number of orders, so quantities that don't divide the total
+  demand evenly cost a little more than the model says. Ordering 30 at a time places 7
+  orders for 200 units of demand, not $6\tfrac{2}{3}$.
+- **Reviews, not continuous watching.** Stock can only be ordered at a review. With
+  hourly reviews and no lead time, the reorder point covers one hour of demand so that
+  stock never runs out between reviews.
+- **Order costs are charged when an order is placed**, and holding costs each minute on
+  what is held.
+
+## Exercises
+
+1. The order cost doubles to 40. What are the new order quantity and cost a day?
+
+<Answer>
+
+$Q^* = 20\sqrt{2} \approx 28.28$, and the cost rises by the same factor of $\sqrt{2}$, to
+about 28.28 a day.
+
+<Check ref="maxima:dearer-orders" />
+
+</Answer>
+
+2. Demand quadruples. How does the order quantity change?
+
+<Answer>
+
+It doubles. $Q^*$ grows with the square root of demand, so larger operations order
+relatively less often per unit.
+
+<Check ref="maxima:square-root-law" />
+
+</Answer>
+
+3. With the defaults, how much more than the best does ordering 10 at a time cost?
+
+<Answer>
+
+25 a day instead of 20, a quarter more: ordering half the best quantity costs
+$(1/2 + 2)/2 = 5/4$ times as much.
+
+<Check ref="maxima:flat-cost" />
+
+</Answer>
+
+<GameNote>
+
+Each stop costs a train time to dwell, and each unit moved adds to it, which plays a
+part like the fixed and per-unit costs of an order. A policy that tops a station up by a
+few units at every visit spends that time often; one that waits and delivers a full load
+spends it less often but leaves the station lower in between.
+
+</GameNote>
+
+## References
+
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
+  Education.

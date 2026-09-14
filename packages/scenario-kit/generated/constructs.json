@@ -1587,8 +1587,8 @@
           "default": "1"
         }
       ],
-      "docs": "classic/newsvendor",
-      "href": "classic/newsvendor#classic-newsvendor"
+      "docs": "book/newsvendor",
+      "href": "book/newsvendor#classic-newsvendor"
     },
     {
       "name": "classic.reorder",
@@ -1687,8 +1687,188 @@
           "default": "1"
         }
       ],
-      "docs": "classic/reorder",
-      "href": "classic/reorder#classic-reorder"
+      "docs": "book/order-quantities",
+      "href": "book/order-quantities#classic-reorder"
+    },
+    {
+      "name": "classic.safety_stock",
+      "library": "classic",
+      "kind": "template",
+      "summary": "One store reviewed on a schedule, facing Poisson demand with backorders and a supplier whose lead time may vary, with a target cycle service level for its reference policy.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "demand",
+          "type": "number",
+          "summary": "Average demand per day, arriving one unit at a time.",
+          "required": false,
+          "default": "10",
+          "unit": "units per day"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer|discrete",
+          "summary": "Time from order to delivery, fixed or drawn for each order. The longest and shortest must differ by less than the review period.",
+          "required": false,
+          "default": "discrete { { days(1), 1 }, { days(3), 1 } }",
+          "unit": "ms"
+        },
+        {
+          "name": "review_period",
+          "type": "integer",
+          "summary": "Time between reviews.",
+          "required": false,
+          "default": "weeks(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "target_service",
+          "type": "number",
+          "summary": "Chance that a review cycle ends with no customers waiting, which the reference policy's order-up-to level aims for.",
+          "required": false,
+          "default": "0.95"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per day.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "backorder_cost",
+          "type": "integer",
+          "summary": "Cost per unit backordered per day.",
+          "required": false,
+          "default": "10"
+        },
+        {
+          "name": "initial",
+          "type": "number",
+          "summary": "Stock at the start of a run.",
+          "required": false,
+          "default": "0",
+          "unit": "units"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "weeks(10)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "book/safety-stock",
+      "href": "book/safety-stock#classic-safety_stock"
+    },
+    {
+      "name": "classic.forecasting",
+      "library": "classic",
+      "kind": "template",
+      "summary": "One store reviewed daily whose demand grows by a trend and may rise and fall with a season, with or without Poisson noise, and a reference policy that forecasts by exponential smoothing.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "level",
+          "type": "number",
+          "summary": "Demand on the first day.",
+          "required": false,
+          "default": "20",
+          "unit": "units"
+        },
+        {
+          "name": "trend",
+          "type": "number",
+          "summary": "How much demand grows each day.",
+          "required": false,
+          "default": "1",
+          "unit": "units per day"
+        },
+        {
+          "name": "season_length",
+          "type": "integer",
+          "summary": "Days in a season, with demand raised in its first half and lowered in its second; 0 for none.",
+          "required": false,
+          "default": "0",
+          "range": [0, 365]
+        },
+        {
+          "name": "season_amplitude",
+          "type": "number",
+          "summary": "Fraction by which a season raises and lowers demand.",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "noise",
+          "type": "boolean",
+          "summary": "Poisson arrivals around each day's demand instead of exactly that amount.",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "alpha",
+          "type": "number",
+          "summary": "Weight the reference policy's forecast gives the latest day.",
+          "required": false,
+          "default": "0.2"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer",
+          "summary": "Time from order to delivery, in whole days.",
+          "required": false,
+          "default": "days(2)",
+          "unit": "ms"
+        },
+        {
+          "name": "safety",
+          "type": "number",
+          "summary": "Stock the reference policy holds above its forecast.",
+          "required": false,
+          "default": "0",
+          "unit": "units"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per day.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "backorder_cost",
+          "type": "integer",
+          "summary": "Cost per unit backordered per day.",
+          "required": false,
+          "default": "10"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "days(60)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "book/forecasting",
+      "href": "book/forecasting#classic-forecasting"
     },
     {
       "name": "classic.serial_chain",

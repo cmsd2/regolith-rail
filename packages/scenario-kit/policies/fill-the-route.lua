@@ -50,13 +50,16 @@ return {
     local here, vehicle = ctx.here, ctx.vehicle
     for _, resource in ipairs(here.resources) do
       if #here.suppliers > 0 then
-        local wanted = short_ahead(vehicle, here, resource) - (vehicle.cargo[resource] or 0)
-        local amount = math.min(wanted, here.stock[resource], vehicle.space[resource])
+        local carried = vehicle.cargo[resource] or 0
+        local wanted = short_ahead(vehicle, here, resource) - carried
+        local amount =
+          math.min(wanted, here.stock[resource], vehicle.space[resource])
         if amount > 0 then
           ctx.load(resource, amount)
         end
       else
-        local amount = math.min(vehicle.cargo[resource] or 0, here.capacity[resource] - here.stock[resource])
+        local room = here.capacity[resource] - here.stock[resource]
+        local amount = math.min(vehicle.cargo[resource] or 0, room)
         if amount > 0 then
           ctx.unload(resource, amount)
         end

@@ -9,11 +9,58 @@ $$
 
 This is the rule the game's trains appear to follow; see
 [station balancing](/docs/game-mechanics#station-balancing). Used as the only target,
-it behaves exactly like `naive.lua`:
+it is the whole balancing baseline:
 
 ```lua runnable
 return ops.policy { target = ops.balance {} }
 ```
 
+This one line is the built-in `balance-stock` policy.
+
+## The same rule in plain Lua
+
+`ops.balance` is shorthand. Written out in plain Lua against the Policy API, the same
+rule reads each station's stock, averages it, and loads or unloads the difference at the
+station the vehicle has stopped at:
+
+```lua runnable
+local policy = {}
+
+local function stores(station, resource)
+  for _, id in ipairs(station.resources) do
+    if id == resource then
+      return true
+    end
+  end
+  return false
+end
+
+function policy.on_stop(ctx)
+  local here = ctx.here
+  for _, resource in ipairs(here.resources) do
+    local total, count = 0, 0
+    for _, id in ipairs(ctx.station_order) do
+      local other = ctx.stations[id]
+      if stores(other, resource) then
+        total = total + other.stock[resource]
+        count = count + 1
+      end
+    end
+    local target = math.floor(total / count)
+    local difference = here.stock[resource] - target
+    if difference > 0 then
+      ctx.load(resource, difference)
+    elseif difference < 0 then
+      ctx.unload(resource, -difference)
+    end
+  end
+end
+
+return policy
+```
+
+A test runs both on every starter scenario and checks they make the same moves. The `ops`
+version also records a decision trace at each stop, which the stop inspector shows.
+
 It is a useful baseline and a poor dispatcher: see the
-[failure modes](/docs/failure-modes/half-capacity).
+[failure modes](/docs/book/modelling#case-study-half-capacity).

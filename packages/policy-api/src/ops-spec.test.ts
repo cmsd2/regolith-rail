@@ -26,8 +26,9 @@ describe("ops block descriptions", () => {
   it("declare the information level the library enforces", () => {
     for (const block of opsBlocks) {
       if (block.stage === "pipeline" || block.stage === "helper") continue;
-      const name = block.name === "roles.manual" ? "roles.manual" : block.name;
-      expect(source, block.name).toContain(`"${name}", "${block.level}"`);
+      // The formatter may break the block's name and level onto separate lines.
+      const name = block.name.replace(".", "\\.");
+      expect(source, block.name).toMatch(new RegExp(`"${name}",\\s*"${block.level}"`));
     }
   });
 

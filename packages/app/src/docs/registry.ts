@@ -18,6 +18,9 @@ export interface DocEntry {
   description: string;
   section: Section;
   order: number;
+  /** A Book chapter's part and chapter numbers. */
+  part?: number;
+  chapter?: number;
   /** Written content; on a reference page it follows the generated reference. */
   Content?: MDXContent;
   reference?: ReferencePage;
@@ -55,7 +58,9 @@ function buildEntries(): Map<string, DocEntry> {
       title: meta.title ?? key,
       description: meta.description ?? "",
       section: meta.section ?? "Guides",
-      order: meta.order ?? 100,
+      order: meta.chapter ?? meta.order ?? 100,
+      ...(meta.part === undefined ? {} : { part: meta.part }),
+      ...(meta.chapter === undefined ? {} : { chapter: meta.chapter }),
       Content: module.default,
     });
   }

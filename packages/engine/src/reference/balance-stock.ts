@@ -1,11 +1,11 @@
 import { emptyOutcome, type Policy, type PolicyOutcome } from "../policy.ts";
 
 /**
- * Reference implementation of the naive baseline, used to cross-check
- * `naive.lua`: move every resource at the station towards the floor of the mean
+ * Reference implementation of the balancing baseline, used to cross-check
+ * `balance-stock.lua`: move every resource at the station towards the floor of the mean
  * stock of that resource across the stations that store it.
  */
-export function naiveReferencePolicy(): Policy {
+export function balanceStockReferencePolicy(): Policy {
   return {
     start: () => emptyOutcome(),
     stop(snapshot): PolicyOutcome {

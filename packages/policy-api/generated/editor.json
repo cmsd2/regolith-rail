@@ -1192,7 +1192,7 @@
       "path": "ops.balance",
       "name": "balance",
       "type": "fun({  })",
-      "summary": "Targets the average stock of the resource across the stations that store it, as the naive baseline does.",
+      "summary": "Targets the average stock of the resource across the stations that store it, as the balancing baseline does.",
       "level": "line",
       "docs": "ops/balance",
       "kind": "function",

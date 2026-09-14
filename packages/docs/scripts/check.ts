@@ -1,12 +1,19 @@
 import { readFileSync } from "node:fs";
+import { starterScenarios } from "@regolith-rail/engine";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
-import { constructs } from "@regolith-rail/scenario-kit";
+import { classicTemplates, constructs } from "@regolith-rail/scenario-kit";
 import {
+  checkBook,
+  checkChapterScenarios,
+  checkChapterStandard,
+  checkClaims,
   checkConstructs,
   checkExampleIndex,
+  checkExampleWidth,
   checkFrontmatter,
   checkReference,
+  checkStarterFixes,
   checkTemplatePages,
   exampleIndex,
   extractExamples,
@@ -28,10 +35,25 @@ const problems = [
   ...checkConstructs(constructs, runtime.libraryConstructs()),
   ...checkTemplatePages(constructs, new Set(pages.map((p) => p.slug))),
   ...checkFrontmatter(pages),
+  ...checkBook(pages),
+  ...checkChapterStandard(pages),
+  ...checkChapterScenarios(pages, {
+    starters: new Set(starterScenarios.map((s) => s.id)),
+    templates: new Set(classicTemplates.map((t) => t.name)),
+  }),
+  ...checkClaims(pages),
   ...checkExampleIndex(committedExamples, exampleIndex(pages)),
+  ...checkStarterFixes(
+    starterScenarios.map(({ id, document }) => ({
+      id,
+      docs: (document as { docs?: string }).docs,
+    })),
+    pages,
+  ),
 ];
 
 const examples = pages.flatMap((page) => extractExamples(page.slug, page.tree));
+problems.push(...checkExampleWidth(examples));
 for (const example of examples) problems.push(...runExample(runtime, example));
 
 if (problems.length > 0) {

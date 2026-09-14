@@ -17,7 +17,7 @@ test.describe("batch comparison", () => {
     await openWorkbench(page);
     await openBatch(page);
     await expect(page.getByTestId("batch-seeds")).toHaveValue("100");
-    await expect(page.getByTestId("batch-config")).toContainText("policy A naive");
+    await expect(page.getByTestId("batch-config")).toContainText("policy A balance-stock");
     await expect(page.getByTestId("batch-config")).toContainText("Two stations");
   });
 
@@ -72,7 +72,7 @@ test.describe("batch comparison", () => {
     ).toHaveText(unmet ?? "");
   });
 
-  test("shows a clear improvement from supply-to-demand over naive on two-station", async ({
+  test("shows a clear improvement from supply-to-demand over balance-stock on two-station", async ({
     page,
   }) => {
     await openWorkbench(page);

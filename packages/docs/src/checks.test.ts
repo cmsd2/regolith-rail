@@ -5,7 +5,14 @@ import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
 import { constructs } from "@regolith-rail/scenario-kit";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { checkExampleIndex, exampleIndex, extractExamples, runExample } from "./examples.ts";
+import {
+  checkExampleIndex,
+  checkExampleWidth,
+  checkStarterFixes,
+  exampleIndex,
+  extractExamples,
+  runExample,
+} from "./examples.ts";
 import { checkLinks } from "./links.ts";
 import { assignHeadingIds, parseMdx } from "./markdown.ts";
 import { parseCodeMeta } from "./meta.ts";
@@ -83,7 +90,13 @@ describe("construct reference check", () => {
 
 describe("classic template pages", () => {
   it("name a template without a page", () => {
-    const pages = new Set(["classic/newsvendor", "classic/reorder", "classic/serial-chain"]);
+    const pages = new Set([
+      "book/forecasting",
+      "book/newsvendor",
+      "book/order-quantities",
+      "book/safety-stock",
+      "classic/serial-chain",
+    ]);
     expect(checkTemplatePages(constructs, pages)).toEqual([
       "classic.fixed_route_delivery has no page at classic/fixed-route-delivery",
     ]);
@@ -96,6 +109,7 @@ describe("code meta", () => {
       runnable: true,
       output: false,
       script: false,
+      fix: false,
       scenario: "relay",
       seed: 4,
     });
@@ -280,6 +294,57 @@ describe("link check", () => {
       },
       { page: "index.html", href: "/rr/docs/old-name", reason: "no such page" },
       { page: "index.html", href: "/rr/docs/metrics#nope", reason: "no anchor #nope" },
+    ]);
+  });
+
+  it("lists links to moved pages, except from the redirect left behind", () => {
+    site({
+      "index.html":
+        '<a href="/rr/docs/classic/newsvendor">old</a><a href="/rr/docs/book/newsvendor">new</a>',
+      "docs/classic/newsvendor/index.html":
+        '<meta http-equiv="refresh" content="0; url=/rr/docs/book/newsvendor"><a href="/rr/docs/book/newsvendor">moved</a>',
+      "docs/book/newsvendor/index.html": "<h1>The newsvendor</h1>",
+    });
+    expect(checkLinks(root, "/rr/", { "classic/newsvendor": "book/newsvendor" })).toEqual([
+      {
+        page: "index.html",
+        href: "/rr/docs/classic/newsvendor",
+        reason: "moved to /docs/book/newsvendor",
+      },
+    ]);
+  });
+});
+
+describe("starter fixes", () => {
+  const pageWith = (slug: string, body: string) => ({ slug, tree: parseMdx(body) });
+  const fence = (meta: string) => `\`\`\`lua ${meta}\nreturn {}\n\`\`\`\n`;
+
+  it("pass when a starter's page marks one fix on it, following a section anchor", () => {
+    const page = pageWith(
+      "book/base-stock",
+      `${fence("runnable scenario=two-trains")}\n${fence("runnable scenario=two-trains fix")}`,
+    );
+    const starters = [{ id: "two-trains", docs: "book/base-stock#case-study-double-dispatch" }];
+    expect(checkStarterFixes(starters, [page])).toEqual([]);
+    expect(extractExamples(page.slug, page.tree).map((e) => e.fix)).toEqual([false, true]);
+  });
+
+  it("name a starter whose page marks no fix", () => {
+    const page = pageWith("failure-modes/half-capacity", fence("runnable"));
+    expect(
+      checkStarterFixes([{ id: "two-station", docs: "failure-modes/half-capacity" }], [page]),
+    ).toEqual([
+      "two-station: failure-modes/half-capacity marks 0 fix examples on it; mark exactly one `lua runnable scenario=two-station fix`",
+    ]);
+  });
+});
+
+describe("example width", () => {
+  it("names an example line too long to read in the editor", () => {
+    const fence = "```";
+    const tree = parseMdx(`${fence}lua runnable\nreturn {}\n-- ${"x".repeat(80)}\n${fence}\n`);
+    expect(checkExampleWidth(extractExamples("guides/wide", tree))).toEqual([
+      "guides/wide example 1 (line 1): line 2 is 83 characters; wrap it within 80",
     ]);
   });
 });

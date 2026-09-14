@@ -26,7 +26,7 @@ describe("command-line runner", () => {
       "--scenario",
       "two-station",
       "--policy",
-      "lua:naive",
+      "lua:balance-stock",
       "--seed",
       "7",
     );
@@ -43,13 +43,23 @@ describe("command-line runner", () => {
     expect(output.hash).toMatch(/^[0-9a-f]{16}$/);
   }, 60_000);
 
+  it("still accepts the baseline's old name, naive", async () => {
+    const run = (policy: string) =>
+      cli("run", "--scenario", "two-station", "--policy", policy, "--seed", "7");
+    const renamed = await run("lua:naive");
+    expect(renamed.code).toBe(0);
+    expect(JSON.parse(renamed.stdout).hash).toBe(
+      JSON.parse((await run("lua:balance-stock")).stdout).hash,
+    );
+  }, 60_000);
+
   it("runs a range of seeds", async () => {
     const result = await cli(
       "run",
       "--scenario",
       "relay",
       "--policy",
-      "reference:naive",
+      "reference:balance-stock",
       "--seeds",
       "1..3",
     );
@@ -61,7 +71,7 @@ describe("command-line runner", () => {
     const dir = mkdtempSync(join(tmpdir(), "regolith-rail-"));
     const file = join(dir, "bad.json");
     writeFileSync(file, JSON.stringify({ format: 1, id: "bad" }));
-    const result = await cli("run", "--scenario", file, "--policy", "reference:naive");
+    const result = await cli("run", "--scenario", file, "--policy", "reference:balance-stock");
     expect(result.code).not.toBe(0);
     expect(result.stderr).toContain("is not a valid scenario");
     expect(result.stderr).toContain("title:");
@@ -81,7 +91,7 @@ describe("command-line runner", () => {
         "}",
       ].join("\n"),
     );
-    const result = await cli("run", "--scenario", file, "--policy", "lua:naive");
+    const result = await cli("run", "--scenario", file, "--policy", "lua:balance-stock");
     expect(result.code).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({ scenarioId: "script", aborted: false });
   }, 60_000);
@@ -98,7 +108,7 @@ describe("command-line runner", () => {
       "--param",
       "shortage=lost",
       "--policy",
-      "reference:naive",
+      "reference:balance-stock",
     );
     expect(result.code).toBe(0);
     const output = JSON.parse(result.stdout);
@@ -114,7 +124,7 @@ describe("command-line runner", () => {
       "--param",
       "stages=40",
       "--policy",
-      "reference:naive",
+      "reference:balance-stock",
     );
     expect(result.code).toBe(1);
     expect(result.stderr).toContain(
@@ -133,7 +143,7 @@ describe("command-line runner", () => {
         '  vehicles = { vehicle { id = "V", route = shuttle { stops = { "A", "Nowhere" } }, speed = 1, capacity = 1 } } }',
       ].join("\n"),
     );
-    const result = await cli("run", "--scenario", file, "--policy", "reference:naive");
+    const result = await cli("run", "--scenario", file, "--policy", "reference:balance-stock");
     expect(result.code).toBe(1);
     expect(result.stderr).toContain("is not a valid scenario");
     expect(result.stderr).toContain(`${file}:3 vehicles[0].route.stops[1]:`);

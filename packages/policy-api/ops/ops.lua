@@ -25,7 +25,14 @@ local function check_params(name, params, allowed)
     params = {}
   end
   if type(params) ~= "table" then
-    error("ops." .. name .. " expects a table of parameters, such as ops." .. name .. " {}", 3)
+    error(
+      "ops."
+        .. name
+        .. " expects a table of parameters, such as ops."
+        .. name
+        .. " {}",
+      3
+    )
   end
   for key, value in pairs(params) do
     local kind = allowed[key]
@@ -46,11 +53,20 @@ local function require_param(name, params, key)
 end
 
 local function new_block(stage, name, level, params, decide)
-  return { ops_block = true, stage = stage, name = name, level = level, params = params, decide = decide }
+  return {
+    ops_block = true,
+    stage = stage,
+    name = name,
+    level = level,
+    params = params,
+    decide = decide,
+  }
 end
 
 local function is_block(value, stage)
-  return type(value) == "table" and value.ops_block == true and value.stage == stage
+  return type(value) == "table"
+    and value.ops_block == true
+    and value.stage == stage
 end
 
 -- Classify ------------------------------------------------------------------------
@@ -67,22 +83,44 @@ function ops.roles.manual(assignments)
     if type(role) == "table" then
       for resource, r in pairs(role) do
         if not ROLES[r] then
-          error("ops.roles.manual: " .. tostring(r) .. " for " .. station .. " " .. resource .. " is not a role", 2)
+          error(
+            "ops.roles.manual: "
+              .. tostring(r)
+              .. " for "
+              .. station
+              .. " "
+              .. resource
+              .. " is not a role",
+            2
+          )
         end
       end
     elseif not ROLES[role] then
-      error("ops.roles.manual: " .. tostring(role) .. " for " .. station .. " is not a role", 2)
+      error(
+        "ops.roles.manual: "
+          .. tostring(role)
+          .. " for "
+          .. station
+          .. " is not a role",
+        2
+      )
     end
   end
-  local block = new_block("classify", "roles.manual", "local", { assignments = assignments }, function(site)
-    local role = assignments[site.station]
-    if type(role) == "table" then
-      role = role[site.resource]
+  local block = new_block(
+    "classify",
+    "roles.manual",
+    "local",
+    { assignments = assignments },
+    function(site)
+      local role = assignments[site.station]
+      if type(role) == "table" then
+        role = role[site.resource]
+      end
+      role = role or "any"
+      trace("roles.manual", site.station, site.resource, {}, role)
+      return role
     end
-    role = role or "any"
-    trace("roles.manual", site.station, site.resource, {}, role)
-    return role
-  end)
+  )
   block.assignments = assignments
   return block
 end
@@ -101,7 +139,13 @@ function ops.balance(params)
       end
     end
     local target = math.floor(total / count)
-    trace("balance", site.station, site.resource, { total = total, stations = count }, target)
+    trace(
+      "balance",
+      site.station,
+      site.resource,
+      { total = total, stations = count },
+      target
+    )
     return target
   end)
 end
@@ -110,7 +154,13 @@ function ops.order_up_to(params)
   params = check_params("order_up_to", params, { level = "number" })
   require_param("order_up_to", params, "level")
   return new_block("target", "order_up_to", "local", params, function(site)
-    trace("order_up_to", site.station, site.resource, { position = site.position, level = params.level }, params.level)
+    trace(
+      "order_up_to",
+      site.station,
+      site.resource,
+      { position = site.position, level = params.level },
+      params.level
+    )
     return params.level
   end)
 end
@@ -149,7 +199,13 @@ end
 function ops.fill(params)
   check_params("fill", params, {})
   return new_block("target", "fill", "local", {}, function(site)
-    trace("fill", site.station, site.resource, { capacity = site.capacity }, site.capacity)
+    trace(
+      "fill",
+      site.station,
+      site.resource,
+      { capacity = site.capacity },
+      site.capacity
+    )
     return site.capacity
   end)
 end
@@ -184,63 +240,85 @@ end
 
 function ops.priority(params)
   check_params("priority", params, {})
-  return new_block("allocate", "priority", "local", {}, function(requests, space, priority, order)
-    local granted = {}
-    by_priority(requests, priority, order)
-    for _, request in ipairs(requests) do
-      local amount = math.min(request.amount, space)
-      granted[request.resource] = amount
-      space = space - amount
-      trace("priority", request.station, request.resource, { requested = request.amount }, amount)
+  return new_block(
+    "allocate",
+    "priority",
+    "local",
+    {},
+    function(requests, space, priority, order)
+      local granted = {}
+      by_priority(requests, priority, order)
+      for _, request in ipairs(requests) do
+        local amount = math.min(request.amount, space)
+        granted[request.resource] = amount
+        space = space - amount
+        trace(
+          "priority",
+          request.station,
+          request.resource,
+          { requested = request.amount },
+          amount
+        )
+      end
+      return granted
     end
-    return granted
-  end)
+  )
 end
 
 function ops.proportional(params)
   check_params("proportional", params, {})
-  return new_block("allocate", "proportional", "local", {}, function(requests, space, priority, order)
-    local granted, total = {}, 0
-    for _, request in ipairs(requests) do
-      total = total + request.amount
-    end
-    if total <= space then
+  return new_block(
+    "allocate",
+    "proportional",
+    "local",
+    {},
+    function(requests, space, priority, order)
+      local granted, total = {}, 0
       for _, request in ipairs(requests) do
-        granted[request.resource] = request.amount
+        total = total + request.amount
       end
-    else
-      local given = 0
+      if total <= space then
+        for _, request in ipairs(requests) do
+          granted[request.resource] = request.amount
+        end
+      else
+        local given = 0
+        for _, request in ipairs(requests) do
+          local share = math.floor(space * request.amount / total)
+          granted[request.resource] = share
+          given = given + share
+        end
+        local left = space - given
+        by_priority(requests, priority, order)
+        for _, request in ipairs(requests) do
+          local extra =
+            math.min(left, request.amount - granted[request.resource])
+          granted[request.resource] = granted[request.resource] + extra
+          left = left - extra
+        end
+      end
       for _, request in ipairs(requests) do
-        local share = math.floor(space * request.amount / total)
-        granted[request.resource] = share
-        given = given + share
+        trace(
+          "proportional",
+          request.station,
+          request.resource,
+          { requested = request.amount, space = space },
+          granted[request.resource]
+        )
       end
-      local left = space - given
-      by_priority(requests, priority, order)
-      for _, request in ipairs(requests) do
-        local extra = math.min(left, request.amount - granted[request.resource])
-        granted[request.resource] = granted[request.resource] + extra
-        left = left - extra
-      end
+      return granted
     end
-    for _, request in ipairs(requests) do
-      trace(
-        "proportional",
-        request.station,
-        request.resource,
-        { requested = request.amount, space = space },
-        granted[request.resource]
-      )
-    end
-    return granted
-  end)
+  )
 end
 
 -- Pipeline ---------------------------------------------------------------------------
 
 local function stage_error(stage, err)
   if type(err) ~= "string" then
-    error("in the " .. stage .. " stage: the function raised a " .. type(err), 0)
+    error(
+      "in the " .. stage .. " stage: the function raised a " .. type(err),
+      0
+    )
   end
   local line, message = string.match(err, "^policy:(%d+): (.*)$")
   if line then
@@ -288,15 +366,25 @@ function ops.inventory_position(ctx, station_id, resource)
     error("ops.inventory_position: unknown station " .. tostring(station_id), 2)
   end
   local vehicle_id = ctx.vehicle and ctx.vehicle.id
-  return (station.stock[resource] or 0) + inbound(state, vehicle_id, station_id, resource)
+  return (station.stock[resource] or 0)
+    + inbound(state, vehicle_id, station_id, resource)
 end
 
 local function validate_spec(spec)
   if type(spec) ~= "table" then
-    error("ops.policy expects a table, such as ops.policy { target = ops.balance {} }", 3)
+    error(
+      "ops.policy expects a table, such as ops.policy { target = ops.balance {} }",
+      3
+    )
   end
   for key in pairs(spec) do
-    if key ~= "classify" and key ~= "target" and key ~= "plan" and key ~= "allocate" and key ~= "review" then
+    if
+      key ~= "classify"
+      and key ~= "target"
+      and key ~= "plan"
+      and key ~= "allocate"
+      and key ~= "review"
+    then
       error("ops.policy has no stage named " .. tostring(key), 3)
     end
   end
@@ -310,7 +398,14 @@ local function validate_spec(spec)
       return
     end
     if not is_block(value, name) then
-      error("ops.policy: " .. name .. " must be an ops " .. name .. " block or a function", 3)
+      error(
+        "ops.policy: "
+          .. name
+          .. " must be an ops "
+          .. name
+          .. " block or a function",
+        3
+      )
     end
     blocks[#blocks + 1] = value
   end
@@ -320,7 +415,12 @@ local function validate_spec(spec)
   if type(spec.target) == "table" and not spec.target.ops_block then
     for role, value in pairs(spec.target) do
       if not ROLES[role] then
-        error("ops.policy: target has an entry for " .. tostring(role) .. ", which is not a role", 3)
+        error(
+          "ops.policy: target has an entry for "
+            .. tostring(role)
+            .. ", which is not a role",
+          3
+        )
       end
       stage("target", value)
     end
@@ -329,7 +429,16 @@ local function validate_spec(spec)
         local roles = type(role) == "table" and role or { role }
         for _, r in pairs(roles) do
           if r ~= "any" and spec.target[r] == nil then
-            error("ops.policy: " .. station .. " has the role " .. r .. " but target has no " .. r .. " entry", 3)
+            error(
+              "ops.policy: "
+                .. station
+                .. " has the role "
+                .. r
+                .. " but target has no "
+                .. r
+                .. " entry",
+              3
+            )
           end
         end
       end
@@ -340,7 +449,10 @@ local function validate_spec(spec)
 
   if spec.review ~= nil then
     if type(spec.review) ~= "table" or spec.review.ops_block then
-      error("ops.policy: review must be a table, such as review = { target = ops.order_up_to { level = 10000 } }", 3)
+      error(
+        "ops.policy: review must be a table, such as review = { target = ops.order_up_to { level = 10000 } }",
+        3
+      )
     end
     for key in pairs(spec.review) do
       if key ~= "target" then
@@ -377,7 +489,10 @@ function ops.policy(spec)
     elseif type(spec.classify) == "function" then
       local role = call_custom("classify", spec.classify, site, ctx)
       if not ROLES[role] then
-        error("in the classify stage: " .. tostring(role) .. " is not a role", 0)
+        error(
+          "in the classify stage: " .. tostring(role) .. " is not a role",
+          0
+        )
       end
       return role
     end
@@ -396,7 +511,12 @@ function ops.policy(spec)
     if type(chosen) == "function" then
       target = call_custom("target", chosen, site, ctx)
       if target ~= nil and type(target) ~= "number" then
-        error("in the target stage: the function returned a " .. type(target) .. " instead of a number", 0)
+        error(
+          "in the target stage: the function returned a "
+            .. type(target)
+            .. " instead of a number",
+          0
+        )
       end
     else
       target = chosen.decide(site, view)
@@ -467,13 +587,12 @@ function ops.policy(spec)
             amount = target - site.position
             ctx.order(resource, amount)
           end
-          trace(
-            "order",
-            here.id,
-            resource,
-            { stock = stock, on_order = on_order, backorders = backorders, position = site.position },
-            amount
-          )
+          trace("order", here.id, resource, {
+            stock = stock,
+            on_order = on_order,
+            backorders = backorders,
+            position = site.position,
+          }, amount)
         end
       end
     end
@@ -500,7 +619,11 @@ function ops.policy(spec)
       local site = site_for(ctx, state, here, resource)
       local target = target_of(site, ctx, view)
       if target ~= nil then
-        wants[#wants + 1] = { resource = resource, station = here.id, amount = target - site.position }
+        wants[#wants + 1] = {
+          resource = resource,
+          station = here.id,
+          amount = target - site.position,
+        }
       end
     end
 
@@ -522,7 +645,8 @@ function ops.policy(spec)
           local room = site.capacity - site.position
           if target ~= nil and target > site.position and room > 0 then
             local amount = math.min(target - site.position, room)
-            downstream[#downstream + 1] = { station = station.id, resource = resource, amount = amount }
+            downstream[#downstream + 1] =
+              { station = station.id, resource = resource, amount = amount }
           end
         end
       end
@@ -540,7 +664,7 @@ function ops.policy(spec)
 
     -- Turn wants into unloads and load requests. Without a plan or allocation
     -- block the amounts are left as wanted and the engine clamps them, exactly
-    -- as the naive baseline does.
+    -- as the balancing baseline does.
     local shaping = lookahead or spec.allocate ~= nil
     local unloads, loads = {}, {}
     local order = {}
@@ -554,10 +678,17 @@ function ops.policy(spec)
           -- carries beyond its need stays aboard for the stations further on.
           amount = math.min(amount, carried)
           local downstream = downstream_need(want.resource)
-          trace("lookahead", here.id, want.resource, { carried = carried, downstream = downstream }, amount)
+          trace(
+            "lookahead",
+            here.id,
+            want.resource,
+            { carried = carried, downstream = downstream },
+            amount
+          )
         end
         if amount > 0 then
-          unloads[#unloads + 1] = { resource = want.resource, station = here.id, amount = amount }
+          unloads[#unloads + 1] =
+            { resource = want.resource, station = here.id, amount = amount }
         end
       elseif want.amount < 0 then
         local amount = -want.amount
@@ -566,11 +697,18 @@ function ops.policy(spec)
         end
         if lookahead then
           local need = math.max(0, downstream_need(want.resource) - carried)
-          trace("lookahead", here.id, want.resource, { surplus = amount, downstream = need }, math.min(amount, need))
+          trace(
+            "lookahead",
+            here.id,
+            want.resource,
+            { surplus = amount, downstream = need },
+            math.min(amount, need)
+          )
           amount = math.min(amount, need)
         end
         if amount > 0 then
-          loads[#loads + 1] = { resource = want.resource, station = here.id, amount = amount }
+          loads[#loads + 1] =
+            { resource = want.resource, station = here.id, amount = amount }
         end
       end
     end
@@ -602,7 +740,8 @@ function ops.policy(spec)
     else
       for _, u in ipairs(unloads) do
         ctx.unload(u.resource, u.amount)
-        cargo_after[u.resource] = math.max(0, cargo_after[u.resource] - u.amount)
+        cargo_after[u.resource] =
+          math.max(0, cargo_after[u.resource] - u.amount)
       end
       local priority = {}
       for _, id in ipairs(ctx.resource_order) do
@@ -623,12 +762,17 @@ function ops.policy(spec)
       else
         granted = {}
         for _, l in ipairs(loads) do
-          local room = math.max(0, (vehicle.capacity.per_resource[l.resource] or 0) - cargo_after[l.resource])
+          local room = math.max(
+            0,
+            (vehicle.capacity.per_resource[l.resource] or 0)
+              - cargo_after[l.resource]
+          )
           if type(spec.allocate) == "function" then
             local g = call_custom("allocate", spec.allocate, { l }, room, ctx)
             granted[l.resource] = g[l.resource] or 0
           else
-            granted[l.resource] = spec.allocate.decide({ l }, room, priority, order)[l.resource]
+            granted[l.resource] =
+              spec.allocate.decide({ l }, room, priority, order)[l.resource]
           end
         end
       end
@@ -662,9 +806,16 @@ function ops.policy(spec)
             by_resource = {}
             mine[need.station] = by_resource
           end
-          by_resource[need.resource] = (by_resource[need.resource] or 0) + amount
+          by_resource[need.resource] = (by_resource[need.resource] or 0)
+            + amount
           left[need.resource] = left[need.resource] - amount
-          trace("lookahead", need.station, need.resource, { shortfall = need.amount }, amount)
+          trace(
+            "lookahead",
+            need.station,
+            need.resource,
+            { shortfall = need.amount },
+            amount
+          )
         end
       end
     end

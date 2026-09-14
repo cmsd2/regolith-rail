@@ -464,6 +464,41 @@ function classic.newsvendor(p) end
 ---@return table
 function classic.reorder(p) end
 
+---@class ClassicSafetyStockParams
+---@field demand? number Average demand per day, arriving one unit at a time. In units per day. Default 10.
+---@field lead_time? integer|discrete Time from order to delivery, fixed or drawn for each order. The longest and shortest must differ by less than the review period. In ms. Default discrete { { days(1), 1 }, { days(3), 1 } }.
+---@field review_period? integer Time between reviews. In ms. Default weeks(1).
+---@field target_service? number Chance that a review cycle ends with no customers waiting, which the reference policy's order-up-to level aims for. Default 0.95.
+---@field holding_cost? integer Cost per unit held per day. Default 1.
+---@field backorder_cost? integer Cost per unit backordered per day. Default 10.
+---@field initial? number Stock at the start of a run. In units. Default 0.
+---@field duration? integer Length of a run. In ms. Default weeks(10).
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- One store reviewed on a schedule, facing Poisson demand with backorders and a supplier whose lead time may vary, with a target cycle service level for its reference policy.
+---@param p ClassicSafetyStockParams
+---@return table
+function classic.safety_stock(p) end
+
+---@class ClassicForecastingParams
+---@field level? number Demand on the first day. In units. Default 20.
+---@field trend? number How much demand grows each day. In units per day. Default 1.
+---@field season_length? integer Days in a season, with demand raised in its first half and lowered in its second; 0 for none. Default 0.
+---@field season_amplitude? number Fraction by which a season raises and lowers demand. Default 0.
+---@field noise? boolean Poisson arrivals around each day's demand instead of exactly that amount. Default false.
+---@field alpha? number Weight the reference policy's forecast gives the latest day. Default 0.2.
+---@field lead_time? integer Time from order to delivery, in whole days. In ms. Default days(2).
+---@field safety? number Stock the reference policy holds above its forecast. In units. Default 0.
+---@field holding_cost? integer Cost per unit held per day. Default 1.
+---@field backorder_cost? integer Cost per unit backordered per day. Default 10.
+---@field duration? integer Length of a run. In ms. Default days(60).
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- One store reviewed daily whose demand grows by a trend and may rise and fall with a season, with or without Poisson noise, and a reference policy that forecasts by exponential smoothing.
+---@param p ClassicForecastingParams
+---@return table
+function classic.forecasting(p) end
+
 ---@class ClassicSerialChainParams
 ---@field stages? integer Number of stages, from 2 to 10. Default 4.
 ---@field lead_time? integer Shipping time into each stage. In ms. Default days(2).

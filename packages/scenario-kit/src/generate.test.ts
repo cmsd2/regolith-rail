@@ -44,7 +44,7 @@ describe("construct descriptions", () => {
       expect(names.has(c.name), `duplicate ${c.name}`).toBe(false);
       names.add(c.name);
       expect(c.summary.length, c.name).toBeGreaterThan(10);
-      expect(c.docs, c.name).toMatch(/^(scenarios|classic)\//);
+      expect(c.docs, c.name).toMatch(/^(scenarios|classic|book)\//);
       for (const p of c.params) expect(p.summary.length, `${c.name}.${p.name}`).toBeGreaterThan(5);
     }
   });

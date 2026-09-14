@@ -1,4 +1,4 @@
-import { classicTemplates } from "@regolith-rail/scenario-kit";
+import { classicTemplates, SCRIPT_LINE_WIDTH } from "@regolith-rail/scenario-kit";
 import { describe, expect, it } from "vitest";
 import {
   catalogue,
@@ -25,7 +25,7 @@ describe("catalogue", () => {
       "builtin:scenario:storm-shock",
     ]);
     expect(ids("builtin", "policy")).toEqual([
-      "builtin:policy:naive",
+      "builtin:policy:balance-stock",
       "builtin:policy:supply-to-demand",
     ]);
     for (const template of classicTemplates) {
@@ -41,13 +41,30 @@ describe("catalogue", () => {
   it("lists only working policies: documentation snippets are kept for their pages, unlisted", () => {
     const listed = catalogue.filter((i) => i.listed !== false && i.source === "example");
     expect(listed.map((i) => [i.id, i.name])).toEqual([
+      ["example:policy:docs/book/base-stock#4", "Two trains fix"],
+      ["example:policy:docs/book/modelling#1", "Two stations fix"],
       ["example:policy:docs/failure-modes/dead-stock#1", "Relay station fix"],
       ["example:policy:docs/failure-modes/disruption-recovery#1", "Storm shock fix"],
-      ["example:policy:docs/failure-modes/double-dispatch#1", "Two trains fix"],
-      ["example:policy:docs/failure-modes/half-capacity#1", "Two stations fix"],
       ["example:policy:docs/failure-modes/ping-pong#1", "Mixed line fix"],
     ]);
-    expect(catalogueItem("example:policy:docs/classic/reorder#2")?.listed).toBe(false);
+    expect(catalogueItem("example:policy:docs/ops/min-max#1")?.listed).toBe(false);
+  });
+
+  it("lays out every shipped script and policy within the editor's line width", () => {
+    const sources = catalogue.flatMap((item) => {
+      if (item.kind === "policy") return [[item.id, item.content] as const];
+      if (item.kind === "scenario" && item.content.kind === "script") {
+        return [[item.id, item.content.source] as const];
+      }
+      return [];
+    });
+    expect(sources.length).toBeGreaterThan(40);
+    const long = sources.flatMap(([id, source]) =>
+      source
+        .split("\n")
+        .flatMap((line, i) => (line.length > SCRIPT_LINE_WIDTH ? [`${id} line ${i + 1}`] : [])),
+    );
+    expect(long).toEqual([]);
   });
 
   it("gives every item a valid, unique id, a name and a one-line description", () => {
@@ -61,6 +78,16 @@ describe("catalogue", () => {
     }
   });
 
+  it("finds items by the ids they had before their page moved", () => {
+    const moved = catalogueItem("example:policy:docs/failure-modes/half-capacity#1");
+    expect(moved?.id).toBe("example:policy:docs/book/modelling#1");
+    expect(moved?.name).toBe("Two stations fix");
+    expect(catalogueItem("example:policy:docs/failure-modes/double-dispatch#1")?.name).toBe(
+      "Two trains fix",
+    );
+    expect(catalogueItem("builtin:policy:naive")?.id).toBe("builtin:policy:balance-stock");
+  });
+
   it("pairs documentation examples with the scenario they run on", () => {
     const example = catalogueItem("example:policy:docs/failure-modes/disruption-recovery#1");
     expect(example?.example).toEqual({ scenario: "builtin:scenario:storm-shock", seed: 1 });
@@ -71,7 +98,7 @@ describe("catalogue", () => {
     for (const id of ["two-station", "relay", "two-trains", "mixed-line", "storm-shock"]) {
       const starter = catalogueItem(itemId("builtin", "scenario", id));
       const lesson = starter?.kind === "scenario" ? starter.lesson : undefined;
-      expect(lesson?.docs, id).toMatch(/^failure-modes\//);
+      expect(lesson?.docs, id).toMatch(/^(failure-modes\/[\w-]+|book\/[\w-]+#case-study-[\w-]+)$/);
       const fix = catalogueItem(lesson?.fix ?? "");
       expect(fix, id).toMatchObject({ kind: "policy", source: "example" });
       expect(fix?.example?.scenario, id).toBe(starter?.id);
@@ -86,7 +113,7 @@ describe("catalogue", () => {
     for (const template of classicTemplates) {
       const scenario = catalogueItem(itemId("classic", "scenario", template.name));
       expect(scenario?.kind === "scenario" && scenario.lesson, template.name).toEqual({
-        docs: expect.stringMatching(/^classic\//),
+        docs: expect.stringMatching(/^(classic|book)\//),
         reference: template.name,
       });
     }

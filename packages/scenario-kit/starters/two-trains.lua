@@ -3,8 +3,10 @@
 return mars.line {
   id = "two-trains",
   title = "Two trains",
-  description = "Two trains share a line from a mine to a factory and a dome. Without knowing what the other train is carrying, both respond to the same shortage, oversupplying one station while the other waits.",
-  docs = "failure-modes/double-dispatch",
+  description = "Two trains share a line from a mine to a factory and a dome. "
+    .. "Without knowing what the other train is carrying, both respond to the "
+    .. "same shortage, oversupplying one station while the other waits.",
+  docs = "book/base-stock#case-study-double-dispatch",
   duration = sols(10),
   stations = {
     mars.large_station {
@@ -16,13 +18,19 @@ return mars.line {
       id = "Factory",
       stock = { Metals = 15 },
       buildings = {
-        mars.consumer { resource = "Metals", rate = 40, variability = bursts { on_ppm = 2000, off_ppm = 1000 } },
+        mars.consumer {
+          resource = "Metals",
+          rate = 40,
+          variability = bursts { on_ppm = 2000, off_ppm = 1000 },
+        },
       },
     },
     mars.small_station {
       id = "Dome",
       stock = { Metals = 15 },
-      buildings = { mars.consumer { resource = "Metals", rate = 42, variability = 30 } },
+      buildings = {
+        mars.consumer { resource = "Metals", rate = 42, variability = 30 },
+      },
     },
   },
   distances = { 30000, 42000 },

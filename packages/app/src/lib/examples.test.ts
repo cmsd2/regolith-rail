@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { catalogueItem } from "./catalogue.ts";
-import { exampleFragment, exampleFragmentFor, findExampleItem } from "./examples.ts";
+import {
+  exampleFragment,
+  exampleFragmentFor,
+  findExampleItem,
+  policyFragment,
+  policyFragmentFor,
+  scenarioFragment,
+  scenarioFragmentFor,
+} from "./examples.ts";
 
 describe("documentation examples", () => {
   it("round-trip between items and fragments", () => {
@@ -18,5 +26,17 @@ describe("documentation examples", () => {
       "example:policy:docs/failure-modes/disruption-recovery#1",
     );
     expect(findExampleItem("return 'nothing like it'", false)).toBeNull();
+  });
+});
+
+describe("chapter scenarios", () => {
+  it("round-trip between items and fragments", () => {
+    const id = "classic:scenario:classic.newsvendor";
+    expect(scenarioFragment(scenarioFragmentFor(id))).toBe(id);
+    expect(scenarioFragment("#example.ops/min-max.1")).toBeNull();
+    expect(policyFragment(policyFragmentFor("builtin:policy:balance-stock"))).toBe(
+      "builtin:policy:balance-stock",
+    );
+    expect(policyFragment(scenarioFragmentFor("builtin:scenario:relay"))).toBeNull();
   });
 });

@@ -1,5 +1,10 @@
 import { type RunEvent, type RunOutput, runSimulation, type Scenario } from "@regolith-rail/engine";
-import { classicTemplates, type TemplateParams, templateCall } from "@regolith-rail/scenario-kit";
+import {
+  classicTemplates,
+  constructs,
+  type TemplateParams,
+  templateCall,
+} from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type LuaPolicy, LuaRuntime } from "./policy.ts";
 
@@ -48,8 +53,9 @@ describe("classic templates", () => {
       const stated = runtime.evaluateScript(templateCall(t.name, t.defaults));
       expect(bare.ok && stated.ok).toBe(true);
       expect(bare.ok && bare.document).toEqual(stated.ok && stated.document);
+      // The Lua library names the same page as the construct's description.
       expect(load(`return ${t.name} {}`).docs).toBe(
-        `classic/${t.name.slice("classic.".length).replace(/_/g, "-")}`,
+        constructs.find((c) => c.name === t.name)?.docs,
       );
     });
 
@@ -95,6 +101,112 @@ describe("newsvendor", () => {
     const { mean, half } = interval(perPeriod);
     expect(Math.abs(mean - (reference.expectedCostPerPeriod as number))).toBeLessThan(half);
   }, 120_000);
+});
+
+describe("safety stock", () => {
+  it("describes a store with Poisson demand, backorders and lead times of one and three days with equal weights", () => {
+    const scenario = load(
+      "return classic.safety_stock { lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }",
+    );
+    const shop = scenario.stations[0];
+    expect(shop?.consumers[0]).toMatchObject({ unmet: "backorder" });
+    expect(shop?.consumers[0]?.poisson?.arrivalsPerSol).toBe(10_000);
+    expect(shop?.suppliers[0]?.leadTime).toEqual({
+      kind: "discrete",
+      values: [
+        { value: DAY, weight: 1 },
+        { value: 3 * DAY, weight: 1 },
+      ],
+    });
+  });
+
+  it("rejects lead times that differ by a review period or more", () => {
+    const result = runtime.loadScript(
+      "return classic.safety_stock { review_period = days(2), lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }",
+    );
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.errors[0]?.message).toContain(
+      "lead times must differ by less than the review period, so that orders never overtake each other",
+    );
+  });
+
+  it("meets the analytic cycle service level of its reference level over 400 seeds", () => {
+    const reference = template("classic.safety_stock").reference({});
+    expect(reference.values.level).toBe(113);
+    const scenario = load("return classic.safety_stock {}");
+    const policy = referencePolicy("classic.safety_stock", {});
+    const shares = Array.from({ length: 400 }, (_, i) => {
+      const out = runSimulation(scenario, policy, { seed: i + 1, detail: "full" });
+      const site = out.sites.findIndex((s) => s.station === "Shop" && s.resource === "Goods");
+      // The first delivery ends the start-up cycle, which began with no stock.
+      const deliveries = ofKind(out.events, "delivery").slice(1);
+      const backorders = out.backorders as Int32Array;
+      // A row holds the state after every event at its time, so the one before a delivery's time
+      // is the state just before the delivery.
+      const met = deliveries.filter(
+        (d) => backorders[(d.t / out.tickMs - 1) * out.sites.length + site] === 0,
+      ).length;
+      return met / deliveries.length;
+    });
+    const { mean, half } = interval(shares);
+    expect(Math.abs(mean - (reference.values.cycleServiceLevel as number))).toBeLessThan(half);
+  }, 300_000);
+});
+
+describe("forecasting", () => {
+  it("starts demand at the level and raises it by the trend each day", () => {
+    const shop = load("return classic.forecasting { level = 20, trend = 1, noise = false }")
+      .stations[0];
+    const trace = shop?.consumers[0]?.trace;
+    expect(trace?.periodMs).toBe(DAY);
+    expect(trace?.amounts.slice(0, 4)).toEqual([20_000, 21_000, 22_000, 23_000]);
+    expect(trace?.amounts).toHaveLength(60);
+  });
+
+  it("raises demand in the first half of each season and lowers it in the second", () => {
+    const shop = load(
+      "return classic.forecasting { level = 20, trend = 0, season_length = 4, season_amplitude = 0.5 }",
+    ).stations[0];
+    expect(shop?.consumers[0]?.trace?.amounts.slice(0, 8)).toEqual([
+      30_000, 30_000, 10_000, 10_000, 30_000, 30_000, 10_000, 10_000,
+    ]);
+  });
+
+  it("with noise, draws Poisson arrivals at each day's demand", () => {
+    const consumer = load("return classic.forecasting { noise = true }").stations[0]?.consumers[0];
+    expect(consumer?.poisson?.arrivalsPerSol).toBe(1000);
+    expect(consumer?.profile?.slice(0, 4)).toEqual([
+      { atMs: 0, multiplierPermille: 20_000 },
+      { atMs: DAY - 1, multiplierPermille: 20_000 },
+      { atMs: DAY, multiplierPermille: 21_000 },
+      { atMs: 2 * DAY - 1, multiplierPermille: 21_000 },
+    ]);
+  });
+
+  it("smooths so that after warm-up each forecast trails its day's demand by trend over alpha, and the latest day by trend times one minus alpha over alpha", () => {
+    const reference = template("classic.forecasting").reference({});
+    expect(reference.values.lagBehindForecastDay).toBeCloseTo(5, 9);
+    expect(reference.values.lagBehindLatestDay).toBeCloseTo(4, 9);
+    const scenario = load("return classic.forecasting {}");
+    const out = runSimulation(scenario, referencePolicy("classic.forecasting", {}), {
+      detail: "summary",
+    });
+    expect(errorsIn(out)).toEqual([]);
+    const forecast = out.records.forecast;
+    const used = out.records.demand;
+    if (!forecast || !used) throw new Error("the reference policy should record its forecasts");
+    let checked = 0;
+    forecast.t.forEach((t, i) => {
+      const day = Math.floor(t / DAY);
+      if (day < 40) return;
+      const f = forecast.v[i] as number;
+      expect(used.v[i]).toBeCloseTo(20 + (day - 1), 6);
+      expect(Math.abs(20 + day - f - 5)).toBeLessThan(1);
+      expect(Math.abs(20 + (day - 1) - f - 4)).toBeLessThan(1);
+      checked++;
+    });
+    expect(checked).toBe(20);
+  });
 });
 
 describe("reorder", () => {

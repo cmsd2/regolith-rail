@@ -150,8 +150,8 @@ time.
 - **THEN** the reported error includes line 14, the train id, the station id
   and the time of the stop
 
-### Requirement: Naive baseline
-The application SHALL ship `naive.lua`, which at each stop moves every enabled
+### Requirement: Balancing baseline
+The application SHALL ship `balance-stock.lua`, which at each stop moves every enabled
 resource at the station towards the floor of the mean stock of that resource
 across the stations on the line that enable it. Its results SHALL be identical
 to the built-in reference implementation of the same rule on every starter
@@ -159,7 +159,7 @@ scenario and seed. Its documentation SHALL state that it reflects observed game
 behaviour that has not yet been verified.
 
 #### Scenario: Matches the reference
-- **WHEN** `naive.lua` and the reference implementation run every starter
+- **WHEN** `balance-stock.lua` and the reference implementation run every starter
   scenario on seeds 1 to 50
 - **THEN** their event logs are identical
 
@@ -172,7 +172,7 @@ SHALL be 2. Policies written for version 1 are not supported.
 - **THEN** its output states Policy API version 2
 
 #### Scenario: Baseline on version 2
-- **WHEN** `naive.lua`, written for Policy API version 2, runs every starter scenario on seeds 1 to 50
+- **WHEN** `balance-stock.lua`, written for Policy API version 2, runs every starter scenario on seeds 1 to 50
 - **THEN** its event logs are identical to those of the built-in reference implementation
 
 ### Requirement: Review hook
