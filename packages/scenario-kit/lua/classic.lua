@@ -218,6 +218,94 @@ classic.safety_stock = construct("classic.safety_stock", {
   })
 end)
 
+classic.forecasting = construct("classic.forecasting", {
+  level = "number",
+  trend = "number",
+  season_length = "integer",
+  season_amplitude = "number",
+  noise = "boolean",
+  alpha = "number",
+  lead_time = "duration",
+  safety = "number",
+  holding_cost = "integer",
+  backorder_cost = "integer",
+  duration = "duration",
+  seed = "integer",
+}, {}, function(p, name)
+  local level = p.level or 20
+  local trend = p.trend or 1
+  local season_length = count(name, "season_length", p.season_length, 0, 0, 365)
+  local amplitude = p.season_amplitude or 0
+  if type(amplitude) ~= "number" or amplitude < 0 or amplitude >= 1 then
+    fail(name, "season_amplitude must be a number from 0 up to, but not including, 1")
+  end
+  local noise = flag(name, "noise", p.noise, false)
+  local alpha = p.alpha or 0.2
+  if type(alpha) ~= "number" or alpha <= 0 or alpha > 1 then
+    fail(name, "alpha must be a number greater than 0 and at most 1")
+  end
+  local lead_time = p.lead_time or days(2)
+  if type(lead_time) ~= "number" or lead_time < 0 or lead_time % days(1) ~= 0 then
+    fail(name, "lead_time must be a whole number of days, such as days(2)")
+  end
+  local duration = p.duration or days(60)
+  local periods = math.floor(duration / days(1))
+  -- Demand in period k, from 0: the level plus k trends, raised in the first half of each season
+  -- and lowered in the second, rounded to thousandths.
+  local function demand(k)
+    local factor = 1
+    if season_length > 1 and amplitude > 0 then
+      factor = (k % season_length) < math.floor(season_length / 2) and 1 + amplitude or 1 - amplitude
+    end
+    local amount = (level + trend * k) * factor
+    if amount < 0 then
+      fail(name, "demand in period " .. (k + 1) .. " would be negative")
+    end
+    return math.floor(amount * 1000 + 0.5) / 1000
+  end
+  local flow = { resource = "Goods", unmet = "backorder", backorder_cost = p.backorder_cost or 10 }
+  if noise then
+    -- Poisson arrivals whose rate steps to each period's demand.
+    local points = {}
+    for k = 0, periods - 1 do
+      local rate = demand(k)
+      if rate > 100 then
+        fail(name, "with noise, demand can be at most 100 a day, but period " .. (k + 1) .. " needs " .. rate)
+      end
+      points[#points + 1] = { days(k), rate }
+      points[#points + 1] = { days(k + 1) - 1, rate }
+    end
+    flow.poisson = poisson({ per_sol = 1, size = 1 })
+    flow.profile = profile(points)
+  else
+    local amounts = {}
+    for k = 0, periods - 1 do
+      amounts[k + 1] = demand(k)
+    end
+    flow.trace = trace({ period = days(1), amounts = amounts })
+  end
+  return scenario({
+    id = "forecasting",
+    title = "Forecasting",
+    description = "A store whose demand grows, and may rise and fall with the seasons, orders each day from a supplier with a lead time. A policy has to forecast demand from what it has seen, and a forecast that lags behind growing demand leaves the store short.",
+    docs = "book/forecasting",
+    information = "local",
+    duration = duration,
+    seed = p.seed,
+    stations = {
+      station({
+        id = "Shop",
+        resources = {
+          store({ resource = "Goods", capacity = "unlimited", holding_cost = p.holding_cost or 1 }),
+        },
+        consumers = { consumer(flow) },
+        suppliers = { supplier({ resource = "Goods", lead_time = lead_time, order_cost = 0 }) },
+        review = review({ period = days(1), offset = minutes(1) }),
+      }),
+    },
+  })
+end)
+
 classic.serial_chain = construct("classic.serial_chain", {
   stages = "integer",
   lead_time = "duration",

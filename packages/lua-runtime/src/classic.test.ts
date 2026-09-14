@@ -153,6 +153,62 @@ describe("safety stock", () => {
   }, 300_000);
 });
 
+describe("forecasting", () => {
+  it("starts demand at the level and raises it by the trend each day", () => {
+    const shop = load("return classic.forecasting { level = 20, trend = 1, noise = false }")
+      .stations[0];
+    const trace = shop?.consumers[0]?.trace;
+    expect(trace?.periodMs).toBe(DAY);
+    expect(trace?.amounts.slice(0, 4)).toEqual([20_000, 21_000, 22_000, 23_000]);
+    expect(trace?.amounts).toHaveLength(60);
+  });
+
+  it("raises demand in the first half of each season and lowers it in the second", () => {
+    const shop = load(
+      "return classic.forecasting { level = 20, trend = 0, season_length = 4, season_amplitude = 0.5 }",
+    ).stations[0];
+    expect(shop?.consumers[0]?.trace?.amounts.slice(0, 8)).toEqual([
+      30_000, 30_000, 10_000, 10_000, 30_000, 30_000, 10_000, 10_000,
+    ]);
+  });
+
+  it("with noise, draws Poisson arrivals at each day's demand", () => {
+    const consumer = load("return classic.forecasting { noise = true }").stations[0]?.consumers[0];
+    expect(consumer?.poisson?.arrivalsPerSol).toBe(1000);
+    expect(consumer?.profile?.slice(0, 4)).toEqual([
+      { atMs: 0, multiplierPermille: 20_000 },
+      { atMs: DAY - 1, multiplierPermille: 20_000 },
+      { atMs: DAY, multiplierPermille: 21_000 },
+      { atMs: 2 * DAY - 1, multiplierPermille: 21_000 },
+    ]);
+  });
+
+  it("smooths so that after warm-up each forecast trails its day's demand by trend over alpha, and the latest day by trend times one minus alpha over alpha", () => {
+    const reference = template("classic.forecasting").reference({});
+    expect(reference.values.lagBehindForecastDay).toBeCloseTo(5, 9);
+    expect(reference.values.lagBehindLatestDay).toBeCloseTo(4, 9);
+    const scenario = load("return classic.forecasting {}");
+    const out = runSimulation(scenario, referencePolicy("classic.forecasting", {}), {
+      detail: "summary",
+    });
+    expect(errorsIn(out)).toEqual([]);
+    const forecast = out.records.forecast;
+    const used = out.records.demand;
+    if (!forecast || !used) throw new Error("the reference policy should record its forecasts");
+    let checked = 0;
+    forecast.t.forEach((t, i) => {
+      const day = Math.floor(t / DAY);
+      if (day < 40) return;
+      const f = forecast.v[i] as number;
+      expect(used.v[i]).toBeCloseTo(20 + (day - 1), 6);
+      expect(Math.abs(20 + day - f - 5)).toBeLessThan(1);
+      expect(Math.abs(20 + (day - 1) - f - 4)).toBeLessThan(1);
+      checked++;
+    });
+    expect(checked).toBe(20);
+  });
+});
+
 describe("reorder", () => {
   it("costs the economic order quantity's analytic cost with steady demand and no lead time", () => {
     const params = { review_period: 60_000 };

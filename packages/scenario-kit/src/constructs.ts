@@ -781,6 +781,48 @@ export const classicConstructs: Construct[] = [
     ],
   ),
   template(
+    "forecasting",
+    "book/forecasting",
+    "One store reviewed daily whose demand grows by a trend and may rise and fall with a season, with or without Poisson noise, and a reference policy that forecasts by exponential smoothing.",
+    [
+      param("level", "number", "Demand on the first day.", { default: "20", unit: "units" }),
+      param("trend", "number", "How much demand grows each day.", {
+        default: "1",
+        unit: "units per day",
+      }),
+      param(
+        "season_length",
+        "integer",
+        "Days in a season, with demand raised in its first half and lowered in its second; 0 for none.",
+        { default: "0", range: [0, 365] },
+      ),
+      param("season_amplitude", "number", "Fraction by which a season raises and lowers demand.", {
+        default: "0",
+      }),
+      param(
+        "noise",
+        "boolean",
+        "Poisson arrivals around each day's demand instead of exactly that amount.",
+        { default: "false" },
+      ),
+      param("alpha", "number", "Weight the reference policy's forecast gives the latest day.", {
+        default: "0.2",
+      }),
+      param("lead_time", "integer", "Time from order to delivery, in whole days.", {
+        default: "days(2)",
+        unit: "ms",
+      }),
+      param("safety", "number", "Stock the reference policy holds above its forecast.", {
+        default: "0",
+        unit: "units",
+      }),
+      param("holding_cost", "integer", "Cost per unit held per day.", { default: "1" }),
+      param("backorder_cost", "integer", "Cost per unit backordered per day.", { default: "10" }),
+      param("duration", "integer", "Length of a run.", { default: "days(60)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+  template(
     "serial_chain",
     "classic/serial-chain",
     "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",

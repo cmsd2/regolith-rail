@@ -27,6 +27,24 @@
     "source": "return {\n  on_review = function(ctx)\n    local short = 13000 - ctx.here.stock.Goods\n    if short > 0 then ctx.order(\"Goods\", short) end\n  end,\n}"
   },
   {
+    "id": "book/forecasting#1",
+    "page": "book/forecasting",
+    "name": "Forecasting (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.forecasting { level = 20, trend = 1, noise = false }"
+  },
+  {
+    "id": "book/forecasting#2",
+    "page": "book/forecasting",
+    "name": "Forecasting (example 2)",
+    "script": false,
+    "scenario": "classic.forecasting",
+    "seed": 1,
+    "source": "local ALPHA = 0.2\nlocal COVER = 3\nlocal SAFETY = 0\n\nreturn {\n  on_review = function(ctx)\n    local here, memory = ctx.here, ctx.memory\n    local position = (here.stock.Goods or 0) - (here.backorders and here.backorders.Goods or 0)\n    for _, order in ipairs(here.on_order or {}) do\n      if order.resource == \"Goods\" then\n        position = position + order.amount\n      end\n    end\n    if memory.after ~= nil then\n      local used = memory.after - position\n      if memory.forecast == nil then\n        memory.forecast = used\n      else\n        memory.forecast = ALPHA * used + (1 - ALPHA) * memory.forecast\n      end\n      ctx.record(\"demand\", used / 1000)\n      ctx.record(\"forecast\", memory.forecast / 1000)\n    end\n    local target = math.floor((memory.forecast or 0) * COVER + SAFETY + 0.5)\n    local amount = 0\n    if target > position then\n      amount = target - position\n      ctx.order(\"Goods\", amount)\n    end\n    memory.after = position + amount\n  end,\n}"
+  },
+  {
     "id": "book/modelling#1",
     "page": "book/modelling",
     "name": "Modelling operations",

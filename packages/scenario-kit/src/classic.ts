@@ -289,14 +289,87 @@ const safetyStock: ClassicTemplate = {
     return {
       policyName: "Order up to the service level",
       summary: `Order up to ${level} units at each review: the lowest level at which a cycle ends without backorders with probability at least ${target}.`,
-      policy: `-- Safety stock: order up to the level that meets the target cycle service level.
-return ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }
-`,
+      policy: `-- Safety stock: order up to the level that meets the target cycle service level.\nreturn ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }\n`,
       values: {
         level,
         cycleServiceLevel: cycleServiceLevel(demand, period, leadTimes, level),
         meanCover,
         safetyStock: level - meanCover,
+      },
+    };
+  },
+};
+
+const forecasting: ClassicTemplate = {
+  name: "classic.forecasting",
+  title: "Forecasting",
+  defaults: {
+    level: 20,
+    trend: 1,
+    season_length: 0,
+    season_amplitude: 0,
+    noise: false,
+    alpha: 0.2,
+    lead_time: 2 * DAY,
+    safety: 0,
+    holding_cost: 1,
+    backorder_cost: 10,
+    duration: 60 * DAY,
+    seed: 1,
+  },
+  reference(input) {
+    const params = withDefaults(this, input);
+    const alpha = num(params, "alpha");
+    const trend = num(params, "trend");
+    // An order placed at a daily review must last through the lead time and until the next review.
+    const cover = num(params, "lead_time") / DAY + 1;
+    const safety = Math.round(num(params, "safety") * 1000);
+    return {
+      policyName: "Exponential smoothing",
+      summary: `Forecast each day's demand by exponential smoothing with weight ${alpha}, and order up to the forecast over ${cover} days plus ${safety / 1000} units of safety stock.`,
+      policy: [
+        "-- Exponential smoothing: forecast each day's demand from what the last day used, and order",
+        "-- up to the forecast over the lead time and the next review, plus safety stock.",
+        `local ALPHA = ${alpha}`,
+        `local COVER = ${cover}`,
+        `local SAFETY = ${safety}`,
+        "",
+        "return {",
+        "  on_review = function(ctx)",
+        "    local here, memory = ctx.here, ctx.memory",
+        "    local position = (here.stock.Goods or 0) - (here.backorders and here.backorders.Goods or 0)",
+        "    for _, order in ipairs(here.on_order or {}) do",
+        '      if order.resource == "Goods" then',
+        "        position = position + order.amount",
+        "      end",
+        "    end",
+        "    if memory.after ~= nil then",
+        "      -- What the position fell by since the last order is what the last day used.",
+        "      local used = memory.after - position",
+        "      if memory.forecast == nil then",
+        "        memory.forecast = used",
+        "      else",
+        "        memory.forecast = ALPHA * used + (1 - ALPHA) * memory.forecast",
+        "      end",
+        '      ctx.record("demand", used / 1000)',
+        '      ctx.record("forecast", memory.forecast / 1000)',
+        "    end",
+        "    local target = math.floor((memory.forecast or 0) * COVER + SAFETY + 0.5)",
+        "    local amount = 0",
+        "    if target > position then",
+        "      amount = target - position",
+        '      ctx.order("Goods", amount)',
+        "    end",
+        "    memory.after = position + amount",
+        "  end,",
+        "}",
+        "",
+      ].join("\n"),
+      values: {
+        alpha,
+        cover,
+        lagBehindForecastDay: trend / alpha,
+        lagBehindLatestDay: (trend * (1 - alpha)) / alpha,
       },
     };
   },
@@ -421,6 +494,7 @@ export const classicTemplates: ClassicTemplate[] = [
   newsvendor,
   reorder,
   safetyStock,
+  forecasting,
   serialChain,
   fixedRouteDelivery,
 ];

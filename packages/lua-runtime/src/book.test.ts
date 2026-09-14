@@ -156,3 +156,30 @@ describe("chapter 5, order quantities", () => {
     expect(Math.abs(costPerDay(40) - 25)).toBeLessThan(1);
   }, 120_000);
 });
+
+describe("chapter 7, forecasting", () => {
+  it("on classic.forecasting the smoothing policy leaves customers waiting on every day from 40 to 59 with 17 units of safety stock, and on none of them with 18", () => {
+    const reference = (safety: number) =>
+      classicTemplates.find((t) => t.name === "classic.forecasting")?.reference({ safety })
+        .policy ?? "";
+    const loaded = runtime.loadScript("return classic.forecasting {}");
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const waitingDays = (safety: number) => {
+      const policy = runtime.createPolicy(reference(safety));
+      try {
+        const out = runSimulation(loaded.scenario, policy, { detail: "full" });
+        const backorders = out.backorders as Int32Array;
+        const perDay = DAY / out.tickMs;
+        let days = 0;
+        for (let day = 40; day < 60; day++) {
+          if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
+        }
+        return days;
+      } finally {
+        policy.close();
+      }
+    };
+    expect(waitingDays(17)).toBe(20);
+    expect(waitingDays(18)).toBe(0);
+  }, 120_000);
+});

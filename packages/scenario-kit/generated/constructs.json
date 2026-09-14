@@ -1770,6 +1770,107 @@
       "href": "book/safety-stock#classic-safety_stock"
     },
     {
+      "name": "classic.forecasting",
+      "library": "classic",
+      "kind": "template",
+      "summary": "One store reviewed daily whose demand grows by a trend and may rise and fall with a season, with or without Poisson noise, and a reference policy that forecasts by exponential smoothing.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "level",
+          "type": "number",
+          "summary": "Demand on the first day.",
+          "required": false,
+          "default": "20",
+          "unit": "units"
+        },
+        {
+          "name": "trend",
+          "type": "number",
+          "summary": "How much demand grows each day.",
+          "required": false,
+          "default": "1",
+          "unit": "units per day"
+        },
+        {
+          "name": "season_length",
+          "type": "integer",
+          "summary": "Days in a season, with demand raised in its first half and lowered in its second; 0 for none.",
+          "required": false,
+          "default": "0",
+          "range": [0, 365]
+        },
+        {
+          "name": "season_amplitude",
+          "type": "number",
+          "summary": "Fraction by which a season raises and lowers demand.",
+          "required": false,
+          "default": "0"
+        },
+        {
+          "name": "noise",
+          "type": "boolean",
+          "summary": "Poisson arrivals around each day's demand instead of exactly that amount.",
+          "required": false,
+          "default": "false"
+        },
+        {
+          "name": "alpha",
+          "type": "number",
+          "summary": "Weight the reference policy's forecast gives the latest day.",
+          "required": false,
+          "default": "0.2"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer",
+          "summary": "Time from order to delivery, in whole days.",
+          "required": false,
+          "default": "days(2)",
+          "unit": "ms"
+        },
+        {
+          "name": "safety",
+          "type": "number",
+          "summary": "Stock the reference policy holds above its forecast.",
+          "required": false,
+          "default": "0",
+          "unit": "units"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per day.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "backorder_cost",
+          "type": "integer",
+          "summary": "Cost per unit backordered per day.",
+          "required": false,
+          "default": "10"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "days(60)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "book/forecasting",
+      "href": "book/forecasting#classic-forecasting"
+    },
+    {
       "name": "classic.serial_chain",
       "library": "classic",
       "kind": "template",

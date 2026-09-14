@@ -42,9 +42,9 @@
 
 ## 8. Forecasting
 
-- [ ] 8.1 Add the `classic.forecasting` construct and template: level, trend, optional seasonal profile, optional Poisson noise. Verify the defaults-description test, and that the trend scenario's per-period demand starts at the level and rises by the trend.
-- [ ] 8.2 Add the plain Lua reference policy with simple exponential smoothing kept in `ctx.memory`, recording its forecasts. Verify a `lua-runtime` test that after warm-up each forecast trails its period's demand by trend/α and the latest demand by trend·(1 − α)/α within one unit, with the lag also checked in the chapter's notebook.
-- [ ] 8.3 Write chapter 7, Forecasting: moving averages, exponential smoothing, trend and seasonality, and forecast error, on `classic.forecasting`. Verify `docs:check`, `docs:claims` and the link check pass.
+- [x] 8.1 Add the `classic.forecasting` construct and template: level, trend, optional seasonal profile, optional Poisson noise. Verify the defaults-description test, and that the trend scenario's per-period demand starts at the level and rises by the trend.
+- [x] 8.2 Add the plain Lua reference policy with simple exponential smoothing kept in `ctx.memory`, recording its forecasts. Verify a `lua-runtime` test that after warm-up each forecast trails its period's demand by trend/α and the latest demand by trend·(1 − α)/α within one unit, with the lag also checked in the chapter's notebook.
+- [x] 8.3 Write chapter 7, Forecasting: moving averages, exponential smoothing, trend and seasonality, and forecast error, on `classic.forecasting`. Verify `docs:check`, `docs:claims` and the link check pass.
 
 ## 9. Integration
 

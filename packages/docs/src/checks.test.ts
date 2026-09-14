@@ -90,6 +90,7 @@ describe("construct reference check", () => {
 describe("classic template pages", () => {
   it("name a template without a page", () => {
     const pages = new Set([
+      "book/forecasting",
       "book/newsvendor",
       "book/order-quantities",
       "book/safety-stock",

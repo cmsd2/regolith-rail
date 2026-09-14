@@ -1,0 +1,239 @@
+---
+title: Forecasting
+description: Estimating demand from what has been seen, why simple forecasts lag behind growth, and what the lag costs.
+section: Book
+part: 2
+chapter: 7
+---
+
+## What you will learn
+
+- To forecast demand with a moving average and with exponential smoothing, and to see
+  both as weighted averages of the past.
+- To work out how far each forecast lags behind demand that is growing, and how Holt's
+  method removes the lag.
+- To measure forecast error, and to size the safety stock that a lagging forecast needs.
+
+## The problem
+
+Every policy in Part II so far was told the demand distribution. In practice nobody tells
+you. A store sees what customers took yesterday and last week, and has to judge what
+they will take tomorrow. That judgement is a forecast, and every order-up-to level is
+only as good as the forecast behind it.
+
+The simplest forecasts average the recent past. They smooth away noise, but they also
+look backwards: when demand is growing, an average of old demand is always too low, and a
+store that orders from it runs short again and again (Snyder and Shen, 2019, pp. 6–17;
+Axsäter, 2015, pp. 28–29).
+
+## The model
+
+Write demand on day $k$ as $D_k$, and the forecast for day $k$, made the day before, as
+$F_k$.
+
+### Moving averages
+
+A moving average forecasts the next day as the average of the last $N$:
+$F_k = \frac{1}{N}\sum_{j=1}^{N} D_{k-j}$. If demand grows by $b$ a day,
+$D_k = a + bk$, the forecast trails the demand it forecasts by
+
+$$
+D_k - F_k = \frac{b\,(N + 1)}{2}.
+$$
+
+<Check ref="maxima:moving-average-lag" />
+
+A 7-day average of demand growing by 1 a day is always 4 units short. Averaging over a
+whole season removes the season, because the high and low days balance out.
+
+<Check ref="maxima:moving-average-lag" />
+
+<Check ref="maxima:season-average" />
+
+### Exponential smoothing
+
+Exponential smoothing keeps one number and updates it each day, moving it part of the way
+towards what was just seen:
+
+$$
+F_{k+1} = \alpha D_k + (1 - \alpha) F_k.
+$$
+
+<Check ref="maxima:smoothing-weights" />
+
+Unrolled, the forecast is a weighted average of all past demand, with weight
+$\alpha(1-\alpha)^j$ on the day $j$ days before the latest. The weights sum to 1, and the
+average age of the data is $(1 - \alpha)/\alpha$ days, 4 days for $\alpha = 0.2$. A moving
+average of $N = 2/\alpha - 1$ days, 9 days here, has the same average age.
+
+<Check ref="maxima:smoothing-weights" />
+
+<Check ref="maxima:equivalent-average" />
+
+Under a steady trend, the error $D_{k+1} - F_{k+1}$ settles where it stops changing,
+which gives
+
+$$
+D_{k+1} - F_{k+1} = \frac{b}{\alpha}, \qquad D_k - F_{k+1} = \frac{b\,(1 - \alpha)}{\alpha}.
+$$
+
+<Check ref="maxima:smoothing-lag" />
+
+With $b = 1$ and $\alpha = 0.2$, the forecast is 5 units below the day it forecasts, and
+4 below the day just seen. A larger $\alpha$ lags less but passes more noise into the
+forecast.
+
+<Check ref="maxima:smoothing-lag" />
+
+### Holt's method
+
+Holt's method smooths a trend as well as a level, and forecasts the level plus the trend.
+Started with no idea of the trend, its error dies away, while simple smoothing's settles
+at $b/\alpha$.
+
+<Check ref="maxima:holt" />
+
+### Measuring error
+
+Given errors $e_k = D_k - F_k$, the bias is their average, the mean absolute error the
+average of their sizes, and the root mean squared error the square root of the average
+square. For errors of 2, −1, 3, 0 and −2, the bias is 0.4, the mean absolute error 1.6 and
+the root mean squared error about 1.90. A forecast with a steady positive bias, like
+smoothing under growth, needs correcting, not just more safety stock around it.
+
+<Check ref="maxima:error-measures" />
+
+### What the lag costs
+
+An order placed on day $k$ that must last three days, the lead time of 2 and one review,
+faces demand $3D_k + 3b$. Ordering up to three days of the smoothed forecast plans for
+$3(D_k - b/\alpha)$. The difference is
+
+$$
+\frac{3b}{\alpha} + 3b = 18 \text{ units}
+$$
+
+<Check ref="maxima:cover-shortfall" />
+
+for $b = 1$ and $\alpha = 0.2$: without at least 18 units of safety stock, customers wait
+every day.
+
+## In the simulator
+
+The `classic.forecasting` template has one store reviewed daily, a lead time of 2 days,
+and demand that starts at 20 a day and grows by 1 each day, optionally with a season and
+Poisson noise. Demand that finds no stock is backordered.
+
+<Scenario template="classic.forecasting" />
+
+```lua runnable script
+return classic.forecasting { level = 20, trend = 1, noise = false }
+```
+
+<Check ref="test:starts demand at the level and raises it by the trend each day" />
+
+The reference policy measures what the last day used from the fall in its inventory
+position, smooths it, and orders up to three days of forecast plus a safety allowance. It
+records its demand and forecast each day, so you can chart them together.
+
+```lua runnable scenario=classic.forecasting
+local ALPHA = 0.2
+local COVER = 3
+local SAFETY = 0
+
+return {
+  on_review = function(ctx)
+    local here, memory = ctx.here, ctx.memory
+    local position = (here.stock.Goods or 0) - (here.backorders and here.backorders.Goods or 0)
+    for _, order in ipairs(here.on_order or {}) do
+      if order.resource == "Goods" then
+        position = position + order.amount
+      end
+    end
+    if memory.after ~= nil then
+      local used = memory.after - position
+      if memory.forecast == nil then
+        memory.forecast = used
+      else
+        memory.forecast = ALPHA * used + (1 - ALPHA) * memory.forecast
+      end
+      ctx.record("demand", used / 1000)
+      ctx.record("forecast", memory.forecast / 1000)
+    end
+    local target = math.floor((memory.forecast or 0) * COVER + SAFETY + 0.5)
+    local amount = 0
+    if target > position then
+      amount = target - position
+      ctx.order("Goods", amount)
+    end
+    memory.after = position + amount
+  end,
+}
+```
+
+From day 40 on, each recorded forecast is within a unit of 5 below the day it forecasts
+and 4 below the day just seen, as the model says.
+
+<Check ref="test:smooths so that after warm-up each forecast trails its day's demand by trend over alpha, and the latest day by trend times one minus alpha over alpha" />
+
+Set the template's `safety` parameter to see the lag's cost. With 17 units, customers
+wait on every day from 40 to 59. With 18, they never do.
+
+<Check ref="test:on classic.forecasting the smoothing policy leaves customers waiting on every day from 40 to 59 with 17 units of safety stock, and on none of them with 18" />
+
+Turn on `noise` to draw Poisson arrivals around each day's demand, and seasons with
+`season_length` and `season_amplitude`, then compare values of `alpha` in **Batch**.
+
+<Check ref="test:with noise, draws Poisson arrivals at each day's demand" />
+
+<Check ref="test:raises demand in the first half of each season and lowers it in the second" />
+
+## Where the simulator differs
+
+- **Demand is observed, not told.** The policy works out demand from its inventory
+  position, which counts backorders, so demand that finds no stock is still seen. With
+  lost sales it would not be: a store that runs dry records what was taken, not what was
+  wanted, and its forecasts drift low.
+- **Stepped, not smooth, growth.** Demand changes once a day, by the trend, rather than
+  continuously.
+- **Seasons are two flat halves.** The template's season raises demand for the first half
+  and lowers it for the second, a simpler shape than most real seasons.
+
+## Exercises
+
+1. With $\alpha = 0.5$ instead, how far does the forecast trail the day it forecasts, and
+   how much safety stock does the three-day cover need?
+
+<Answer>
+
+The lag falls to $b/\alpha = 2$ units, and the shortfall to $3 \times 2 + 3 = 9$ units.
+
+<Check ref="maxima:exercise-faster-smoothing" />
+
+</Answer>
+
+2. Demand grows by 2 a day and a store forecasts with a 9-day moving average. How far
+   behind is the forecast?
+
+<Answer>
+
+$b(N + 1)/2 = 2 \times 10 / 2 = 10$ units.
+
+<Check ref="maxima:exercise-ma-lag" />
+
+</Answer>
+
+<GameNote>
+
+A colony's demand grows as it grows: more domes, more consumers. A dispatch rule that
+aims for last week's usage keeps falling behind a growing colony, in the same way as
+smoothing falls behind a trend. Rules that watch how fast a station's stock is falling,
+not just how full it is, can see the growth coming.
+
+</GameNote>
+
+## References
+
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
+  Hoboken, NJ: John Wiley & Sons.
