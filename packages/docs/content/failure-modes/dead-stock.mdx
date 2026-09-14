@@ -28,7 +28,11 @@ rather than unloading it at the first station with room.
 
 ```lua runnable scenario=relay fix
 return ops.policy {
-  classify = ops.roles.manual { Mine = "supply", Junction = "relay", Dome = "demand" },
+  classify = ops.roles.manual {
+    Mine = "supply",
+    Junction = "relay",
+    Dome = "demand",
+  },
   target = {
     supply = ops.drain {},
     relay = ops.pass_through {},

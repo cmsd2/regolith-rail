@@ -124,7 +124,9 @@ worked case, over 10 weeks.
 <Scenario template="classic.safety_stock" />
 
 ```lua runnable script
-return classic.safety_stock { lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }
+return classic.safety_stock {
+  lead_time = discrete { { days(1), 1 }, { days(3), 1 } },
+}
 ```
 
 <Check ref="test:describes a store with Poisson demand, backorders and lead times of one and three days with equal weights" />
@@ -133,7 +135,9 @@ The reference policy orders up to the level that meets the target cycle service 
 113 for a target of 0.95:
 
 ```lua runnable scenario=classic.safety_stock
-return ops.policy { review = { target = ops.order_up_to { level = 113000 } } }
+return ops.policy {
+  review = { target = ops.order_up_to { level = 113000 } },
+}
 ```
 
 A test runs it for 400 seeds, and in each run counts the cycles that end with no one

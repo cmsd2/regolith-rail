@@ -123,7 +123,9 @@ The reference policy orders up to the critical-ratio quantity at every review. S
 the leftovers have just expired, that means ordering exactly 15 units:
 
 ```lua runnable scenario=classic.newsvendor
-return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }
+return ops.policy {
+  review = { target = ops.order_up_to { level = 15000 } },
+}
 ```
 
 Amounts in policies are in thousandths of a unit, so 15 units is `15000`. A test runs

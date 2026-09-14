@@ -40,7 +40,11 @@ return ops.policy {
     Plant = { Polymers = "supply", Metals = "demand" },
     Dome = "demand",
   },
-  target = { supply = ops.drain {}, demand = ops.fill {}, relay = ops.pass_through {} },
+  target = {
+    supply = ops.drain {},
+    demand = ops.fill {},
+    relay = ops.pass_through {},
+  },
   plan = ops.lookahead {},
   allocate = ops.priority {},
 }

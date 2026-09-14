@@ -22,7 +22,11 @@ measures the effect.
 
 ```lua runnable scenario=two-trains
 return ops.policy {
-  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  classify = ops.roles.manual {
+    Mine = "supply",
+    Factory = "demand",
+    Dome = "demand",
+  },
   target = { supply = ops.drain {}, demand = ops.fill {} },
   plan = ops.lookahead {},
 }

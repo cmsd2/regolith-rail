@@ -4,6 +4,7 @@ export {
   cycleServiceLevel,
   poissonProbabilities,
   type ReferenceResult,
+  SCRIPT_LINE_WIDTH,
   type TemplateParams,
   type TemplateValue,
   templateCall,

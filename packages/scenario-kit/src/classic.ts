@@ -107,17 +107,30 @@ function valueLiteral(value: TemplateValue, unit: string | undefined): string {
   if (typeof value === "number") return unit === "ms" ? durationLiteral(value) : String(value);
   if (typeof value === "boolean") return String(value);
   if (typeof value === "string") return JSON.stringify(value);
-  return `discrete { ${value.discrete.map(([v, w]) => `{ ${v}, ${w} }`).join(", ")} }`;
+  const entry = (v: number) => (unit === "ms" ? durationLiteral(v) : String(v));
+  return `discrete { ${value.discrete.map(([v, w]) => `{ ${entry(v)}, ${w} }`).join(", ")} }`;
 }
 
-/** A template call as a one-line script, with parameters in the order the template lists them. */
+/** The widest line shipped scripts and policies use, so they read well in the editor. */
+export const SCRIPT_LINE_WIDTH = 80;
+
+/**
+ * A template call as a script, with parameters in the order the template lists them: on one line
+ * when it fits, otherwise one parameter per line.
+ */
 export function templateCall(name: string, params: TemplateParams): string {
   const construct = templateConstruct(name);
   const fields = construct.params
     .filter((p) => params[p.name] !== undefined)
     .map((p) => `${p.name} = ${valueLiteral(params[p.name] as TemplateValue, p.unit)}`);
-  return `return ${name} { ${fields.join(", ")} }`;
+  const line = `return ${name} { ${fields.join(", ")} }`;
+  if (line.length <= SCRIPT_LINE_WIDTH) return line;
+  return `return ${name} {\n${fields.map((f) => `  ${f},`).join("\n")}\n}`;
 }
+
+/** A reference policy that orders at every review towards one target, laid out as a script. */
+const reviewPolicy = (comment: string[], target: string) =>
+  `${comment.map((line) => `-- ${line}`).join("\n")}\nreturn ops.policy {\n  review = { target = ${target} },\n}\n`;
 
 // --- Templates ------------------------------------------------------------------------------
 
@@ -161,7 +174,10 @@ const newsvendor: ClassicTemplate = {
     return {
       policyName: "Critical ratio",
       summary: `Order up to ${quantity} units at each review: the smallest quantity that meets demand with probability at least ${ratio.toFixed(3)}.`,
-      policy: `-- Newsvendor: order up to the critical-ratio quantity.\nreturn ops.policy { review = { target = ops.order_up_to { level = ${quantity * 1000} } } }\n`,
+      policy: reviewPolicy(
+        ["Newsvendor: order up to the critical-ratio quantity."],
+        `ops.order_up_to { level = ${quantity * 1000} }`,
+      ),
       expectedCostPerPeriod: perPeriod,
       expectedCostPerDay: (perPeriod * DAY) / num(params, "period"),
       values: { criticalRatio: ratio, quantity },
@@ -202,7 +218,13 @@ const reorder: ClassicTemplate = {
       return {
         policyName: "Economic order quantity",
         summary: `Order ${quantity.toFixed(2)} units whenever the inventory position falls below what the lead time and one review period need.`,
-        policy: `-- Economic order quantity: order Q = sqrt(2KD/h) when stock would run out before the next review.\nreturn ops.policy { review = { target = ops.min_max { min = ${reorderPoint}, max = ${orderUpTo} } } }\n`,
+        policy: reviewPolicy(
+          [
+            "Economic order quantity: order Q = sqrt(2KD/h) whenever stock would run",
+            "out before the next review.",
+          ],
+          `ops.min_max { min = ${reorderPoint}, max = ${orderUpTo} }`,
+        ),
         expectedCostPerDay: Math.sqrt(2 * k * demand * h) + c * demand,
         values: { quantity, reorderPoint: reorderPoint / 1000 },
       };
@@ -224,7 +246,13 @@ const reorder: ClassicTemplate = {
     const result: ReferenceResult = {
       policyName: "Base stock",
       summary: `Order up to ${level} units at each review, the level that lead-time demand stays under with probability at least ${ratio.toFixed(3)}.`,
-      policy: `-- Base stock: order up to the critical fractile of demand over the lead time and a review period.\nreturn ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }\n`,
+      policy: reviewPolicy(
+        [
+          "Base stock: order up to the critical fractile of demand over the lead time",
+          "and a review period.",
+        ],
+        `ops.order_up_to { level = ${level * 1000} }`,
+      ),
       values: { level, criticalRatio: ratio },
     };
     if (params.shortage === "backorder") {
@@ -289,7 +317,10 @@ const safetyStock: ClassicTemplate = {
     return {
       policyName: "Order up to the service level",
       summary: `Order up to ${level} units at each review: the lowest level at which a cycle ends without backorders with probability at least ${target}.`,
-      policy: `-- Safety stock: order up to the level that meets the target cycle service level.\nreturn ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }\n`,
+      policy: reviewPolicy(
+        ["Safety stock: order up to the level that meets the target cycle service", "level."],
+        `ops.order_up_to { level = ${level * 1000} }`,
+      ),
       values: {
         level,
         cycleServiceLevel: cycleServiceLevel(demand, period, leadTimes, level),
@@ -328,8 +359,9 @@ const forecasting: ClassicTemplate = {
       policyName: "Exponential smoothing",
       summary: `Forecast each day's demand by exponential smoothing with weight ${alpha}, and order up to the forecast over ${cover} days plus ${safety / 1000} units of safety stock.`,
       policy: [
-        "-- Exponential smoothing: forecast each day's demand from what the last day used, and order",
-        "-- up to the forecast over the lead time and the next review, plus safety stock.",
+        "-- Exponential smoothing: forecast each day's demand from what the last day",
+        "-- used, and order up to the forecast over the lead time and the next review,",
+        "-- plus safety stock.",
         `local ALPHA = ${alpha}`,
         `local COVER = ${cover}`,
         `local SAFETY = ${safety}`,
@@ -337,14 +369,16 @@ const forecasting: ClassicTemplate = {
         "return {",
         "  on_review = function(ctx)",
         "    local here, memory = ctx.here, ctx.memory",
-        "    local position = (here.stock.Goods or 0) - (here.backorders and here.backorders.Goods or 0)",
+        "    local stock = here.stock.Goods or 0",
+        "    local backorders = here.backorders and here.backorders.Goods or 0",
+        "    local position = stock - backorders",
         "    for _, order in ipairs(here.on_order or {}) do",
         '      if order.resource == "Goods" then',
         "        position = position + order.amount",
         "      end",
         "    end",
         "    if memory.after ~= nil then",
-        "      -- What the position fell by since the last order is what the last day used.",
+        "      -- The fall in position since the last order is the last day's demand.",
         "      local used = memory.after - position",
         "      if memory.forecast == nil then",
         "        memory.forecast = used",

@@ -173,7 +173,9 @@ confidence interval.
 Now compare it with a policy ordering up to 15:
 
 ```lua runnable scenario=classic.reorder
-return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }
+return ops.policy {
+  review = { target = ops.order_up_to { level = 15000 } },
+}
 ```
 
 In **Batch**, tick **Compare**, and run both over 100 seeds. The batch runs both

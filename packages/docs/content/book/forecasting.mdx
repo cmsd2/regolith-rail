@@ -144,7 +144,9 @@ local SAFETY = 0
 return {
   on_review = function(ctx)
     local here, memory = ctx.here, ctx.memory
-    local position = (here.stock.Goods or 0) - (here.backorders and here.backorders.Goods or 0)
+    local stock = here.stock.Goods or 0
+    local backorders = here.backorders and here.backorders.Goods or 0
+    local position = stock - backorders
     for _, order in ipairs(here.on_order or {}) do
       if order.resource == "Goods" then
         position = position + order.amount

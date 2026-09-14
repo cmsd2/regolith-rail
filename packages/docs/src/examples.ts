@@ -119,6 +119,24 @@ export function checkStarterFixes(
   return problems;
 }
 
+/** The widest line a runnable example may use, matching the scripts the site ships. */
+export const EXAMPLE_LINE_WIDTH = 80;
+
+/** Problems with runnable examples whose lines are too long to read in the editor. */
+export function checkExampleWidth(examples: readonly Example[]): string[] {
+  return examples.flatMap((example) =>
+    example.source
+      .split("\n")
+      .flatMap((line, i) =>
+        line.length > EXAMPLE_LINE_WIDTH
+          ? [
+              `${exampleName(example)}: line ${i + 1} is ${line.length} characters; wrap it within ${EXAMPLE_LINE_WIDTH}`,
+            ]
+          : [],
+      ),
+  );
+}
+
 /** Names the problem when the committed examples index differs from the documentation. */
 export function checkExampleIndex(committed: unknown, current: ExampleEntry[]): string[] {
   return JSON.stringify(committed) === JSON.stringify(current)

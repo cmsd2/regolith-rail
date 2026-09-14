@@ -7,6 +7,7 @@ import { constructs } from "@regolith-rail/scenario-kit";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import {
   checkExampleIndex,
+  checkExampleWidth,
   checkStarterFixes,
   exampleIndex,
   extractExamples,
@@ -334,6 +335,16 @@ describe("starter fixes", () => {
       checkStarterFixes([{ id: "two-station", docs: "failure-modes/half-capacity" }], [page]),
     ).toEqual([
       "two-station: failure-modes/half-capacity marks 0 fix examples on it; mark exactly one `lua runnable scenario=two-station fix`",
+    ]);
+  });
+});
+
+describe("example width", () => {
+  it("names an example line too long to read in the editor", () => {
+    const fence = "```";
+    const tree = parseMdx(`${fence}lua runnable\nreturn {}\n-- ${"x".repeat(80)}\n${fence}\n`);
+    expect(checkExampleWidth(extractExamples("guides/wide", tree))).toEqual([
+      "guides/wide example 1 (line 1): line 2 is 83 characters; wrap it within 80",
     ]);
   });
 });

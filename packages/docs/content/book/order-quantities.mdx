@@ -111,7 +111,9 @@ return classic.reorder {}
 The reference policy is the (s, S) policy above:
 
 ```lua runnable scenario=classic.reorder
-return ops.policy { review = { target = ops.min_max { min = 417, max = 20417 } } }
+return ops.policy {
+  review = { target = ops.min_max { min = 417, max = 20417 } },
+}
 ```
 
 A test reviews every minute instead of every hour, so the reorder point is 7 thousandths,

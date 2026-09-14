@@ -15,7 +15,7 @@
     "script": false,
     "scenario": "classic.reorder",
     "seed": 1,
-    "source": "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }"
+    "source": "return ops.policy {\n  review = { target = ops.order_up_to { level = 13000 } },\n}"
   },
   {
     "id": "book/base-stock#3",
@@ -34,7 +34,7 @@
     "fix": true,
     "scenario": "two-trains",
     "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Factory = \"demand\",\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
   },
   {
     "id": "book/base-stock#5",
@@ -43,7 +43,7 @@
     "script": false,
     "scenario": "two-trains",
     "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Factory = \"demand\",\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
   },
   {
     "id": "book/forecasting#1",
@@ -61,7 +61,7 @@
     "script": false,
     "scenario": "classic.forecasting",
     "seed": 1,
-    "source": "local ALPHA = 0.2\nlocal COVER = 3\nlocal SAFETY = 0\n\nreturn {\n  on_review = function(ctx)\n    local here, memory = ctx.here, ctx.memory\n    local position = (here.stock.Goods or 0) - (here.backorders and here.backorders.Goods or 0)\n    for _, order in ipairs(here.on_order or {}) do\n      if order.resource == \"Goods\" then\n        position = position + order.amount\n      end\n    end\n    if memory.after ~= nil then\n      local used = memory.after - position\n      if memory.forecast == nil then\n        memory.forecast = used\n      else\n        memory.forecast = ALPHA * used + (1 - ALPHA) * memory.forecast\n      end\n      ctx.record(\"demand\", used / 1000)\n      ctx.record(\"forecast\", memory.forecast / 1000)\n    end\n    local target = math.floor((memory.forecast or 0) * COVER + SAFETY + 0.5)\n    local amount = 0\n    if target > position then\n      amount = target - position\n      ctx.order(\"Goods\", amount)\n    end\n    memory.after = position + amount\n  end,\n}"
+    "source": "local ALPHA = 0.2\nlocal COVER = 3\nlocal SAFETY = 0\n\nreturn {\n  on_review = function(ctx)\n    local here, memory = ctx.here, ctx.memory\n    local stock = here.stock.Goods or 0\n    local backorders = here.backorders and here.backorders.Goods or 0\n    local position = stock - backorders\n    for _, order in ipairs(here.on_order or {}) do\n      if order.resource == \"Goods\" then\n        position = position + order.amount\n      end\n    end\n    if memory.after ~= nil then\n      local used = memory.after - position\n      if memory.forecast == nil then\n        memory.forecast = used\n      else\n        memory.forecast = ALPHA * used + (1 - ALPHA) * memory.forecast\n      end\n      ctx.record(\"demand\", used / 1000)\n      ctx.record(\"forecast\", memory.forecast / 1000)\n    end\n    local target = math.floor((memory.forecast or 0) * COVER + SAFETY + 0.5)\n    local amount = 0\n    if target > position then\n      amount = target - position\n      ctx.order(\"Goods\", amount)\n    end\n    memory.after = position + amount\n  end,\n}"
   },
   {
     "id": "book/modelling#1",
@@ -89,7 +89,7 @@
     "script": false,
     "scenario": "classic.newsvendor",
     "seed": 1,
-    "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
+    "source": "return ops.policy {\n  review = { target = ops.order_up_to { level = 15000 } },\n}"
   },
   {
     "id": "book/order-quantities#1",
@@ -107,7 +107,7 @@
     "script": false,
     "scenario": "classic.reorder",
     "seed": 1,
-    "source": "return ops.policy { review = { target = ops.min_max { min = 417, max = 20417 } } }"
+    "source": "return ops.policy {\n  review = { target = ops.min_max { min = 417, max = 20417 } },\n}"
   },
   {
     "id": "book/randomness#1",
@@ -125,7 +125,7 @@
     "script": false,
     "scenario": "classic.reorder",
     "seed": 1,
-    "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
+    "source": "return ops.policy {\n  review = { target = ops.order_up_to { level = 15000 } },\n}"
   },
   {
     "id": "book/safety-stock#1",
@@ -134,7 +134,7 @@
     "script": true,
     "scenario": "two-station",
     "seed": 1,
-    "source": "return classic.safety_stock { lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }"
+    "source": "return classic.safety_stock {\n  lead_time = discrete { { days(1), 1 }, { days(3), 1 } },\n}"
   },
   {
     "id": "book/safety-stock#2",
@@ -143,7 +143,7 @@
     "script": false,
     "scenario": "classic.safety_stock",
     "seed": 1,
-    "source": "return ops.policy { review = { target = ops.order_up_to { level = 113000 } } }"
+    "source": "return ops.policy {\n  review = { target = ops.order_up_to { level = 113000 } },\n}"
   },
   {
     "id": "classic/fixed-route-delivery#1",
@@ -161,7 +161,7 @@
     "script": false,
     "scenario": "classic.fixed_route_delivery",
     "seed": 1,
-    "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then target = target + station.capacity.Fuel end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do position = position + order.amount end\n    if target > position then ctx.order(\"Fuel\", target - position) end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then break end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local amount = math.min(short - truck.cargo.Fuel, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then ctx.load(\"Fuel\", amount) end\n    else\n      local amount = math.min(truck.cargo.Fuel, here.capacity.Fuel - here.stock.Fuel)\n      if amount > 0 then ctx.unload(\"Fuel\", amount) end\n    end\n  end,\n}"
+    "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then target = target + station.capacity.Fuel end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do\n      position = position + order.amount\n    end\n    if target > position then ctx.order(\"Fuel\", target - position) end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then break end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local wanted = short - truck.cargo.Fuel\n      local amount = math.min(wanted, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then ctx.load(\"Fuel\", amount) end\n    else\n      local room = here.capacity.Fuel - here.stock.Fuel\n      local amount = math.min(truck.cargo.Fuel, room)\n      if amount > 0 then ctx.unload(\"Fuel\", amount) end\n    end\n  end,\n}"
   },
   {
     "id": "classic/serial-chain#1",
@@ -180,7 +180,7 @@
     "fix": true,
     "scenario": "relay",
     "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Junction = \"relay\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n  plan = ops.lookahead {},\n}"
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Junction = \"relay\",\n    Dome = \"demand\",\n  },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n  plan = ops.lookahead {},\n}"
   },
   {
     "id": "failure-modes/disruption-recovery#1",
@@ -200,7 +200,7 @@
     "fix": true,
     "scenario": "mixed-line",
     "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Farm = { Food = \"supply\", Metals = \"demand\" },\n    Mine = { Metals = \"supply\", Food = \"demand\" },\n    Depot = \"relay\",\n    Plant = { Polymers = \"supply\", Metals = \"demand\" },\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {}, relay = ops.pass_through {} },\n  plan = ops.lookahead {},\n  allocate = ops.priority {},\n}"
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Farm = { Food = \"supply\", Metals = \"demand\" },\n    Mine = { Metals = \"supply\", Food = \"demand\" },\n    Depot = \"relay\",\n    Plant = { Polymers = \"supply\", Metals = \"demand\" },\n    Dome = \"demand\",\n  },\n  target = {\n    supply = ops.drain {},\n    demand = ops.fill {},\n    relay = ops.pass_through {},\n  },\n  plan = ops.lookahead {},\n  allocate = ops.priority {},\n}"
   },
   {
     "id": "getting-started#1",
@@ -254,7 +254,7 @@
     "script": false,
     "scenario": "two-trains",
     "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Factory = \"demand\",\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
   },
   {
     "id": "ops/min-max#1",
@@ -290,7 +290,7 @@
     "script": true,
     "scenario": "two-station",
     "seed": 1,
-    "source": "return mars.line {\n  id = \"outpost\",\n  title = \"Outpost\",\n  duration = sols(5),\n  stations = {\n    mars.small_station {\n      id = \"Mine\",\n      stock = { Metals = 10 },\n      buildings = { mars.extractor { resource = \"Metals\", rate = 30 } },\n    },\n    mars.large_station {\n      id = \"Dome\",\n      stock = { Metals = 20 },\n      buildings = { mars.consumer { resource = \"Metals\", rate = 20, variability = 15 } },\n    },\n  },\n  distances = 40000,\n  trains = { mars.train { id = \"T1\", start = \"Mine\" } },\n}"
+    "source": "return mars.line {\n  id = \"outpost\",\n  title = \"Outpost\",\n  duration = sols(5),\n  stations = {\n    mars.small_station {\n      id = \"Mine\",\n      stock = { Metals = 10 },\n      buildings = { mars.extractor { resource = \"Metals\", rate = 30 } },\n    },\n    mars.large_station {\n      id = \"Dome\",\n      stock = { Metals = 20 },\n      buildings = {\n        mars.consumer { resource = \"Metals\", rate = 20, variability = 15 },\n      },\n    },\n  },\n  distances = 40000,\n  trains = { mars.train { id = \"T1\", start = \"Mine\" } },\n}"
   },
   {
     "id": "scenarios/writing#2",
@@ -299,7 +299,7 @@
     "script": true,
     "scenario": "two-station",
     "seed": 1,
-    "source": "local depot = station {\n  id = \"Depot\",\n  resources = { Malt = { capacity = \"unlimited\", initial = 200 } },\n}\n\nlocal shop = station {\n  id = \"Shop\",\n  resources = { \"Beer\", \"Malt\" },\n  consumers = {\n    consumer { resource = \"Beer\", poisson = poisson { per_sol = 12 }, unmet = \"backorder\" },\n  },\n  converters = {\n    converter { inputs = { Malt = 2 }, outputs = { Beer = 1 }, rate = 10 },\n  },\n  suppliers = {\n    supplier { resource = \"Beer\", lead_time = discrete { { days(1), 3 }, { days(2), 1 } } },\n  },\n  review = review { period = days(1), offset = minutes(1) },\n}\n\nreturn scenario {\n  id = \"brewpub\",\n  title = \"Brewpub\",\n  information = \"local\",\n  duration = sols(14),\n  stations = { depot, shop },\n  arcs = { arc { from = \"Depot\", to = \"Shop\", distance = 600 } },\n  vehicles = {\n    vehicle { id = \"Truck\", route = shuttle { stops = { depot, shop } }, speed = 5, capacity = 20 },\n  },\n}"
+    "source": "local depot = station {\n  id = \"Depot\",\n  resources = { Malt = { capacity = \"unlimited\", initial = 200 } },\n}\n\nlocal shop = station {\n  id = \"Shop\",\n  resources = { \"Beer\", \"Malt\" },\n  consumers = {\n    consumer {\n      resource = \"Beer\",\n      poisson = poisson { per_sol = 12 },\n      unmet = \"backorder\",\n    },\n  },\n  converters = {\n    converter { inputs = { Malt = 2 }, outputs = { Beer = 1 }, rate = 10 },\n  },\n  suppliers = {\n    supplier {\n      resource = \"Beer\",\n      lead_time = discrete { { days(1), 3 }, { days(2), 1 } },\n    },\n  },\n  review = review { period = days(1), offset = minutes(1) },\n}\n\nreturn scenario {\n  id = \"brewpub\",\n  title = \"Brewpub\",\n  information = \"local\",\n  duration = sols(14),\n  stations = { depot, shop },\n  arcs = { arc { from = \"Depot\", to = \"Shop\", distance = 600 } },\n  vehicles = {\n    vehicle {\n      id = \"Truck\",\n      route = shuttle { stops = { depot, shop } },\n      speed = 5,\n      capacity = 20,\n    },\n  },\n}"
   },
   {
     "id": "scenarios/writing#3",
@@ -308,7 +308,7 @@
     "script": true,
     "scenario": "two-station",
     "seed": 1,
-    "source": "local stations = {}\nfor i, stock in ipairs({ 5, 10, 15 }) do\n  stations[i] = station { id = \"Stop\" .. i, resources = { Water = { initial = stock } } }\nend\n\nlocal l = line { stations = stations, distances = { 300, 500 } }\n\nreturn scenario {\n  id = \"water-line\",\n  duration = sols(2),\n  parts = { l },\n  vehicles = {\n    vehicle { id = \"Tanker\", route = loop { stops = { \"Stop1\", \"Stop2\", \"Stop3\" } }, speed = 4, capacity = 10 },\n  },\n  arcs = { arc { from = \"Stop3\", to = \"Stop1\", distance = 800 } },\n}"
+    "source": "local stations = {}\nfor i, stock in ipairs({ 5, 10, 15 }) do\n  stations[i] = station {\n    id = \"Stop\" .. i,\n    resources = { Water = { initial = stock } },\n  }\nend\n\nlocal l = line { stations = stations, distances = { 300, 500 } }\n\nreturn scenario {\n  id = \"water-line\",\n  duration = sols(2),\n  parts = { l },\n  vehicles = {\n    vehicle {\n      id = \"Tanker\",\n      route = loop { stops = { \"Stop1\", \"Stop2\", \"Stop3\" } },\n      speed = 4,\n      capacity = 10,\n    },\n  },\n  arcs = { arc { from = \"Stop3\", to = \"Stop1\", distance = 800 } },\n}"
   },
   {
     "id": "scenarios/writing#4",

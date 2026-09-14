@@ -10,6 +10,7 @@ import {
   checkClaims,
   checkConstructs,
   checkExampleIndex,
+  checkExampleWidth,
   checkFrontmatter,
   checkReference,
   checkStarterFixes,
@@ -52,6 +53,7 @@ const problems = [
 ];
 
 const examples = pages.flatMap((page) => extractExamples(page.slug, page.tree));
+problems.push(...checkExampleWidth(examples));
 for (const example of examples) problems.push(...runExample(runtime, example));
 
 if (problems.length > 0) {

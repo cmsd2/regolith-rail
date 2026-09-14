@@ -1,4 +1,4 @@
-import { classicTemplates } from "@regolith-rail/scenario-kit";
+import { classicTemplates, SCRIPT_LINE_WIDTH } from "@regolith-rail/scenario-kit";
 import { describe, expect, it } from "vitest";
 import {
   catalogue,
@@ -48,6 +48,23 @@ describe("catalogue", () => {
       ["example:policy:docs/failure-modes/ping-pong#1", "Mixed line fix"],
     ]);
     expect(catalogueItem("example:policy:docs/ops/min-max#1")?.listed).toBe(false);
+  });
+
+  it("lays out every shipped script and policy within the editor's line width", () => {
+    const sources = catalogue.flatMap((item) => {
+      if (item.kind === "policy") return [[item.id, item.content] as const];
+      if (item.kind === "scenario" && item.content.kind === "script") {
+        return [[item.id, item.content.source] as const];
+      }
+      return [];
+    });
+    expect(sources.length).toBeGreaterThan(40);
+    const long = sources.flatMap(([id, source]) =>
+      source
+        .split("\n")
+        .flatMap((line, i) => (line.length > SCRIPT_LINE_WIDTH ? [`${id} line ${i + 1}`] : [])),
+    );
+    expect(long).toEqual([]);
   });
 
   it("gives every item a valid, unique id, a name and a one-line description", () => {

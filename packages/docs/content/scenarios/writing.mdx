@@ -35,7 +35,9 @@ return mars.line {
     mars.large_station {
       id = "Dome",
       stock = { Metals = 20 },
-      buildings = { mars.consumer { resource = "Metals", rate = 20, variability = 15 } },
+      buildings = {
+        mars.consumer { resource = "Metals", rate = 20, variability = 15 },
+      },
     },
   },
   distances = 40000,
@@ -73,13 +75,20 @@ local shop = station {
   id = "Shop",
   resources = { "Beer", "Malt" },
   consumers = {
-    consumer { resource = "Beer", poisson = poisson { per_sol = 12 }, unmet = "backorder" },
+    consumer {
+      resource = "Beer",
+      poisson = poisson { per_sol = 12 },
+      unmet = "backorder",
+    },
   },
   converters = {
     converter { inputs = { Malt = 2 }, outputs = { Beer = 1 }, rate = 10 },
   },
   suppliers = {
-    supplier { resource = "Beer", lead_time = discrete { { days(1), 3 }, { days(2), 1 } } },
+    supplier {
+      resource = "Beer",
+      lead_time = discrete { { days(1), 3 }, { days(2), 1 } },
+    },
   },
   review = review { period = days(1), offset = minutes(1) },
 }
@@ -92,7 +101,12 @@ return scenario {
   stations = { depot, shop },
   arcs = { arc { from = "Depot", to = "Shop", distance = 600 } },
   vehicles = {
-    vehicle { id = "Truck", route = shuttle { stops = { depot, shop } }, speed = 5, capacity = 20 },
+    vehicle {
+      id = "Truck",
+      route = shuttle { stops = { depot, shop } },
+      speed = 5,
+      capacity = 20,
+    },
   },
 }
 ```
@@ -109,7 +123,10 @@ time.
 ```lua runnable script
 local stations = {}
 for i, stock in ipairs({ 5, 10, 15 }) do
-  stations[i] = station { id = "Stop" .. i, resources = { Water = { initial = stock } } }
+  stations[i] = station {
+    id = "Stop" .. i,
+    resources = { Water = { initial = stock } },
+  }
 end
 
 local l = line { stations = stations, distances = { 300, 500 } }
@@ -119,7 +136,12 @@ return scenario {
   duration = sols(2),
   parts = { l },
   vehicles = {
-    vehicle { id = "Tanker", route = loop { stops = { "Stop1", "Stop2", "Stop3" } }, speed = 4, capacity = 10 },
+    vehicle {
+      id = "Tanker",
+      route = loop { stops = { "Stop1", "Stop2", "Stop3" } },
+      speed = 4,
+      capacity = 10,
+    },
   },
   arcs = { arc { from = "Stop3", to = "Stop1", distance = 800 } },
 }
