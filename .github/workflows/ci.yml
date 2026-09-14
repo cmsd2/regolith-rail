@@ -91,6 +91,13 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm build
       - run: pnpm exec playwright test tests/e2e --project=chromium --project=webkit
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   # Firefox runs separately and does not block merges or deploys: its runs occasionally
   # never finish in CI, and the cause is not yet known.
@@ -110,6 +117,13 @@ jobs:
       - run: pnpm exec playwright install --with-deps firefox
       - run: pnpm build
       - run: pnpm exec playwright test tests/e2e --project=firefox
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-firefox-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   docs:
     runs-on: ubuntu-latest
