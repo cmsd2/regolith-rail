@@ -32,51 +32,35 @@ the values drawn by any other source.
 - **THEN** the production and consumption amounts of every other producer and
   consumer are unchanged
 
-### Requirement: Train movement
-Trains SHALL travel from one end of the line to the other, stop at every
-station, and reverse at the terminal stations. Travel time SHALL follow from
-distance and speed. Dwell time at a stop SHALL be the fixed dwell plus the
-per-unit dwell multiplied by the amount transferred. Trains on the same line
-SHALL NOT block one another.
-
-#### Scenario: Reversal at the end
-- **WHEN** a train heading towards the last station arrives there
-- **THEN** after its stop it departs towards the first station
-
-#### Scenario: Dwell depends on transfer
-- **WHEN** a train transfers 12000 milli-units at a stop with a fixed dwell of
-  10 s and a per-unit dwell of 1 s
-- **THEN** the train departs 22 s after arriving
-
 ### Requirement: Production and consumption
-Producers SHALL add to their station's stock and consumers SHALL draw from it
-at their effective rates: the base rate with its variability, multiplied by the
-effects of every active event that applies to the flow. Production and
-consumption SHALL be applied once per game minute. Production that does not fit
-in the station SHALL be recorded as stalled production. Consumption that cannot
-be met from stock SHALL be recorded as unmet demand. Events SHALL NOT change
-train movement or dwell.
+Producers SHALL add to their station's stock and consumers SHALL draw from it according to their
+processes, multiplied by the effects of every active event that applies to the flow. Rate-based production
+and consumption SHALL be applied once per game minute; arrival and per-period processes SHALL be applied at
+their arrival and period times. Production that does not fit SHALL be recorded as stalled production.
+Consumption that cannot be met from stock SHALL be recorded as unmet demand and, for backordering consumers,
+added to their backorders, which SHALL be served first when stock becomes available. Events SHALL NOT change
+vehicle movement or dwell.
 
 #### Scenario: Demand shock during an event
-- **WHEN** a consumer of 24000 per sol is covered by an active demand effect with
-  multiplier 3000 for one game hour
+- **WHEN** a consumer of 24000 per sol is covered by an active demand effect with multiplier 3000 for one
+  game hour
 - **THEN** it asks for 3000 milli-units during that hour instead of 1000
 
 #### Scenario: Trains unaffected by events
-- **WHEN** a storm is active across the whole line
-- **THEN** train arrival and departure times are the same as in the same run
-  without the storm
+- **WHEN** a storm is active across the whole network
+- **THEN** vehicle arrival and departure times are the same as in the same run without the storm
 
 #### Scenario: Full station
-- **WHEN** a station's stock of a resource is at capacity and its producer is
-  active
-- **THEN** stock stays at capacity and stalled production increases by the
-  amount that could not be stored
+- **WHEN** a station's stock of a resource is at capacity and its producer is active
+- **THEN** stock stays at capacity and stalled production increases by the amount that could not be stored
 
 #### Scenario: Empty station
-- **WHEN** a station's stock of a resource is zero and its consumer is active
-- **THEN** stock stays at zero and unmet demand increases by the amount that
-  could not be consumed
+- **WHEN** a station's stock of a resource is zero and its losing consumer is active
+- **THEN** stock stays at zero and unmet demand increases by the amount that could not be consumed
+
+#### Scenario: Backorders served first
+- **WHEN** a backordering consumer has 4000 backordered and 6000 arrives at its station
+- **THEN** the backorder is cleared first and 2000 remains for new demand
 
 ### Requirement: Stops and actions
 When a train arrives at a station the engine SHALL call the policy, then apply
@@ -108,15 +92,13 @@ event with the message, station, train and time, and the run SHALL continue.
   stops are processed normally
 
 ### Requirement: Conservation
-The total amount of every resource SHALL equal the amount produced minus the
-amount consumed, counting station stock and train cargo, at every point in a
-run.
+For every resource, the amount in the system SHALL equal the amounts produced, converted in, and delivered by
+external suppliers, minus the amounts consumed, converted out, expired and lost to overflow, counting stock
+at stations, cargo on vehicles and shipments in transit, at every point in a run.
 
 #### Scenario: Conservation holds for arbitrary scenarios
-- **WHEN** randomly generated valid scenarios are run with randomly behaving
-  policies
-- **THEN** conservation holds and stock and cargo stay within zero and capacity
-  at every event
+- **WHEN** randomly generated valid format 2 scenarios are run with randomly behaving policies
+- **THEN** conservation holds and stock and cargo stay within zero and capacity at every event
 
 ### Requirement: Run output
 A run SHALL produce an event log, time series and metrics. The event log SHALL
@@ -137,33 +119,109 @@ A run SHALL report these metrics, each defined in the documentation:
 - Unmet demand, weighted by resource priority.
 - Stalled production.
 - Demand met: the total amount consumed.
-- Empty distance share: distance travelled with no cargo divided by total
-  distance travelled.
+- Backorders: the time-average backordered amount and the largest backorder.
+- Expired stock and delivery overflow.
+- Converter starved and blocked time.
+- Empty distance share: distance travelled with no cargo divided by total distance travelled.
 - Total dwell time.
-- Oscillation count: the number of times a resource is loaded at a station
-  within one full round trip of the loading train after the same resource was
-  unloaded there.
+- Oscillation count: the number of times a resource is loaded at a station within one full round of the
+  loading vehicle's route after the same resource was unloaded there.
+- Total cost and each cost component, when the scenario states costs.
 - Policy errors and budget overruns.
 
 #### Scenario: Oscillation counted
-- **WHEN** a train unloads Metals at station B and a train loads Metals at B
-  before the first train completes its next round trip
+- **WHEN** a vehicle unloads Metals at station B and a vehicle loads Metals at B before the first vehicle
+  completes its next round of its route
 - **THEN** the oscillation count increases by one
 
 #### Scenario: Priority weighting
-- **WHEN** 1000 milli-units of a priority 3 resource and 1000 of a priority 1
-  resource go unmet
+- **WHEN** 1000 milli-units of a priority 3 resource and 1000 of a priority 1 resource go unmet
 - **THEN** weighted unmet demand is 4000
 
 ### Requirement: Command-line runner
-A command-line runner SHALL run a scenario with a policy and seed, or a range
-of seeds, and write the run output and metrics as JSON.
+A command-line runner SHALL run a scenario given as a JSON document, a scenario script or a pack template
+with parameters, with a policy and a seed or range of seeds, and write the run output and metrics as JSON.
 
 #### Scenario: Headless run
 - **WHEN** the runner is given `two-station`, `naive.lua` and seed 7
-- **THEN** it writes the metrics and event log for that run and exits
-  successfully
+- **THEN** it writes the metrics and event log for that run and exits successfully
+
+#### Scenario: Template run
+- **WHEN** the runner is given the `classic.reorder` template with a lead time parameter and its reference
+  policy
+- **THEN** it evaluates the template, runs it and writes the metrics including costs
 
 #### Scenario: Invalid scenario
-- **WHEN** the runner is given a scenario that fails validation
-- **THEN** it prints the validation errors and exits with a non-zero status
+- **WHEN** the runner is given a scenario that fails validation or a script that fails evaluation
+- **THEN** it prints the errors and exits with a non-zero status
+
+### Requirement: Vehicle movement
+Vehicles SHALL follow their routes, stopping at every station on them. Shuttle vehicles SHALL reverse at
+each end of their path, loop vehicles SHALL continue from the last station of their loop to the first,
+and timetable vehicles SHALL depart from the first station of their path at each listed time and return
+to wait there. Travel time SHALL follow from arc distance and speed. Dwell time at a stop SHALL be the fixed
+dwell plus the per-unit dwell multiplied by the amount transferred. Vehicles SHALL NOT block one another.
+
+#### Scenario: Reversal at the end
+- **WHEN** a shuttle vehicle heading towards the last station of its path arrives there
+- **THEN** after its stop it departs towards the first station of its path
+
+#### Scenario: Loop continues
+- **WHEN** a loop vehicle on Depot–A–B–Depot finishes its stop at B
+- **THEN** it travels to Depot and then to A
+
+#### Scenario: Dwell depends on transfer
+- **WHEN** a vehicle transfers 12000 milli-units at a stop with a fixed dwell of 10 s and a per-unit dwell
+  of 1 s
+- **THEN** the vehicle departs 22 s after arriving
+
+### Requirement: Converters in operation
+A converter SHALL run a batch only when its station holds all of the batch's inputs and has room for all
+of its outputs. It SHALL record time starved of inputs and time blocked by full outputs.
+
+#### Scenario: Starved converter
+- **WHEN** a converter needs 2000 Metals per batch and its station holds 1000
+- **THEN** no batch runs, Metals stock is unchanged and starved time increases
+
+### Requirement: Reviews and orders
+At each review of a station the engine SHALL call the policy's review hook and apply the orders it
+returns. An order to an external supplier SHALL arrive after the supplier's lead time. An order to a stock
+point supplier SHALL ship from that station's stock, as much as it holds, with the rest backordered
+there and shipped as stock arrives, and each shipment SHALL arrive after the lead time. Orders outside a
+supplier's minimum or maximum size SHALL be clamped with a warning. Deliveries that do not fit SHALL be
+recorded as overflow.
+
+#### Scenario: Delivery after lead time
+- **WHEN** a station orders 5000 Beer from an external supplier with a lead time of two days at hour 0
+- **THEN** 5000 Beer is added to its stock at hour 48
+
+#### Scenario: Upstream shortage
+- **WHEN** a stage orders 8000 from an upstream stage holding 3000
+- **THEN** 3000 ships immediately, 5000 is backordered at the upstream stage, and the rest ships when the
+  upstream stage receives stock
+
+### Requirement: Expiring stock
+At each review of a station whose stock expires, the stock of the expiring resources SHALL be removed
+before the review hook is called and recorded as expired.
+
+#### Scenario: Unsold stock expires
+- **WHEN** a newsvendor station holds 3000 at its review
+- **THEN** expired stock increases by 3000 and the review hook sees zero stock
+
+### Requirement: Cost accounting
+When a scenario states costs, a run SHALL accumulate them exactly as integers and report the total and each
+component: holding, ordering, transport, lost demand, backorders and stalled production.
+
+#### Scenario: Holding cost
+- **WHEN** a station holds 2000 milli-units for one sol with a holding cost of 3 per unit per sol
+- **THEN** holding cost increases by 6
+
+### Requirement: Format 1 results unchanged
+Running an upgraded format 1 scenario SHALL produce the same event log, time series and values for every
+metric that existed before format 2 was introduced. New output fields MAY be added, and the golden result
+file MAY be regenerated once they are, provided the fields that existed before are unchanged.
+
+#### Scenario: Golden hashes
+- **WHEN** the golden matrix of starter scenarios, policies and seeds is run after this change, and each
+  result is hashed without the output fields added by this change
+- **THEN** every hash equals the golden hash recorded before this change

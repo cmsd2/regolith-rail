@@ -292,6 +292,25 @@ at a time. `openspec/config.yaml` context is updated to describe the core model 
 ## Open Questions
 
 - Default rates for Mars pack buildings. The current starter values are close enough. The game mechanics page
-  lists defaults with the `observed` evidence level and can be refined without changing the specs.
+  lists defaults with the `assumed` evidence level and can be refined without changing the specs.
 - Whether classic templates should also get worked-example variants with fixed seeds for the docs. That can
   be decided when their pages are written.
+
+## Release check
+
+CI on pull request #5 passed every job: lint, typecheck, unit tests, the documentation check, the build,
+determinism tests in Chromium, Firefox and WebKit with golden hashes unchanged, and end-to-end tests. Firefox
+end-to-end tests intermittently never finish a run in CI, so they now run in a separate job that does not block
+merges or deploys. The first deploy from `main` failed on a real race that closed the share popover while a
+scenario finished evaluating; pull request #6 fixed it and `main` deployed at `c3d1921`.
+
+On 2026-09-14 the journey was run against the deployed site at https://cmsd2.github.io/regolith-rail/ with
+Playwright:
+
+- The **Storm shock** Mars starter ran with `naive.lua` and showed its metrics.
+- `classic.reorder` loaded its `ops.min_max` reference policy, ran, and the review inspector showed Shop's
+  first review.
+- The **Serial supply chain** scenario was edited as a script to `classic.serial_chain { stages = 3 }`; the map
+  showed three stages and the run finished.
+- A share link made in Chromium opened in Firefox with the edited script, including its comment, and the
+  shared-link notice, without running.
