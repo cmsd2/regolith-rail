@@ -3,7 +3,7 @@ title: "One period under uncertainty: the newsvendor"
 description: Choosing one quantity before demand is known, when too much and too little both cost.
 section: Book
 part: 2
-chapter: 4
+chapter: 5
 ---
 
 ## What you will learn
@@ -39,7 +39,7 @@ $$
 C(Q) = cQ + p\,\mathbb{E}\left[(D - Q)^+\right],
 $$
 
-<Check ref="maxima:best-cost" />
+<Check ref="maxima:expected-cost" />
 
 where $(x)^+$ means $\max(x, 0)$.
 
@@ -63,7 +63,7 @@ $$
 P(D \le Q) \ge \frac{p - c}{p}.
 $$
 
-<Check ref="maxima:marginal-cost" />
+<Check ref="maxima:optimality-condition" />
 
 ### The critical ratio
 
@@ -129,16 +129,17 @@ return ops.policy {
 ```
 
 Amounts in policies are in thousandths of a unit, so 15 units is `15000`. A test runs
-the template with this policy for 400 seeds, and checks that the analytic 41.11 lies
+the template with this policy for 400 replications, and checks that the analytic 41.11 lies
 inside the 99% confidence interval of the simulated mean cost per day.
 
-<Check ref="test:reaches the analytic expected cost at the critical-ratio quantity over 400 seeds" />
+<Check ref="test:reaches the analytic expected cost at the critical-ratio quantity over 400 replications" />
 
 To see the lopsided curve, open **Batch**, tick **Compare**, and compare the reference
 policy with copies ordering 10 and 20. The total cost metric rises on both sides of 15,
-by more below it than above.
+by more below it than above: over 100 replications the three cost about 41, 43 and 48 a
+day, each within a unit of the model's 41.11, 42.78 and 47.78.
 
-<Check ref="maxima:cost-either-side" />
+<Check ref="test:on classic.newsvendor over 100 replications ordering 15 costs about 41 a day, 20 about 43 and 10 about 48, each within a unit of the model" />
 
 ## Where the simulator differs
 
@@ -190,12 +191,29 @@ about 105.07 units.
 
 </Answer>
 
+4. Raise the template's `lost_cost` to 10. What is the best order now, and what does it
+   cost a day against ordering 15 or 25?
+
+<Answer>
+
+The critical ratio becomes $(10 - 2)/10 = 4/5$, and 20 is the smallest order with
+$P(D \le Q) \ge 4/5$, since demand is at most 20 with probability $8/9$. Its expected cost
+is $410/9 \approx 45.56$ a day; ordering 15 costs $470/9 \approx 52.22$, and ordering 25,
+which covers every outcome, costs exactly 50. Over 100 replications the simulator agrees:
+about 45.6 for 20, and more for both 15 and 25.
+
+<Check ref="maxima:lost-cost-ten" />
+
+<Check ref="test:on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25" />
+
+</Answer>
+
 <GameNote>
 
 A rail line has no stock that expires, but the newsvendor's trade-off appears whenever
 a train leaves a station for a long round trip. Whatever the train leaves behind has to
 last until it returns. Leaving too little starves the consumers there. Leaving too much
-fills storage that the next delivery, or another station, could have used. Chapter 3
+fills storage that the next delivery, or another station, could have used. Chapter 6
 returns to this as the protection interval.
 
 </GameNote>

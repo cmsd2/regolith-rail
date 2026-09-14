@@ -25,7 +25,14 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: eoq */\neoq: rhs(first(sublist(solve(diff(cost(Q), Q) = 0, Q), lambda([e], is(rhs(e) > 0)))))$\nexpect_equal(\"eoq\", eoq, sqrt(2 * K * D / h));\nexpect_equal(\"eoq-cost\", cost(eoq), sqrt(2 * K * D * h));\nexpect_equal(\"eoq-minimum\", is(subst([K = 20, D = 10, h = 1], diff(cost(Q), Q, 2)) > 0), true);",
+   "source": "/* check: eoq-cost */\n/* Orders a day times the order cost, plus the average stock times the holding cost. */\norders_a_day: D / Q$\naverage_stock: Q / 2$\nexpect_equal(\"eoq-cost\", orders_a_day * K + average_stock * h, cost(Q));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: eoq */\neoq: rhs(first(sublist(solve(diff(cost(Q), Q) = 0, Q), lambda([e], is(rhs(e) > 0)))))$\nexpect_equal(\"eoq\", eoq, sqrt(2 * K * D / h));\nexpect_equal(\"eoq-minimum-cost\", cost(eoq), sqrt(2 * K * D * h));\nexpect_equal(\"eoq-minimum\", is(subst([K = 20, D = 10, h = 1], diff(cost(Q), Q, 2)) > 0), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

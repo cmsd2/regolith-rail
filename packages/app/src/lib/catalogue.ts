@@ -167,7 +167,10 @@ const byId = new Map(catalogue.map((item) => [item.id, item]));
 export const MOVED_ITEMS: Readonly<Record<ItemId, ItemId>> = {
   // The balancing baseline was called naive before.
   "builtin:policy:naive": "builtin:policy:balance-stock",
-  "example:policy:docs/failure-modes/double-dispatch#1": "example:policy:docs/book/base-stock#4",
+  "example:policy:docs/failure-modes/dead-stock#1": "example:policy:docs/book/flows#1",
+  "example:policy:docs/failure-modes/disruption-recovery#1":
+    "example:policy:docs/book/safety-stock#4",
+  "example:policy:docs/failure-modes/double-dispatch#1": "example:policy:docs/book/base-stock#5",
   "example:policy:docs/failure-modes/half-capacity#1": "example:policy:docs/book/modelling#1",
 };
 

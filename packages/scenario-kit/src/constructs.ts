@@ -103,7 +103,7 @@ export const coreConstructs: Construct[] = [
       param(
         "docs",
         "string",
-        "Documentation page explaining the scenario, such as failure-modes/relay.",
+        "Documentation page explaining the scenario, such as book/flows#case-study-dead-stock.",
       ),
       required("duration", "integer", "Length of a run.", "ms"),
       param("seed", "integer", "Base seed for random processes.", { default: "1" }),

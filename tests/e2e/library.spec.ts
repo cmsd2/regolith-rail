@@ -112,7 +112,7 @@ test.describe("library explorer", () => {
     await openItem(page, "builtin:scenario:storm-shock");
     await expect(page.getByTestId("scenario-docs")).toHaveText("Why the baseline fails");
     await page.getByTestId("slot-fix").click();
-    await expectSlot(page, "policy", "example:policy:docs/failure-modes/disruption-recovery#1");
+    await expectSlot(page, "policy", "example:policy:docs/book/safety-stock#3");
     await page.getByTestId("slot-baseline").click();
     await expectSlot(page, "policy", "builtin:policy:balance-stock");
     await expect(page.getByTestId("run-tab-metrics")).toHaveCount(0);
@@ -122,7 +122,7 @@ test.describe("library explorer", () => {
     await page.getByTestId("slot-compare-fix").click();
     await expect(page.getByTestId("batch-config")).toBeVisible();
     await expect(page.getByTestId("batch-compare")).toBeChecked();
-    await expectSlot(page, "policy", "example:policy:docs/failure-modes/disruption-recovery#1");
+    await expectSlot(page, "policy", "example:policy:docs/book/safety-stock#3");
     await expectSlot(page, "compare", "builtin:policy:balance-stock");
     await expect(page.getByTestId("batch-metrics")).toHaveCount(0);
     await page.getByTestId("view-run").click();
@@ -155,7 +155,7 @@ test.describe("library explorer", () => {
       .getByTestId("library-tree")
       .locator('[role="treeitem"]')
       .evaluateAll((items) => items.map((i) => i.getAttribute("data-item-id") ?? i.textContent));
-    expect(order.indexOf("example:policy:docs/failure-modes/disruption-recovery#1")).toBeLessThan(
+    expect(order.indexOf("example:policy:docs/book/safety-stock#3")).toBeLessThan(
       order.indexOf("builtin:policy:balance-stock"),
     );
 

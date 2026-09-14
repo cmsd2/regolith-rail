@@ -8,7 +8,7 @@ classic = {}
 ---@field id string Scenario id: a letter, then letters, digits, _ or -.
 ---@field title? string Title shown to players. Default the id.
 ---@field description? string What the scenario shows. Default the title.
----@field docs? string Documentation page explaining the scenario, such as failure-modes/relay.
+---@field docs? string Documentation page explaining the scenario, such as book/flows#case-study-dead-stock.
 ---@field duration integer Length of a run. In ms.
 ---@field seed? integer Base seed for random processes. Default 1.
 ---@field information? "local"|"line" How much of other stations policies can see. Default "line".

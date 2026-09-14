@@ -527,3 +527,14 @@
   background: transparent;
   cursor: pointer;
 }
+
+.subheading {
+  margin: 1rem 0 0.35rem;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.table .total th,
+.table .total td {
+  border-top: 1px solid var(--border);
+}

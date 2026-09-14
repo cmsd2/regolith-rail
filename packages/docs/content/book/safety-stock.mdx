@@ -3,7 +3,7 @@ title: Safety stock and service levels
 description: How much stock to hold above average demand, and what "good enough service" means.
 section: Book
 part: 2
-chapter: 6
+chapter: 7
 ---
 
 ## What you will learn
@@ -17,7 +17,7 @@ chapter: 6
 
 ## The problem
 
-Chapter 3 set a base-stock level from costs: what a backorder costs against what a unit
+Chapter 6 set a base-stock level from costs: what a backorder costs against what a unit
 held costs. Often nobody can say what a backorder costs. A hospital pharmacy, a
 maintenance store or a spare-parts depot is instead given a target: run out in no more
 than one cycle in twenty, say, or meet 99% of demand straight from the shelf.
@@ -52,13 +52,12 @@ $$
 \text{CSL}(S) = \sum_{\ell} p_\ell \, P\big(\text{Poisson}(\lambda(R + \ell)) \le S\big).
 $$
 
-<Check ref="maxima:service-level" />
-
 This needs the orders not to overtake each other, which holds when lead times differ by
 less than a review period.
 
 Take demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal
-chance. Demand over a cycle has mean 80 or 100, 90 on average.
+chance. Demand over the review period and a lead time has mean 80 or 100, 90 on
+average.
 
 <Check ref="maxima:cycle-means" />
 
@@ -74,8 +73,6 @@ Demand over an interval of random length $T$ has variance
 $$
 \operatorname{Var}(D_T) = \lambda\,\mathbb{E}[T] + \lambda^2 \operatorname{Var}(T).
 $$
-
-<Check ref="maxima:interval-variance" />
 
 The first term is the randomness of demand, the second the randomness of the interval.
 Here $\mathbb{E}[T] = 9$ days and $\operatorname{Var}(T) = 1$, so the variance is
@@ -100,14 +97,12 @@ is 106, so the lead time's variability alone costs 7 units of stock.
 
 ### Fill rate
 
-Approximate the fill rate by the expected shortfall at the end of a cycle, divided by
-the demand in a cycle:
+Each review period's demand is met by one order, so the fill rate is about one minus the
+expected shortfall at the end of a cycle divided by the demand in a review period:
 
 $$
 \beta \approx 1 - \frac{\mathbb{E}\left[(D_T - S)^+\right]}{\lambda R}.
 $$
-
-<Check ref="maxima:fill-rate" />
 
 At a level of 113 the expected shortfall is about 0.246 units against a week's demand of
 70, a fill rate of about 0.996. A level that lets one cycle in twenty end short still meets
@@ -140,16 +135,88 @@ return ops.policy {
 }
 ```
 
-A test runs it for 400 seeds, and in each run counts the cycles that end with no one
+A test runs it for 400 replications, and in each run counts the cycles that end with no one
 waiting, just before each delivery after the first. The analytic 0.9546 lies inside the
 99% confidence interval of the simulated share.
 
-<Check ref="test:meets the analytic cycle service level of its reference level over 400 seeds" />
+<Check ref="test:meets the analytic cycle service level of its reference level over 400 replications" />
+
+Now see what the lead time's variability costs. Order up to 106 instead, the level that a
+fixed two-day lead time needs, and compare the two in **Batch** over 200 replications: the
+backorder metrics rise. Counting cycles as the test does, level 106 ends only about 88%
+of cycles with no one waiting when the lead time varies, but about 96% when the template's
+`lead_time` is fixed at `days(2)`. Those seven units are the price of not knowing
+when the order will arrive.
+
+<Check ref="test:on classic.safety_stock over 200 replications level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88" />
 
 The template refuses lead times that differ by a review period or more, because orders
 could then overtake each other and the formula above would no longer hold.
 
 <Check ref="test:rejects lead times that differ by a review period or more" />
+
+## Case study: storm shock
+
+The `storm-shock` starter is chapter 1's line with a smaller mine, 40 units a day against
+the dome's 24, and a dust storm that arrives after three days. For one day the storm stops
+the mine: a supply shock. Half a day after it starts, repairs raise the dome's use to two
+and a half times normal, 60 units a day, for a day and a half: a demand shock. Both are
+states of the world, in which rates change while they last, and the timeline shows each as
+a band.
+
+<Scenario starter="storm-shock" />
+
+On a line, safety stock is what the demand station holds between visits. The train's
+round trip takes between eight and a third and nine and a third hours, so the dome uses
+eight to nine units between one visit and the next. Under balancing it holds about 10
+units when the storm begins, ten hours of normal use and four of the surge. Over 50
+replications its station runs dry about 17 hours into the storm, stands empty for about 24
+hours in all, is still empty into the day after the storm has passed, and about 53 units
+of demand go unmet.
+
+<Check ref="test:on storm-shock over 50 replications the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet" />
+
+The shock is larger than any buffer a 30-unit station can hold. The storm takes away 40
+units of the mine's output and adds 54 units to the dome's demand, 94 units against a
+station that holds 30. No safety stock rides it out. What the buffer decides is when the
+shortage starts and how long it lasts: the mine comes back a day into the storm and
+deliveries resume, and a dome that still has stock when they do comes through with little
+or no shortage.
+
+<Check ref="maxima:storm-shock" />
+
+So keep the dome full, with the roles policy of chapter 1:
+
+```lua runnable scenario=storm-shock fix
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}
+```
+
+Between visits the dome now falls from 30 to about 21, and it holds about 23 units when
+the storm begins, nine hours of the surge. That reaches the mine's return: the station
+runs dry only late on the fifth day, for under two hours, with nothing after the storm,
+and about 4 units go unmet. A min–max target that lets the dome fall to 20 before
+refilling it holds less on average, 19 units, and leaves about 12 unmet. The buffer it
+gives up between refills is cover the storm needed.
+
+```lua runnable scenario=storm-shock
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = {
+    supply = ops.drain {},
+    demand = ops.min_max { min = 20000, max = 30000 },
+  },
+}
+```
+
+<Check ref="test:on storm-shock over 50 replications keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12" />
+
+The chapter's method sizes safety stock for ordinary variability, and the few units that
+the dome's wandering use needs over a nine-hour visit are small beside a shock like this.
+A disruption is not variability. Part III returns to shocks of this size, and to what a
+line can do about them beyond holding a station full.
 
 ## Where the simulator differs
 
@@ -158,7 +225,7 @@ could then overtake each other and the formula above would no longer hold.
   when no demand is waiting in the minute before a delivery, and leaves out the first
   cycle, which starts from empty stock.
 - **Binomial arrivals.** Poisson demand is drawn in small sub-steps within each minute,
-  as chapter 2 describes, so its variance is very slightly lower than the model's.
+  as chapter 3 describes, so its variance is very slightly lower than the model's.
 - **Backorders only.** With lost sales, stock that runs out also hides how much demand
   there was, and the analysis changes.
 
@@ -178,8 +245,9 @@ could then overtake each other and the formula above would no longer hold.
 
 <Answer>
 
-Demand over a cycle now has mean 45 or 65, and the level falls to 75. More frequent
-reviews shorten the protection interval, and the stock needed falls with it.
+Demand over the review period and a lead time now has mean 45 or 65, and the level
+falls to 75. More frequent reviews shorten the protection interval, and the stock needed
+falls with it.
 
 <Check ref="maxima:twice-weekly" />
 
@@ -194,6 +262,18 @@ About $1.645 \times \sqrt{90} \approx 15.60$ units, against about 22.67 when the
 varies between 1 and 3 days.
 
 <Check ref="maxima:normal-approximation" />
+
+</Answer>
+
+4. Set the template's `target_service` to 0.99, so that the reference orders up to 121 as
+   in exercise 1, and run it over 200 replications. Is the target met?
+
+<Answer>
+
+Yes. About 99% of cycles end with no one waiting, matching the analytic 0.991 for level
+121. Going from 0.95 to 0.99 costs eight more units, over a third more safety stock.
+
+<Check ref="test:on classic.safety_stock over 200 replications level 121 meets a 0.99 cycle service level" />
 
 </Answer>
 

@@ -5,6 +5,10 @@ rail lines, aimed at Surviving Mars: Relaunched players. Write a policy in Lua,
 simulate it over many randomised runs, compare it with the game's apparent
 balancing behaviour, and share the result as a link.
 
+**Try it:** [cmsd2.github.io/regolith-rail](https://cmsd2.github.io/regolith-rail/), with
+the documentation and the book *Operations research on the line* under
+[Docs](https://cmsd2.github.io/regolith-rail/docs).
+
 Not affiliated with or endorsed by Paradox Interactive or Haemimont Games.
 
 ## Development

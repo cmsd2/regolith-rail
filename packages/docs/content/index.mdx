@@ -15,7 +15,8 @@ scenario, and compare it with other policies over many random seeds.
   batch comparison.
 - [Operations research on the line](/docs/book) is a book that teaches the ideas behind
   better policies, from modelling and simulation to inventory control, with a scenario
-  to run in every chapter and every result checked.
+  to run in every chapter and every result checked. It picks up where getting started
+  leaves off.
 - [Library and saved runs](/docs/library) explains choosing what to run, your own
   copies, saved runs, share links, and import and export.
 - [Language and sandbox rules](/docs/language) covers the Lua that policies are
@@ -23,17 +24,21 @@ scenario, and compare it with other policies over many random seeds.
 - [The ops pipeline](/docs/ops) introduces the building blocks that let most policies
   be a few lines long.
 
-## Why the baseline struggles
+## Lessons from the starter lines
 
-Each starter scenario shows one way that simple stock balancing goes wrong:
+Each starter scenario shows one way that simple stock balancing goes wrong, and the book
+tells each as a case study in the chapter whose ideas explain it:
 
-- [Half capacity](/docs/book/modelling#case-study-half-capacity): one train, two stations, and a
-  shortage that never closes.
-- [Dead stock](/docs/failure-modes/dead-stock): a relay station holds what the dome needs.
-- [Double dispatch](/docs/book/base-stock#case-study-double-dispatch): two trains answer the same shortage.
+- Chapter 1, [half capacity](/docs/book/modelling#case-study-half-capacity): one train,
+  two stations, and a shortage that never closes.
+- Chapter 2, [dead stock](/docs/book/flows#case-study-dead-stock): a relay station holds
+  what the dome needs.
+- Chapter 6, [double dispatch](/docs/book/base-stock#case-study-double-dispatch): two
+  trains answer the same shortage.
+- Chapter 7, [storm shock](/docs/book/safety-stock#case-study-storm-shock): no safety
+  stock to absorb a supply or demand shock.
 - [Ping-pong](/docs/failure-modes/ping-pong): goods travel back and forth for nothing.
-- [Disruption recovery](/docs/failure-modes/disruption-recovery): no safety stock to absorb a
-  supply or demand shock.
+  Part III of the book will take it up; until then its page is the lesson.
 
 ## Reference
 

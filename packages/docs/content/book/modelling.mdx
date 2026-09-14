@@ -62,6 +62,29 @@ needs a rule. A policy maps what the vehicle observes at a stop, its cargo and t
 at the stations, to how much to load or unload. The simulator calls a policy at every
 stop, and the results measure the policy, not any one choice.
 
+### Writing a rule down
+
+The policies in this book are written with the `ops` library, which builds a policy from
+a few named parts. Every chapter uses them, so they are worth naming now. At each stop the
+policy looks at each *site*, one station and one resource it stores, and decides in
+stages:
+
+- **Classify** gives the site a role: `"supply"`, where the resource is made; `"demand"`,
+  where it is used; `"relay"`, where it only passes through; or `"any"`, when the policy
+  does not say. `ops.roles.manual` lists the roles by station.
+- **Target** says how much stock the site should hold when the train leaves. It is one
+  block for every site, or a block for each role. `ops.drain {}` targets nothing, so the
+  train takes all it can; `ops.fill {}` targets the site's capacity, so the train leaves
+  all it can; `ops.balance {}` targets the mean stock across the stations that store the
+  resource; and `ops.pass_through {}` names no target, so the site is left as it is.
+- The difference between the target and what the site holds is what the train loads or
+  unloads, as far as its cargo, its space and the station's room allow.
+
+A policy that gives only a target treats every site alike. One that classifies first can
+treat a supply site and a demand site differently, and that is the whole difference
+between the two rules in this chapter. The [ops reference](/docs/ops) lists every block,
+and a policy can always be plain Lua instead, for rules the blocks cannot express.
+
 ### The line
 
 The line in this chapter joins two stations 72,000 distance units apart. At one end is a
@@ -76,12 +99,15 @@ A stop takes 10 minutes, plus a minute for each unit moved.
 In operations research terms, the mine's station is a supply point, the dome's station a
 demand point, and the train a vehicle on a fixed route.
 
-### The obvious rule: take everything, leave everything
+### Drain the mine, fill the dome
 
-Knowing which station makes metal and which uses it, the first rule most people think of
-is to load everything at the mine and unload everything at the dome. Does the train have
-the capacity for that? Even the slowest round trip, moving a full load at both ends, takes
-$28/3$ hours. The train then makes $18/7$ trips a day, and could carry
+Knowing which station makes metal and which uses it, the simplest rule that uses the
+roles is to load everything at the mine and unload everything at the dome: drain the
+supply site, fill the demand site. Does the train have
+the capacity for that? Each leg takes four hours, and a stop takes ten minutes plus a
+minute for every unit moved, so even the slowest round trip, moving a full load of 30 at
+both ends, takes $2 \times 4 + 2 \times (10 + 30)/60 = 28/3$ hours. In a day the train
+makes $24 \div 28/3 = 18/7$ such trips, and could carry
 
 $$
 30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a day},
@@ -103,11 +129,11 @@ stalls. That is a fact about the line, not a failure of the rule.
 
 ### A rule for any line: balancing
 
-The obvious rule depends on knowing which station supplies and which demands. A rule
+The drain-and-fill rule depends on knowing which station supplies and which demands. A rule
 meant for every line, whatever its stations do, cannot assume that. A natural catch-all
 is to balance: at each stop, move stock so that the stations hold similar amounts. It
-needs no roles and copes with any number of stations. The starter uses it as its
-baseline, and in `ops` it is a single line:
+needs no roles and copes with any number of stations. It is the built-in `balance-stock`
+policy, the baseline the workbench opens with, and in `ops` it is a single line:
 
 ```lua
 return ops.policy { target = ops.balance {} }
@@ -127,12 +153,13 @@ through.
 
 ## In the simulator
 
-The `two-station` starter is this line, run for 10 days. It opens with the balancing
+The workbench's built-in scenarios are its starters, and the `two-station` starter is
+this line, run for 10 days. It opens with the balancing
 baseline, the built-in `balance-stock` policy.
 
 <Scenario starter="two-station" />
 
-Try the obvious rule first. As an `ops` policy, the mine's station is a supply site that
+Try the drain-and-fill rule first. As an `ops` policy, the mine's station is a supply site that
 is drained and the dome's station a demand site that is filled:
 
 ```lua runnable fix
@@ -142,27 +169,35 @@ return ops.policy {
 }
 ```
 
-It meets all of the dome's demand on every one of seeds 1 to 20. Once the dome's station
+It meets all of the dome's demand on every one of 20 replications. Once the dome's station
 is full, the mine can still stall, as the surplus says it must.
 
-<Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds" />
+<Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand in each of 20 replications" />
 
 Now put the balancing baseline back in the run: click `balance-stock`, or use it from the
-**Policies** list in the library. Run it and open **Metrics**. On every one of seeds 1 to
-20, the dome goes short while the mine stalls, at the same time.
+**Policies** list in the library. Run it and open **Metrics**. In every one of 20 replications, the
+dome goes short while the mine stalls, at the same time.
 
-<Check ref="test:on two-station the balancing baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
+<Check ref="test:on two-station the balancing baseline leaves demand unmet while the mine's production stalls, in each of 20 replications" />
 
-Compare the two in **Batch** to see the difference over many seeds, and what taking
+Compare the two in **Batch** to see the difference over many replications, and what taking
 everything costs in [empty distance](/docs/metrics#empty-distance-share): the train
 always returns empty.
 
 ## Case study: half capacity
 
-Why does balancing fail on a line where the obvious rule succeeds? Suppose the line
+Why does balancing fail on a line where draining the mine and filling the dome succeeds? Suppose the line
 settles into a steady cycle, where each trip delivers what the dome uses during one round
-trip. Call the load $L$ and the round trip $T$. The dome uses $36\,T$ units in a trip
-lasting $T$ days, and the trip lasts the travel time plus two stops moving $L$ units each.
+trip. Call the load $L$, in units, and the round trip $T$, in seconds. The load is what
+the dome uses in a trip, at 36 units a day, and the trip is the eight hours of travel plus
+two stops that each take 600 seconds and 60 more for every unit moved:
+
+$$
+L = \frac{36\,T}{86\,400}, \qquad T = 28\,800 + 2\,(600 + 60\,L).
+$$
+
+<Check ref="maxima:steady-equations" />
+
 Solving the two together gives
 
 $$
@@ -186,14 +221,14 @@ mine's station fills and production stalls, or the dome's empties and demand goe
 The train has the capacity; the rule only ever uses about half of the gap it sees.
 
 Balancing pays for its generality. It ignores what we know about this line, that the mine
-makes metal and the dome uses it, and on a line this simple that knowledge is worth almost
-everything. Much of the rest of this book is about putting knowledge like that to work.
+makes metal and the dome uses it, and on a line this simple that knowledge is the whole
+difference between meeting demand and not. Much of the rest of this book is about putting knowledge like that to work.
 
 ## Where the simulator differs
 
-- **Stops take longer with more cargo.** The case study treats the steady cycle as
-  exact. In the simulator, demand varies, so loads and trip times vary from trip to
-  trip around the steady values.
+- **Demand varies.** The case study treats the steady cycle as exact. In the simulator
+  the dome's use wanders by up to 20%, so loads and trip times vary from trip to trip
+  around the steady values.
 - **Stock is measured in thousandths of a unit.** Policies see and move amounts in
   milli-units, so 30 units is `30000`.
 - **The balancing rule is an assumption.** The baseline implements balancing as the
@@ -226,6 +261,21 @@ about 13.68 units. Faster trips need smaller loads, so balancing copes better, b
 stations still have to hold very different amounts.
 
 <Check ref="maxima:exercise-faster-train" />
+
+</Answer>
+
+3. Open the starter's script and change both stations to `mars.large_station`, which
+   holds 60 units. Does balancing keep up now?
+
+<Answer>
+
+Mostly. The steady cycle needs a gap of about 26 units between the stations, and a
+60-unit station holds it with room to spare, so over 20 replications unmet demand falls
+from about 28 units to about 5. But the dome still goes short in every replication: balancing
+still moves half the gap it sees, so the dome sits low whenever the mine sits high, and
+any disturbance closes the difference.
+
+<Check ref="test:on two-station with 60-unit stations, balancing leaves about 5 units unmet over 20 replications instead of about 28, but the dome still goes short in every replication" />
 
 </Answer>
 

@@ -107,10 +107,10 @@ describe("session", () => {
 
   it("opens a documentation example from its fragment, or says it no longer exists", async () => {
     const found = setup();
-    await found.start("#example.failure-modes/disruption-recovery.1");
+    await found.start("#example.book/safety-stock.3");
     expect(found.workbench.getState().slots).toMatchObject({
       scenario: "builtin:scenario:storm-shock",
-      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+      policy: "example:policy:docs/book/safety-stock#3",
     });
     expect(found.hashCleared()).toBe(true);
 

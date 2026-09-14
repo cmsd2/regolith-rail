@@ -13,16 +13,6 @@ def check_t_critical():
     assert round(stats.norm.ppf(0.975), 2) == 1.96, "normal limit"
 
 
-def check_base_stock_level():
-    from scipy import stats
-
-    # Backorder cost 10 and holding cost 1 give a ratio of 10/11; demand over the interval is Poisson with mean 9.
-    ratio = 10 / 11
-    level = int(stats.poisson.ppf(ratio, 9))
-    assert level == 13, f"level {level}"
-    assert stats.poisson.cdf(12, 9) < ratio <= stats.poisson.cdf(13, 9), "smallest such level"
-
-
 def check_interval_example():
     import math
 

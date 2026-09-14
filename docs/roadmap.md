@@ -301,12 +301,16 @@ baseline breaks down as demand rises.
 Can start alongside M3; content grows with every later stage.
 
 **Status** Delivered, except live widgets. The encyclopedia is becoming a book,
-*Operations research on the line*: Parts I (Foundations) and II (Inventory) are
-written, with a scenario in every chapter and every formula and number checked
-by Maxima, Python or the simulator in CI. Parts III (Networks), IV
-(Optimisation) and V (Dynamics) are to come. Documentation sections are
-organised as getting started, the book, guides, failure modes, reference and
-game mechanics.
+*Operations research on the line*: Part I (Foundations, chapters 1 to 3) and
+Part II (Inventory, chapters 4 to 8) are written in the standard order,
+deterministic before random and one period before many. Every chapter has a
+scenario, a comparison to run, an exercise run in the simulator, and every
+formula and number checked by Maxima, Python or the simulator in CI. Four of
+the five starter lessons are case studies in chapters; ping-pong waits for
+Part III. Parts III (Networks), IV (Optimisation) and V (Dynamics) are to come.
+Documentation sections are organised as getting started, the book, guides, the
+one remaining failure mode, reference (including the template pages) and game
+mechanics.
 
 **Deliverables**
 - In-app documentation panel and prerendered public pages under `/docs`.
@@ -509,30 +513,30 @@ missed. Every page says which assumptions hold and which do not.
 A site behaves like a single stocking point. A visit is a review, the time between
 visits is the review period, and the travel time for cargo is the lead time.
 
-- **Inventory position** [M4; book chapter 3]. Decide from stock plus cargo already heading for a
+- **Inventory position** [M4; book chapter 6]. Decide from stock plus cargo already heading for a
   site, not stock on hand, because what a station holds after the lead time is its
   position now minus the demand in between. `plan` reservations compute it. Stock
   and position are charted together, and removing the position shows over-delivery
   and oscillation (Axsäter, 2015, pp. 39–40; Snyder and Shen, 2019, p. 50).
-- **Periodic review** [M10; book chapter 3]. Stock must cover the review period plus the lead time,
+- **Periodic review** [M10; book chapter 6]. Stock must cover the review period plus the lead time,
   so longer lines and fewer trains need fuller stations. A sweep of train count and
   speed shows unmet demand growing with the protection interval (Axsäter, 2015,
   pp. 40–41).
-- **Base-stock (order-up-to) policies** [M4; template `classic.reorder`; book chapter 3]. At every review, raise the position
+- **Base-stock (order-up-to) policies** [M4; template `classic.reorder`; book chapter 6]. At every review, raise the position
   to a level made of cycle stock plus safety stock. This is the `order_up_to`
   target, with its level drawn on the stock chart. Station and train capacity cap
   the level in ways the textbook model does not (Axsäter, 2015, pp. 42–43, 113–115;
   Snyder and Shen, 2019, pp. 105–113).
-- **Newsvendor critical ratio** [M10; template `classic.newsvendor`; book chapter 4]. Choose the level at which the chance of
+- **Newsvendor critical ratio** [M10; template `classic.newsvendor`; book chapter 5]. Choose the level at which the chance of
   meeting demand equals the shortage cost divided by the sum of the shortage and
   overage costs. Resource priority sets the shortage cost and stalled production is
   the overage, so a slider traces the trade-off between them (Axsäter, 2015,
   pp. 95–97; Snyder and Shen, 2019, pp. 90–101; Taha, 2017, pp. 618–620).
-- **Safety stock and service levels** [M10; template `classic.safety_stock`; book chapter 6]. Safety stock grows quickly with the
+- **Safety stock and service levels** [M10; template `classic.safety_stock`; book chapter 7]. Safety stock grows quickly with the
   service level demanded. The cycle service level, fill rate and ready rate can
   differ widely, especially under bursty demand, so all three are reported side by
   side (Axsäter, 2015, pp. 79–81, 86–87; Snyder and Shen, 2019, pp. 105–113).
-- **Min–max (s, S) policies and the economic order quantity** [M4; template `classic.reorder`; book chapter 5]. Act only when
+- **Min–max (s, S) policies and the economic order quantity** [M4; template `classic.reorder`; book chapter 4]. Act only when
   the position falls below a minimum, then restore it to a maximum. Fixed dwell per
   stop plays the part of a fixed ordering cost. The flat cost curve of the economic
   order quantity shows that batch size matters less than the reorder point. This is
@@ -544,7 +548,7 @@ visits is the review period, and the travel time for cargo is the lead time.
   empirically and compares it with the textbook level, which motivates search and
   learning (Axsäter, 2015, pp. 97–99; Snyder and Shen, 2019, pp. 136–138;
   Simchi-Levi, Chen and Bramel, 2014, pp. 169–172).
-- **Random lead times** [M10; template `classic.safety_stock`; book chapter 6]. Variable visit intervals add to the safety stock
+- **Random lead times** [M10; template `classic.safety_stock`; book chapter 7]. Variable visit intervals add to the safety stock
   needed even when demand is steady. The run log supplies the interval variance
   (Axsäter, 2015, pp. 100–101; Snyder and Shen, 2019, pp. 166–167).
 
@@ -654,7 +658,7 @@ visits is the review period, and the travel time for cargo is the lead time.
 
 ### 8.4 Randomness, simulation and statistics
 
-- **Geometric waits and Poisson processes** [M7; book chapter 2]. A storm that starts with a small
+- **Geometric waits and Poisson processes** [M7; book chapter 3]. A storm that starts with a small
   chance at every check has geometric, nearly exponential waiting times, and is
   never "due". A storm clock plots the gaps against both curves (Brémaud, 2020,
   pp. 23–25, 423–428; Taha, 2017, pp. 656–660).
@@ -666,12 +670,13 @@ visits is the review period, and the travel time for cargo is the lead time.
 - **Random walks with replenishment** [M7]. Stock at one station under a min–max
   rule is a random walk whose long-run distribution can be computed and compared
   with the simulation (Brémaud, 2020, pp. 128–135; Taha, 2017, pp. 661–662).
-- **Queues and Little's law** [M7]. Birth–death queues show variability growing
-  sharply as supply approaches demand. Little's law turns average stock and
-  throughput into the average time goods spend at a station. Known queueing results
+- **Queues and Little's law** [M7; Little's law in book chapter 2, queues in
+  Part V]. Birth–death queues show variability growing sharply as supply
+  approaches demand. Little's law turns average stock and throughput into the
+  average time goods spend at a station. Known queueing results
   also validate the engine (Brémaud, 2020, pp. 500–502; Taha, 2017, pp. 667–668;
   Eiselt and Sandblom, 2022, p. 475).
-- **Monte Carlo and the number of seeds** [M6; book chapter 2]. Standard error falls with the square
+- **Monte Carlo and the number of seeds** [M6; book chapter 3]. Standard error falls with the square
   root of the number of runs, so halving an interval takes four times the seeds. The
   batch view recommends a seed count for a target precision (Brémaud, 2020, p. 369;
   Wasserman, 2004, pp. 404–405; MacKay, 2003, pp. 357–358).
@@ -679,12 +684,12 @@ visits is the review period, and the travel time for cargo is the lead time.
   inverse transform sampling turns uniform draws into other distributions. A toy
   generator with a short cycle contrasts with the engine's generator (Taha, 2017,
   pp. 720–722; Eiselt and Sandblom, 2022, pp. 475–478; Brémaud, 2020, pp. 370–371).
-- **Common random numbers and paired comparison** [M6; book chapter 2]. Running both policies on
+- **Common random numbers and paired comparison** [M6; book chapter 3]. Running both policies on
   the same randomness correlates their results, so the variance of the difference
   drops. A paired versus independent toggle shows the interval shrink. Separate
   random streams per source keep the two runs aligned (Wasserman, 2004, pp. 52,
   154–155; Eiselt and Sandblom, 2022, pp. 483–485).
-- **Confidence intervals and practical significance** [M6; book chapter 2]. A difference is
+- **Confidence intervals and practical significance** [M6; book chapter 3]. A difference is
   significant when its interval excludes zero, but it may still be too small to
   matter, so players can set the smallest difference they care about (Wasserman,
   2004, pp. 155, 170).
@@ -704,7 +709,7 @@ visits is the review period, and the travel time for cargo is the lead time.
 
 ### 8.5 Forecasting and estimation
 
-- **Moving averages and exponential smoothing** [M4, M10; template `classic.forecasting`; book chapter 7]. Forecast consumption
+- **Moving averages and exponential smoothing** [M4, M10; template `classic.forecasting`; book chapter 8]. Forecast consumption
   between visits, with Holt's method adding a trend, and track forecast error. A
   storm shows the trade-off between lag and responsiveness, and a demand ramp shows
   why the trend term matters (Snyder and Shen, 2019, pp. 6–17).

@@ -305,9 +305,7 @@ describe("workbench store", () => {
     const store = workbench();
     store.getState().selectStarter("storm-shock");
     store.getState().applySuggestedFix();
-    expect(store.getState().slots.policy).toBe(
-      "example:policy:docs/failure-modes/disruption-recovery#1",
-    );
+    expect(store.getState().slots.policy).toBe("example:policy:docs/book/safety-stock#3");
     store.getState().applyBaseline();
     expect(store.getState().slots.policy).toBe("builtin:policy:balance-stock");
 
@@ -315,7 +313,7 @@ describe("workbench store", () => {
     store.getState().compareFixWithBaseline();
     const comparing = store.getState();
     expect(comparing.slots).toMatchObject({
-      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+      policy: "example:policy:docs/book/safety-stock#3",
       compare: "builtin:policy:balance-stock",
     });
     expect(comparing.view).toBe("batch");
@@ -353,11 +351,11 @@ describe("workbench store", () => {
     const store = workbench();
     store.getState().setPolicySource("-- mine\nreturn {}");
     const mineId = store.getState().slots.policy;
-    store.getState().openExample("example:policy:docs/failure-modes/disruption-recovery#1");
+    store.getState().openExample("example:policy:docs/book/safety-stock#3");
     const state = store.getState();
     expect(state.slots).toMatchObject({
       scenario: "builtin:scenario:storm-shock",
-      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+      policy: "example:policy:docs/book/safety-stock#3",
     });
     expect(state.items[mineId]?.content).toBe("-- mine\nreturn {}");
     store.getState().setPolicySource("-- edited example\nreturn {}");

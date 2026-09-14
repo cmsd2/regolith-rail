@@ -160,13 +160,13 @@ test.describe("the book", () => {
   });
 
   test("moves from one chapter to the next and back", async ({ page }) => {
-    await page.goto("/docs/book/base-stock");
-    await expect(page.getByTestId("doc-article")).toContainText("Part II: Inventory · Chapter 3");
+    await page.goto("/docs/book/order-quantities");
+    await expect(page.getByTestId("doc-article")).toContainText("Part II: Inventory · Chapter 4");
     await page.getByTestId("chapter-next").click();
     await expect(page).toHaveURL(/\/docs\/book\/newsvendor$/);
-    await expect(page.getByTestId("doc-article")).toContainText("Chapter 4");
+    await expect(page.getByTestId("doc-article")).toContainText("Chapter 5");
     await page.getByTestId("chapter-previous").click();
-    await expect(page).toHaveURL(/\/docs\/book\/base-stock$/);
+    await expect(page).toHaveURL(/\/docs\/book\/order-quantities$/);
   });
 
   test("a chapter shows its checks' working in the page before scripts load", async ({
@@ -176,7 +176,7 @@ test.describe("the book", () => {
     const page = await context.newPage();
     await page.goto("/docs/book/newsvendor");
     const article = page.getByTestId("doc-article");
-    await expect(article).toContainText("Part II: Inventory · Chapter 4");
+    await expect(article).toContainText("Part II: Inventory · Chapter 5");
     const check = article.locator('[data-check="maxima:best-order"]').first();
     await expect(check).toHaveAttribute("data-kind", "maxima");
     expect(await check.innerHTML()).toContain('expect_equal("best-order", best, 15);');
@@ -188,6 +188,42 @@ test.describe("the book", () => {
     await page.goto("/docs/failure-modes/half-capacity");
     await expect(page).toHaveURL(/\/docs\/book\/modelling#case-study-half-capacity$/);
     await expect(page.getByTestId("doc-article").locator("h1")).toHaveText("Modelling operations");
+  });
+
+  test("the index lists each starter's lesson under its chapter", async ({ page }) => {
+    await page.goto("/docs");
+    const article = page.getByTestId("doc-article");
+    for (const [name, href] of [
+      ["half capacity", "/docs/book/modelling#case-study-half-capacity"],
+      ["dead stock", "/docs/book/flows#case-study-dead-stock"],
+      ["double dispatch", "/docs/book/base-stock#case-study-double-dispatch"],
+      ["storm shock", "/docs/book/safety-stock#case-study-storm-shock"],
+      ["Ping-pong", "/docs/failure-modes/ping-pong"],
+    ]) {
+      await expect(article.getByRole("link", { name: name as string })).toHaveAttribute(
+        "href",
+        href as string,
+      );
+    }
+    await expect(article).toContainText("Part III of the book will take it up");
+  });
+
+  test("disruption recovery's old page sends readers to chapter 7's storm shock", async ({
+    page,
+  }) => {
+    await page.goto("/docs/failure-modes/disruption-recovery");
+    await expect(page).toHaveURL(/\/docs\/book\/safety-stock#case-study-storm-shock$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
+      "Safety stock and service levels",
+    );
+  });
+
+  test("dead stock's old page sends readers to chapter 2's case study", async ({ page }) => {
+    await page.goto("/docs/failure-modes/dead-stock");
+    await expect(page).toHaveURL(/\/docs\/book\/flows#case-study-dead-stock$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
+      "Flows, rates and Little's law",
+    );
   });
 
   test("double dispatch's old page sends readers to its case study, in a page or the panel", async ({

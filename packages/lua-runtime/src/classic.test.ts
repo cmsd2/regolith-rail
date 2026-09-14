@@ -1,4 +1,10 @@
-import { type RunEvent, type RunOutput, runSimulation, type Scenario } from "@regolith-rail/engine";
+import {
+  batchSeeds,
+  type RunEvent,
+  type RunOutput,
+  runSimulation,
+  type Scenario,
+} from "@regolith-rail/engine";
 import {
   classicTemplates,
   constructs,
@@ -7,6 +13,9 @@ import {
 } from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type LuaPolicy, LuaRuntime } from "./policy.ts";
+
+const REPLICATIONS = batchSeeds(1, 400);
+const replication = (i: number) => REPLICATIONS[i] as number;
 
 let runtime: LuaRuntime;
 beforeAll(async () => {
@@ -87,7 +96,7 @@ describe("newsvendor", () => {
     expect(stand?.review).toEqual({ periodMs: DAY, offsetMs: 60_000 });
   });
 
-  it("reaches the analytic expected cost at the critical-ratio quantity over 400 seeds", () => {
+  it("reaches the analytic expected cost at the critical-ratio quantity over 400 replications", () => {
     const params = {};
     const reference = template("classic.newsvendor").reference(params);
     expect(reference.values.quantity).toBe(15);
@@ -95,7 +104,7 @@ describe("newsvendor", () => {
     const policy = referencePolicy("classic.newsvendor", params);
     const periods = 30;
     const perPeriod = Array.from({ length: 400 }, (_, i) => {
-      const out = runSimulation(scenario, policy, { seed: i + 1, detail: "summary" });
+      const out = runSimulation(scenario, policy, { seed: replication(i), detail: "summary" });
       return out.metrics.costs.total / 1000 / periods;
     });
     const { mean, half } = interval(perPeriod);
@@ -130,13 +139,13 @@ describe("safety stock", () => {
     );
   });
 
-  it("meets the analytic cycle service level of its reference level over 400 seeds", () => {
+  it("meets the analytic cycle service level of its reference level over 400 replications", () => {
     const reference = template("classic.safety_stock").reference({});
     expect(reference.values.level).toBe(113);
     const scenario = load("return classic.safety_stock {}");
     const policy = referencePolicy("classic.safety_stock", {});
     const shares = Array.from({ length: 400 }, (_, i) => {
-      const out = runSimulation(scenario, policy, { seed: i + 1, detail: "full" });
+      const out = runSimulation(scenario, policy, { seed: replication(i), detail: "full" });
       const site = out.sites.findIndex((s) => s.station === "Shop" && s.resource === "Goods");
       // The first delivery ends the start-up cycle, which began with no stock.
       const deliveries = ofKind(out.events, "delivery").slice(1);
@@ -236,7 +245,7 @@ describe("reorder", () => {
     const scenario = load(templateCall("classic.reorder", params));
     const policy = referencePolicy("classic.reorder", params);
     const perDay = Array.from({ length: 200 }, (_, i) => {
-      const out = runSimulation(scenario, policy, { seed: i + 1, detail: "summary" });
+      const out = runSimulation(scenario, policy, { seed: replication(i), detail: "summary" });
       return out.metrics.costs.total / 1000 / 30;
     });
     const { mean, half } = interval(perDay);

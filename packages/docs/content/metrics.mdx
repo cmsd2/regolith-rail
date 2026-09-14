@@ -157,6 +157,23 @@ Cost per unit of backordered demand per sol, charged every minute.
 
 Cost per unit of production that did not fit at its station.
 
+## Long-run averages
+
+Below the metrics, the run view tabulates the run's long-run averages. For each station
+and resource it gives the average stock over the run; the flow in, whether unloaded,
+delivered or produced, and the flow out, whether loaded, shipped, expired or consumed, in
+units a day; and two times in hours. **Stock ÷ out** is the average stock divided by the
+outflow, which by Little's law is how long a unit stays there on average. **Waited** is
+that time measured directly, by following every unit that left, first in first out, from
+its arrival to its departure. The two agree when the run is long beside the wait; units
+still there when the run ends are not counted in the second, so it falls short where a
+place turns over slowly.
+
+The line's row for each resource adds the stock at every station to the cargo aboard
+vehicles, divides by what the line's consumers used a day, and gives the average time a
+unit spends on the line from its arrival to its use. [Chapter 2](/docs/book/flows) of the
+book explains these figures and reads a line with them.
+
 ## Comparing policies
 
 A batch runs both policies on the same seeds, so each seed gives a paired difference

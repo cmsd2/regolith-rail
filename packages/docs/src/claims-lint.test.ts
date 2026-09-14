@@ -46,10 +46,23 @@ describe("claims lint", () => {
     expect(checkClaims([page(body)], tests)).toEqual([]);
   });
 
-  it("names the line of an unchecked equation", () => {
-    const body = `Text.\n\n$$\nq = 1\n$$\n\nMore text.\n\n${exercises}`;
+  it("names the line of an equation with no check before the next heading or formula", () => {
+    const body = `Text.\n\n$$\nq = 1\n$$\n\nMore text.\n\n### Next\n\n$$\nr = 2\n$$\n\n$$\ns = 3\n$$\n\n<Check ref="test:known test" />\n\n${exercises}`;
     expect(checkClaims([page(body)], tests)).toEqual([
-      "book/newsvendor line 8: displayed mathematics has no <Check> after it",
+      "book/newsvendor line 8: displayed mathematics has no <Check> before the next heading or formula",
+      "book/newsvendor line 16: displayed mathematics has no <Check> before the next heading or formula",
+    ]);
+  });
+
+  it("lets one check after the worked numbers cover a formula and its numbers", () => {
+    const body = `$$\nq = 1\n$$\n\nSo $q$ is 1.\n\n- A list.\n\n<Check ref="test:known test" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests)).toEqual([]);
+  });
+
+  it("names a check cited twice outside the answers", () => {
+    const body = `$$\nq = 1\n$$\n\n<Check ref="test:known test" />\n\nSo $q$ is 1.\n\n<Check ref="test:known test" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests)).toEqual([
+      "book/newsvendor line 14: test:known test is already cited on line 10",
     ]);
   });
 
@@ -66,7 +79,16 @@ describe("claims lint", () => {
     expect(checkClaims([page(body)], tests)).toEqual([
       "book/newsvendor: Exercises needs at least two exercises with an <Answer>, found 1",
       "book/newsvendor line 10: the answer has no <Check>",
+      "book/newsvendor: Exercises needs one exercise run in the simulator, with an answer citing a test: or example: check",
     ]);
+  });
+
+  it("requires one exercise answered by a simulator check", () => {
+    const body = exercises.replaceAll('<Check ref="test:known test" />', "$q = 1$");
+    const problems = checkClaims([page(body)], tests);
+    expect(problems).toContain(
+      "book/newsvendor: Exercises needs one exercise run in the simulator, with an answer citing a test: or example: check",
+    );
   });
 
   it("rejects inline checks, and leaves unchecked maths outside the book alone", () => {

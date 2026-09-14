@@ -27,9 +27,23 @@ function containsCheck(node: RootContent): boolean {
 }
 
 /**
+ * Whether a check appears among the siblings after a displayed formula, before the next heading
+ * or formula. A formula and the paragraph stating its worked numbers can then share one check.
+ */
+function checkedBeforeNext(children: RootContent[], from: number): boolean {
+  for (let i = from + 1; i < children.length; i++) {
+    const sibling = children[i] as RootContent;
+    if (sibling.type === "heading" || sibling.type === "math") return false;
+    if (containsCheck(sibling)) return true;
+  }
+  return false;
+}
+
+/**
  * Problems with the claims a page makes: in Book chapters, displayed mathematics without a
- * check after it and exercise answers without a check; on every page, checks placed inline and
- * references that don't resolve.
+ * check before the next heading or formula, a check cited twice outside exercise answers, and
+ * exercise answers without a check; on every page, checks placed inline and references that
+ * don't resolve.
  */
 export function checkClaims(pages: Page[], tests = workspaceTestTitles()): string[] {
   const problems: string[] = [];
@@ -48,16 +62,27 @@ export function checkClaims(pages: Page[], tests = workspaceTestTitles()): strin
       if (!("children" in node)) return;
       const children = node.children as RootContent[];
       children.forEach((child, i) => {
-        if (child.type !== "math") return;
-        let next = i + 1;
-        while (children[next]?.type === "math") next++;
-        if (!isElement(children[next], "Check")) {
+        if (child.type === "math" && !checkedBeforeNext(children, i)) {
           problems.push(
-            `${name} line ${lineOf(child)}: displayed mathematics has no <Check> after it`,
+            `${name} line ${lineOf(child)}: displayed mathematics has no <Check> before the next heading or formula`,
           );
         }
       });
     });
+
+    // A check is cited once for a claim; answers may cite the same check as the text.
+    const inAnswers = new Set<RootContent>();
+    visit(page.tree, (node) => {
+      if (!isElement(node as RootContent, "Answer")) return;
+      for (const { node: check } of checkElements(node as never)) inAnswers.add(check);
+    });
+    const cited = new Map<string, number>();
+    for (const { node, ref, line } of checkElements(page.tree)) {
+      if (inAnswers.has(node)) continue;
+      const first = cited.get(ref);
+      if (first === undefined) cited.set(ref, line);
+      else problems.push(`${name} line ${line}: ${ref} is already cited on line ${first}`);
+    }
 
     const children = page.tree.children;
     const start = children.findIndex(
@@ -76,6 +101,15 @@ export function checkClaims(pages: Page[], tests = workspaceTestTitles()): strin
       if (!containsCheck(answer)) {
         problems.push(`${name} line ${lineOf(answer)}: the answer has no <Check>`);
       }
+    }
+    // One exercise must send the reader to the simulator, with the answer checked by a run.
+    const simulated = answers.some((answer) =>
+      checkElements(answer as never).some(({ ref }) => /^(test|example):/.test(ref)),
+    );
+    if (answers.length > 0 && !simulated) {
+      problems.push(
+        `${name}: Exercises needs one exercise run in the simulator, with an answer citing a test: or example: check`,
+      );
     }
   }
   return problems;

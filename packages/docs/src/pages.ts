@@ -21,7 +21,6 @@ export const SECTIONS = [
   "Book",
   "Guides",
   "Failure modes",
-  "Classic problems",
   "Policy API",
   "ops reference",
   "Scenarios",
