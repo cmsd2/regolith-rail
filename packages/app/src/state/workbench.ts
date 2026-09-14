@@ -3,21 +3,24 @@ import { STARTER_SCRIPTS, type TemplateParams, templateCall } from "@regolith-ra
 import { createStore, type StoreApi } from "zustand/vanilla";
 import {
   catalogueItem,
+  experimentParts,
   referenceOf,
   referencePolicyItem,
-  shippedPolicyFor,
-  shippedScenarioFor,
-  stableHash,
 } from "../lib/catalogue.ts";
+import { canonical } from "../lib/content-hash.ts";
+import { experimentContentOf, experimentName } from "../lib/experiments.ts";
 import {
   copyName,
+  type ExperimentItem,
   type ItemId,
   isEditable,
   itemId,
   type LibraryItem,
   newMineId,
   type PolicyItem,
+  parsePartId,
   type ScenarioItem,
+  uniqueName,
 } from "../lib/library.ts";
 import { duplicated, renamed, takenNames } from "../lib/library-ops.ts";
 import type { SessionRecord } from "../lib/library-storage.ts";
@@ -86,17 +89,6 @@ export const DEFAULT_SLOTS: Slots = {
   compare: itemId("builtin", "policy", "supply-to-demand"),
 };
 
-/** Work that can be restored from a share link or a documentation example. */
-export interface WorkContent {
-  view?: WorkbenchState["view"];
-  policy: PolicyDraft;
-  policyB?: PolicyDraft;
-  scenario: ScenarioSource;
-  seed: number;
-  saveReloadTest?: boolean;
-  batch?: Pick<BatchState, "seedCount" | "baseSeed" | "compare">;
-}
-
 export interface WorkbenchState {
   /** Whether the session has restored any shared or saved work. */
   loaded: boolean;
@@ -138,8 +130,19 @@ export interface WorkbenchState {
   loadLibrary(items: readonly LibraryItem[], session?: SessionRecord): void;
   /** Fills a slot with a library item of the matching kind. Nothing runs. */
   fillSlot(slot: SlotName, id: ItemId): void;
-  /** Replaces the work in progress, clearing results. Nothing runs. */
-  restore(content: WorkContent): void;
+  /**
+   * Opens a documentation example: its policy with the scenario it runs on, or its scenario
+   * script, with its seed. Nothing runs.
+   */
+  openExample(id: ItemId): void;
+  /** Fills every slot from an experiment and restores its seed, batch settings and view. Nothing runs. */
+  openExperiment(id: ItemId): void;
+  /** Saves the current run as a new Mine experiment and returns its id. */
+  saveExperiment(name?: string): ItemId;
+  /** Rewrites a Mine experiment from the current run. */
+  updateExperiment(id: ItemId): void;
+  /** Adds an experiment from a share link to the library, unless it is already there. */
+  addSharedExperiment(item: ExperimentItem): void;
   renameItem(id: ItemId, name: string): void;
   /** Keeps a slot's item under Mine with a name: renames a Mine item, or copies anything else. */
   saveSlotAs(slot: SlotName, name: string): void;
@@ -342,23 +345,6 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       };
     };
 
-    /** An unlisted, read-only item for shared content that matches nothing shipped. */
-    const sharedItem = (
-      kind: "policy" | "scenario",
-      name: string,
-      content: string | ScenarioSource,
-    ): LibraryItem =>
-      ({
-        id: itemId("shared", kind, stableHash(content)),
-        kind,
-        source: "shared",
-        name,
-        content,
-        createdAt: now(),
-        updatedAt: now(),
-        listed: false,
-      }) as LibraryItem;
-
     const initialItems: Record<ItemId, LibraryItem> = {};
     const initialScenario = catalogueItem(DEFAULT_SLOTS.scenario) as ScenarioItem;
 
@@ -435,48 +421,38 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
         });
       },
 
-      restore(content) {
+      openExperiment(id) {
         dependencies.client.cancel();
         dependencies.pool.cancel();
         set((s) => {
+          const experiment = lookup(s.items, id);
+          if (experiment?.kind !== "experiment") return {};
           let items = s.items;
-          const resolve = (
-            kind: "policy" | "scenario",
-            shipped: LibraryItem | undefined,
-            name: string,
-            value: string | ScenarioSource,
-          ) => {
-            const item = shipped ?? sharedItem(kind, name, value);
-            items = using(items, item);
-            return item.id;
-          };
-          const scenario = resolve(
-            "scenario",
-            shippedScenarioFor(content.scenario),
-            "Shared scenario",
-            content.scenario,
-          );
-          const policyName = (draft: PolicyDraft) =>
-            draft.name.replace(/\.lua$/, "") || "Shared policy";
-          const policy = resolve(
-            "policy",
-            shippedPolicyFor(content.policy.source, content.scenario),
-            policyName(content.policy),
-            content.policy.source,
-          );
-          const compare = content.policyB
-            ? resolve(
-                "policy",
-                shippedPolicyFor(content.policyB.source, content.scenario),
-                policyName(content.policyB),
-                content.policyB.source,
-              )
-            : s.slots.compare;
+          const slots = { ...s.slots };
+          for (const part of experimentParts(experiment)) {
+            const name = parsePartId(part.id)?.part as SlotName;
+            // A part still equal to the read-only item it came from fills its slot with that item,
+            // so a classic reference policy keeps following its template.
+            const origin = part.origin ? lookup(items, part.origin) : undefined;
+            const same =
+              origin !== undefined &&
+              !isEditable(origin.id) &&
+              origin.kind === part.kind &&
+              canonical(origin.content) === canonical(part.content);
+            if (same && origin) {
+              items = using(items, origin);
+              slots[name] = origin.id;
+            } else {
+              items = { ...items, [part.id]: part };
+              slots[name] = part.id;
+            }
+          }
+          const { content } = experiment;
           return {
-            ...withSlots(s, { scenario, policy, compare }, items),
-            view: content.view ?? s.view,
+            ...withSlots(s, slots, items),
             seed: content.seed,
-            saveReloadTest: content.saveReloadTest ?? s.saveReloadTest,
+            view: content.view,
+            saveReloadTest: content.saveReloadTest,
             run: { status: "idle", progress: 0, output: null, error: null },
             selectedStop: null,
             selectedReview: null,
@@ -490,6 +466,60 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
               results: null,
               error: null,
             },
+          };
+        });
+      },
+
+      saveExperiment(name) {
+        const s = get();
+        const content = experimentContentOf(s);
+        const time = now();
+        const taken = takenNames(Object.values(s.items), "experiment");
+        const item: ExperimentItem = {
+          id: newMineId("experiment"),
+          kind: "experiment",
+          source: "mine",
+          name: uniqueName(name?.trim() || experimentName(content), taken),
+          content,
+          createdAt: time,
+          updatedAt: time,
+        };
+        set({ items: { ...s.items, [item.id]: item } });
+        return item.id;
+      },
+
+      updateExperiment(id) {
+        set((s) => {
+          const item = s.items[id];
+          if (item?.kind !== "experiment" || !isEditable(id)) return {};
+          const updated = { ...item, content: experimentContentOf(s), updatedAt: now() };
+          return { items: { ...s.items, [id]: updated } };
+        });
+      },
+
+      addSharedExperiment(item) {
+        set((s) => (s.items[item.id] ? {} : { items: { ...s.items, [item.id]: item } }));
+      },
+
+      openExample(id) {
+        dependencies.client.cancel();
+        dependencies.pool.cancel();
+        set((s) => {
+          const item = lookup(s.items, id);
+          if (!item?.example || item.kind === "experiment") return {};
+          const script = item.kind === "scenario";
+          const slots = script
+            ? { ...s.slots, scenario: id }
+            : { ...s.slots, scenario: item.example.scenario, policy: id };
+          return {
+            ...withSlots(s, slots, s.items),
+            view: "run",
+            seed: item.example.seed,
+            editorTab: script ? "scenario" : "policy",
+            run: { status: "idle", progress: 0, output: null, error: null },
+            selectedStop: null,
+            selectedReview: null,
+            reveal: null,
           };
         });
       },

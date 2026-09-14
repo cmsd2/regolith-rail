@@ -24,9 +24,9 @@
 
 ## 5. Experiments and sharing
 
-- [ ] 5.1 Implement save as experiment, update experiment, and open experiment (slots, seed, view and batch settings, no run). Verify unit tests: opening restores everything, and editing a part forks it without changing the experiment.
-- [ ] 5.2 Map share links to and from experiment content without changing the link format. Open links as `shared:experiment:<hash>` items, deduplicated by content. Verify unit tests: a link round trip, the same link twice gives one item, and links from the first release still open.
-- [ ] 5.3 Hand docs examples over through `#example.<page>.<n>` fragments. Fill slots with example items in the workbench tab. Verify unit tests: an example leaves Mine items unchanged, and an unknown example shows a notice.
+- [x] 5.1 Implement save as experiment, update experiment, and open experiment (slots, seed, view and batch settings, no run). Verify unit tests: opening restores everything, and editing a part forks it without changing the experiment.
+- [x] 5.2 Map share links to and from experiment content without changing the link format. Open links as `shared:experiment:<hash>` items, deduplicated by content. Verify unit tests: a link round trip, the same link twice gives one item, and links from the first release still open.
+- [x] 5.3 Hand docs examples over through `#example.<page>.<n>` fragments. Fill slots with example items in the workbench tab. Verify unit tests: an example leaves Mine items unchanged, and an unknown example shows a notice.
 
 ## 6. Import and export
 

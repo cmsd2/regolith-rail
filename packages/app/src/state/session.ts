@@ -1,4 +1,10 @@
 import type { StoreApi } from "zustand/vanilla";
+import { exampleFragment } from "../lib/examples.ts";
+import {
+  experimentFromShareState,
+  experimentName,
+  sharedExperimentId,
+} from "../lib/experiments.ts";
 import type { ItemId, LibraryItem } from "../lib/library.ts";
 import type { LibraryStorage } from "../lib/library-storage.ts";
 import { migrateStorage } from "../lib/migrate.ts";
@@ -32,7 +38,8 @@ export async function startSession(options: SessionOptions): Promise<() => void>
   const now = options.now ?? Date.now;
   const storage = await options.storage;
   await library.getState().attach(storage);
-  const { notify, restore, setLoaded, loadLibrary } = workbench.getState();
+  const { notify, setLoaded, loadLibrary, addSharedExperiment, openExperiment, openExample } =
+    workbench.getState();
 
   if (options.formerStorage) {
     const former = await options.formerStorage;
@@ -53,8 +60,21 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     const decoded = await decodeShare(options.hash);
     options.clearHash();
     if (decoded.ok) {
+      // The link becomes an experiment under Shared with me; opening it again reuses it.
+      const content = experimentFromShareState(decoded.state);
+      const time = now();
+      const id = await sharedExperimentId(content);
       loadLibrary(items);
-      restore(decoded.state);
+      addSharedExperiment({
+        id,
+        kind: "experiment",
+        source: "shared",
+        name: experimentName(content),
+        content,
+        createdAt: time,
+        updatedAt: time,
+      });
+      openExperiment(id);
       shared = true;
       notify(
         "info",
@@ -67,6 +87,12 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     }
   }
   if (!shared) loadLibrary(items, session);
+  const example = exampleFragment(options.hash);
+  if (example !== null) {
+    options.clearHash();
+    if (workbench.getState().itemById(example)?.example) openExample(example);
+    else notify("warning", "example-unknown", "That documentation example no longer exists.");
+  }
   if (!storage.available) {
     notify(
       "warning",
@@ -82,7 +108,12 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     items: new Map(storedItems(state).map((item) => [item.id, item])),
     session: JSON.stringify(toSessionRecord(state)),
   });
-  let written = snapshot(workbench.getState());
+  // What storage holds now; anything the session added while starting, such as a shared
+  // experiment, differs from it and is saved straight away.
+  let written = {
+    items: new Map(items.map((item) => [item.id, item])),
+    session: session ? JSON.stringify(session) : "",
+  };
   let latest = written;
   let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -104,7 +135,7 @@ export async function startSession(options: SessionOptions): Promise<() => void>
       );
   };
 
-  const unsubscribe = workbench.subscribe((state) => {
+  const changed = (state: WorkbenchState) => {
     const next = snapshot(state);
     const same =
       next.session === latest.session &&
@@ -115,7 +146,9 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     library.getState().setDraftStatus("pending");
     clearTimeout(timer);
     timer = setTimeout(save, delay);
-  });
+  };
+  changed(workbench.getState());
+  const unsubscribe = workbench.subscribe(changed);
   const flush = () => {
     if (timer !== undefined) {
       clearTimeout(timer);

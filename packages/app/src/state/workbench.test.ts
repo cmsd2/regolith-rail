@@ -233,6 +233,79 @@ describe("workbench store", () => {
     expect(rescued?.listed).toBeUndefined();
   });
 
+  it("saves the run as an experiment and restores it later without running", () => {
+    const store = workbench();
+    store.getState().selectStarter("storm-shock");
+    store
+      .getState()
+      .setPolicySource("return ops.policy { target = ops.min_max { min = 1, max = 2 } }");
+    store.getState().setSeed(7);
+    const id = store.getState().saveExperiment("Storm buffer");
+    const policyId = store.getState().slots.policy;
+    expect(store.getState().items[id]).toMatchObject({ kind: "experiment", name: "Storm buffer" });
+
+    store.getState().selectStarter("relay");
+    store.getState().setSeed(2);
+    store.getState().setPolicySource("-- changed after saving\nreturn {}");
+    store.getState().openExperiment(id);
+    const opened = store.getState();
+    expect(opened.slots.scenario).toBe("builtin:scenario:storm-shock");
+    expect(opened.policy.source).toContain("ops.min_max");
+    expect(opened.seed).toBe(7);
+    expect(opened.run.status).toBe("idle");
+    // The Mine policy was edited since, so the experiment's own copy fills the slot.
+    expect(opened.slots.policy).toBe(`experiment:${id}/policy`);
+
+    // Editing that part copies it to Mine and leaves the experiment as it was.
+    store.getState().setPolicySource("-- tweaked\nreturn {}");
+    const after = store.getState();
+    expect(after.slots.policy).toMatch(/^mine:policy:/);
+    expect(after.slots.policy).not.toBe(policyId);
+    const experiment = after.items[id];
+    expect(experiment?.kind === "experiment" && experiment.content.policy.content).toContain(
+      "ops.min_max",
+    );
+
+    store.getState().updateExperiment(id);
+    const updated = store.getState().items[id];
+    expect(updated?.kind === "experiment" && updated.content.policy.content).toBe(
+      "-- tweaked\nreturn {}",
+    );
+  });
+
+  it("opens a classic experiment with shipped items whose reference policy follows the template", () => {
+    const store = workbench();
+    const newsvendor = classicTemplates.find((t) => t.name === "classic.newsvendor");
+    if (!newsvendor) throw new Error("newsvendor missing");
+    store.getState().openExperiment("classic:experiment:classic.newsvendor");
+    expect(store.getState().slots).toMatchObject({
+      scenario: "classic:scenario:classic.newsvendor",
+      policy: "classic:policy:classic.newsvendor",
+    });
+    store.getState().setTemplateParams({ lost_cost: 9 });
+    expect(store.getState().policy.source).toBe(
+      newsvendor.reference({ ...newsvendor.defaults, lost_cost: 9 }).policy,
+    );
+  });
+
+  it("opens a documentation example without changing the player's work", () => {
+    const store = workbench();
+    store.getState().setPolicySource("-- mine\nreturn {}");
+    const mineId = store.getState().slots.policy;
+    store.getState().openExample("example:policy:docs/failure-modes/disruption-recovery#1");
+    const state = store.getState();
+    expect(state.slots).toMatchObject({
+      scenario: "builtin:scenario:storm-shock",
+      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+    });
+    expect(state.items[mineId]?.content).toBe("-- mine\nreturn {}");
+    store.getState().setPolicySource("-- edited example\nreturn {}");
+    const copy = store.getState().slots.policy;
+    expect(copy).toMatch(/^mine:policy:/);
+    expect(copy).not.toBe(mineId);
+    expect(store.getState().items[mineId]?.content).toBe("-- mine\nreturn {}");
+  });
+
   it("runs the current policy and scenario", async () => {
     const store = workbench();
     await store.getState().startRun();

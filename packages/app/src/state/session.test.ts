@@ -60,6 +60,61 @@ describe("session", () => {
     expect(state.run.status).toBe("idle");
     expect(state.notices.map((n) => n.topic)).toEqual(["share-loaded"]);
     expect(target.hashCleared()).toBe(true);
+    const shared = Object.values(state.items).filter((i) => i.kind === "experiment");
+    expect(shared).toHaveLength(1);
+    expect(shared[0]).toMatchObject({ source: "shared", name: "Relay station · naive (copy)" });
+  });
+
+  it("keeps one shared experiment for a link opened on two visits", async () => {
+    const source = setup();
+    source.workbench.getState().setPolicySource("-- shared\nreturn {}");
+    const hash = await encodeShare(toShareState(source.workbench.getState(), "test"));
+
+    const storage = memoryLibraryStorage();
+    const first = setup(storage);
+    const stop = await first.start(hash);
+    await settle();
+    stop();
+    const second = setup(storage);
+    await second.start(hash);
+    await settle();
+    const experiments = (await storage.listItems()).filter((i) => i.kind === "experiment");
+    expect(experiments).toHaveLength(1);
+    expect(second.workbench.getState().policy.source).toBe("-- shared\nreturn {}");
+  });
+
+  it("opens a link from the first release with its format 1 scenario upgraded", async () => {
+    const state = {
+      apiVersion: 2,
+      appVersion: "0.1.0",
+      view: "run",
+      policy: { name: "old.lua", source: "return { on_stop = function(ctx) end }\n" },
+      scenario: { starterId: "relay", text: formerRelayText },
+      seed: 3,
+      saveReloadTest: false,
+    };
+    const hash = await encodeShare(state as never);
+    const { workbench, start } = setup();
+    await start(hash);
+    const opened = workbench.getState();
+    expect(opened.slots.scenario).toBe("builtin:scenario:relay");
+    expect(opened.policy).toEqual({ name: "old", source: state.policy.source });
+    expect(opened.seed).toBe(3);
+  });
+
+  it("opens a documentation example from its fragment, or says it no longer exists", async () => {
+    const found = setup();
+    await found.start("#example.failure-modes/disruption-recovery.1");
+    expect(found.workbench.getState().slots).toMatchObject({
+      scenario: "builtin:scenario:storm-shock",
+      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+    });
+    expect(found.hashCleared()).toBe(true);
+
+    const missing = setup();
+    await missing.start("#example.nowhere.9");
+    expect(missing.workbench.getState().notices.map((n) => n.topic)).toEqual(["example-unknown"]);
+    expect(missing.workbench.getState().slots.policy).toBe("builtin:policy:naive");
   });
 
   it("reports a damaged link and restores the saved slots", async () => {

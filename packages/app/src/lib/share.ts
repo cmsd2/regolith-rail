@@ -1,5 +1,6 @@
 import { POLICY_API_VERSION } from "@regolith-rail/engine";
 import type { WorkbenchState } from "../state/workbench.ts";
+import { experimentContentOf, shareStateOf } from "./experiments.ts";
 import { type ScenarioSource, upgradeScenarioRecord } from "./scenario-source.ts";
 
 /** Links longer than this may be truncated by forums and chat apps. */
@@ -25,20 +26,9 @@ export function scenarioRecord(scenario: ScenarioSource): ScenarioSource {
   return { kind, source, starterId, ...(template ? { template } : {}) };
 }
 
-/** The parts of the workbench a share link carries. */
+/** The parts of the workbench a share link carries: the experiment its slots make up. */
 export function toShareState(state: WorkbenchState, appVersion: string): ShareState {
-  const { seedCount, baseSeed, compare } = state.batch;
-  return {
-    apiVersion: POLICY_API_VERSION,
-    appVersion,
-    view: state.view,
-    policy: state.policy,
-    ...(state.view === "batch" && compare ? { policyB: state.policyB } : {}),
-    scenario: scenarioRecord(state.scenario),
-    seed: state.seed,
-    saveReloadTest: state.saveReloadTest,
-    ...(state.view === "batch" ? { batch: { seedCount, baseSeed, compare } } : {}),
-  };
+  return shareStateOf(experimentContentOf(state), appVersion);
 }
 
 /**

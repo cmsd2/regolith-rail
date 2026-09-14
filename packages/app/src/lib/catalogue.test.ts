@@ -6,8 +6,8 @@ import {
   experimentParts,
   referenceOf,
   referencePolicyItem,
-  stableHash,
 } from "./catalogue.ts";
+import { contentHash, stableHash } from "./content-hash.ts";
 import { type ExperimentItem, itemId, parseItemId, parsePartId } from "./library.ts";
 
 const ids = (source: string, kind: string) =>
@@ -95,9 +95,11 @@ describe("transient items", () => {
     );
   });
 
-  it("hash values independently of key order", () => {
+  it("hash values independently of key order", async () => {
     expect(stableHash({ a: 1, b: { c: [1, 2] } })).toBe(stableHash({ b: { c: [1, 2] }, a: 1 }));
     expect(stableHash({ a: 1 })).not.toBe(stableHash({ a: 2 }));
+    expect(await contentHash({ a: 1, b: 2 })).toBe(await contentHash({ b: 2, a: 1 }));
+    expect(await contentHash({ a: 1 })).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it("stand for an experiment's parts under its source", () => {
