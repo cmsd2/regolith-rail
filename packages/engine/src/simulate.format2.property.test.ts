@@ -68,7 +68,7 @@ describe("engine properties for format 2", () => {
   );
 
   it(
-    "repeats every run exactly",
+    "repeats every format 2 run exactly",
     () => {
       fc.assert(
         fc.property(arbitraryScenarioV2, fc.nat(), (input, policySeed) => {

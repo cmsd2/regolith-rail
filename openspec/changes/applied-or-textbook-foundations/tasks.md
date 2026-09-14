@@ -30,7 +30,7 @@
 ## 6. Chapters 1, 2, 3 and 5
 
 - [x] 6.1 Write chapter 1, Modelling operations, on `two-station`, with the half capacity case study moved in, the fix marked, and the starter's `docs` field updated. Verify `docs:check`, `docs:claims` and the link check pass, and the library's Why the baseline fails for `two-station` opens the case study.
-- [ ] 6.2 Write chapter 2, Randomness and simulation. Use `classic.reorder { random = true }` compared over many seeds. Check the Poisson mean and variance, the standard error's square-root law and a confidence interval in Maxima or Python. Verify `docs:check` and `docs:claims` pass.
+- [x] 6.2 Write chapter 2, Randomness and simulation. Use `classic.reorder { random = true }` compared over many seeds. Check the Poisson mean and variance, the standard error's square-root law and a confidence interval in Maxima or Python. Verify `docs:check` and `docs:claims` pass.
 - [ ] 6.3 Write chapter 3, Reviews, lead times and base-stock, on `classic.reorder`, absorbing the base-stock part of `classic/reorder` and the double dispatch case study. Update the `two-trains` `docs` field. Verify `docs:check`, `docs:claims` and the link check pass, and Why the baseline fails for `two-trains` opens the case study.
 - [ ] 6.4 Write chapter 5, Order quantities: EOQ and (s, S), on `classic.reorder`, absorbing the rest of `classic/reorder`. Point the `reorder` construct's docs at the chapters, and redirect `classic/reorder`. Verify `docs:check`, `docs:claims` and the link check pass, and the template's About this problem link opens a Book chapter.
 

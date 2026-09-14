@@ -1,0 +1,76 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "code",
+   "source": "/* prelude: shared by every checks notebook. Keep in sync with packages/docs/checks/prelude.mac. */\nexpect_equal(name, got, want) :=\n  if is(equal(ratsimp(got - want), 0)) then true\n  else error(\"check failed:\", name, \"got\", got, \"want\", want)$\nexpect_close(name, got, want, tol) :=\n  if is(abs(float(got - want)) <= tol) then true\n  else error(\"check failed:\", name, \"got\", float(got), \"want\", float(want), \"tolerance\", tol)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* Poisson counts: the chance of k arrivals when the mean count is m. */\nassume(m > 0, lam > 0)$\npmf(k) := exp(-m) * m^k / k!$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: poisson-mean-variance */\ntotal: ev(sum(pmf(k), k, 0, inf), simpsum)$\nexpect_equal(\"poisson-total\", total, 1);\nmean_count: ev(sum(k * pmf(k), k, 0, inf), simpsum)$\nexpect_equal(\"poisson-mean\", mean_count, m);\nsecond: ev(sum(k^2 * pmf(k), k, 0, inf), simpsum)$\nexpect_equal(\"poisson-variance\", second - mean_count^2, m);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exponential-gap */\n/* No arrival in a gap of length s is zero arrivals with mean lam s; the gaps then have mean 1/lam. */\nexpect_equal(\"no-arrival\", subst(m = lam * s, pmf(0)), exp(-lam * s));\nexpect_equal(\"mean-gap\", integrate(s * lam * exp(-lam * s), s, 0, inf), 1 / lam);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: protection-demand */\n/* Four arrivals a day over a lead time of 2 days and a review period of 6 hours. */\ncover_mean: 4 * (2 + 6/24)$\nexpect_equal(\"protection-mean\", cover_mean, 9);\nexpect_equal(\"protection-sd\", sqrt(cover_mean), 3);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: standard-error */\n/* The mean of n independent runs has standard deviation sigma / sqrt(n): four times the runs halve it. */\nse(n) := sigma / sqrt(n)$\nexpect_equal(\"standard-error-quarter\", se(4 * n) / se(n), 1/2);\nexpect_equal(\"seeds-to-halve\", rhs(first(solve(sigma / sqrt(n2) = sigma / (2 * sqrt(100)), n2))), 400);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: paired-variance */\n/* The difference of two runs on the same seed has variance a^2 + b^2 - 2 rho a b. */\npaired(a, b, rho) := a^2 + b^2 - 2 * rho * a * b$\nexpect_equal(\"paired-general\", paired(sigma, sigma, rho), 2 * sigma^2 * (1 - rho));\nexpect_equal(\"paired-ratio-09\", paired(sigma, sigma, 9/10) / paired(sigma, sigma, 0), 1/10);\nexpect_equal(\"paired-ratio-075\", paired(sigma, sigma, 3/4) / paired(sigma, sigma, 0), 1/4);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: no-arrival-day */\nexpect_close(\"no-arrival-day\", subst([lam = 4, s = 1], exp(-lam * s)), 0.0183, 0.00005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: binomial-substeps */\n/* A binomial count over n sub-steps with chance p each has mean n p and variance n p (1 - p). */\nexpect_equal(\"binomial-variance-ratio\", (n * p * (1 - p)) / (n * p), 1 - p);\n/* Four arrivals a sol, 1440 minutes, eight sub-steps a minute. */\np_four: 4 / (1440 * 8)$\nexpect_equal(\"substep-chance\", p_four, 1/2880);\nexpect_equal(\"variance-shortfall-small\", is(p_four < 1/1000), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  }
+ ]
+}

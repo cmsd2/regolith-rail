@@ -1,0 +1,261 @@
+---
+title: Randomness and simulation
+description: Random arrivals, estimating averages by simulation, and telling a real difference from luck.
+section: Book
+part: 1
+chapter: 2
+---
+
+## What you will learn
+
+- To describe random arrivals with the Poisson process, and to work out the mean and
+  spread of demand over a stretch of time.
+- To estimate an expected cost by averaging many simulated runs, and to say how precise
+  that estimate is with a standard error and a confidence interval.
+- To compare two policies fairly by running them on the same random numbers, and to see
+  why that needs far fewer runs than comparing independent runs.
+
+## The problem
+
+Real operations are noisy. Customers arrive when they arrive, machines break when they
+break, and the same policy run twice in the real world gives two different results. A
+single run of a simulation is one draw from that noise. It can make a poor policy look
+good, or a good one look poor.
+
+The remedy is to treat a simulation as an experiment. Run it many times with different
+random numbers, average the results, and measure how much the average could still move.
+When comparing two policies, run both on the same random numbers so the comparison sees
+their difference and not the luck of the draw (Law, 2015; Wasserman, 2004).
+
+## The model
+
+### Random arrivals
+
+When arrivals are independent and happen at a steady average rate $\lambda$, the number
+that occur in a time $t$ follows the Poisson distribution with mean $m = \lambda t$:
+
+$$
+P(N = k) = \frac{e^{-m} m^k}{k!}, \qquad k = 0, 1, 2, \ldots
+$$
+
+<Check ref="maxima:poisson-mean-variance" />
+
+Its mean and its variance are both $m$, so the standard deviation is $\sqrt{m}$. Demand
+that averages 9 units over a stretch of time typically lands within 3 units of that.
+
+<Check ref="maxima:poisson-mean-variance" />
+
+The chance of no arrival at all in a gap of length $s$ is the Poisson chance of zero,
+
+$$
+P(\text{no arrival in } s) = e^{-\lambda s},
+$$
+
+<Check ref="maxima:exponential-gap" />
+
+so the gaps between arrivals are exponential, with mean $1/\lambda$.
+
+<Check ref="maxima:exponential-gap" />
+
+### Demand over a protection interval
+
+Inventory decisions care about demand over a stretch of time: the lead time before an
+order arrives, plus the time until the next chance to order. With 4 arrivals a day, a
+lead time of 2 days and a review every 6 hours, demand over that stretch has mean
+$4 \times 2.25 = 9$ and standard deviation 3. Chapter 3 builds on this.
+
+<Check ref="maxima:protection-demand" />
+
+### Estimating by simulation
+
+Run a simulation $n$ times with different seeds and average the costs. The average
+$\bar{X}$ estimates the expected cost. If one run's cost has standard deviation
+$\sigma$, the average of $n$ independent runs has standard deviation
+
+$$
+\operatorname{SE}(\bar{X}) = \frac{\sigma}{\sqrt{n}},
+$$
+
+<Check ref="maxima:standard-error" />
+
+its standard error. Precision grows only with the square root of the effort: four times
+as many runs halve the standard error.
+
+<Check ref="maxima:standard-error" />
+
+We do not know $\sigma$, so we estimate it with the sample standard deviation $s$, and
+build a 95% confidence interval from Student's t distribution:
+
+$$
+\bar{X} \pm t_{0.975,\,n-1} \frac{s}{\sqrt{n}}.
+$$
+
+<Check ref="python:t-critical" />
+
+For 30 runs $t_{0.975,29} \approx 2.045$, and for 100 runs $t_{0.975,99} \approx 1.984$,
+close to the normal value 1.96. With 100 runs, a mean of 7.9 and $s = 1.4$, the interval
+is $7.9 \pm 0.28$, from 7.62 to 8.18.
+
+<Check ref="python:interval-example" />
+
+The same idea estimates anything. The share of random points in a square that land
+inside a quarter circle estimates $\pi/4$, and with 400,000 points its standard error, as
+an estimate of $\pi$, is about 0.0026.
+
+<Check ref="python:monte-carlo-pi" />
+
+### Comparing on the same seeds
+
+To compare policies A and B, look at the difference $D = X_B - X_A$. If the two are run
+on unrelated random numbers, the variances simply add. If they are run on the same seed,
+so both face the same arrivals, their costs move together with correlation $\rho$, and
+
+$$
+\operatorname{Var}(D) = \sigma_A^2 + \sigma_B^2 - 2\rho\,\sigma_A \sigma_B.
+$$
+
+<Check ref="maxima:paired-variance" />
+
+With equal spreads and $\rho = 0.9$, the variance of the difference is a tenth of what
+independent runs give, so the same precision needs a tenth of the runs. This technique is
+called common random numbers. For two policies each with a standard deviation of 1.4,
+the difference's standard deviation falls from 1.98 to 0.63.
+
+<Check ref="maxima:paired-variance" />
+
+<Check ref="python:paired-example" />
+
+## In the simulator
+
+The simulator makes randomness repeatable. Every run takes a seed, and the same scenario,
+policy and seed give exactly the same run.
+
+<Check ref="test:repeats every format 2 run exactly" />
+
+Poisson arrivals are drawn from the seed, whole units at a time, at their stated mean
+rate.
+
+<Check ref="test:gives Poisson arrivals their mean rate over many sols" />
+
+<Check ref="test:keeps Poisson arrivals whole and repeatable for the same seed" />
+
+The `classic.reorder` template has one station replenished after a lead time. Open it,
+then turn on **random** in its parameters for Poisson demand. This version has 4
+arrivals a day, a lead time of 2 days and a review every 6 hours, as above:
+
+<Scenario template="classic.reorder" />
+
+```lua runnable script
+return classic.reorder {
+  random = true,
+  demand = 4,
+  lead_time = days(2),
+  review_period = hours(6),
+  order_cost = 0,
+  duration = days(30),
+}
+```
+
+Its reference policy orders up to 13 units at each review: the smallest level that
+demand over the protection interval stays at or below with probability at least
+$10/11$, the ratio of the backorder cost to the backorder and holding costs together.
+
+<Check ref="python:base-stock-level" />
+
+Over 200 seeds, the average cost per day agrees with the analytic value within its
+confidence interval.
+
+<Check ref="test:reaches the analytic expected cost of a base-stock policy with random demand" />
+
+Now compare it with a policy ordering up to 15:
+
+```lua runnable scenario=classic.reorder
+return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }
+```
+
+In **Batch**, tick **Compare**, and run both over 100 seeds. The batch runs both
+policies on the same seeds, and reports the paired difference with a 95% confidence
+interval.
+
+<Check ref="test:compares two policies on the same seeds" />
+
+On seeds 1 to 100 the paired differences spread less than half as much as independent
+runs would, and the interval for the difference leaves out zero: ordering up to 15 costs
+more.
+
+<Check ref="test:comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more" />
+
+## Where the simulator differs
+
+- **Arrivals are a close approximation.** Exact Poisson sampling needs floating-point
+  functions that differ between browsers, so the simulator splits each minute into at
+  least eight sub-steps and gives each a small chance of an arrival. The mean is exact.
+  The variance is lower than a Poisson count's by a factor of one minus the chance per
+  sub-step, which at 4 arrivals a sol is $1/2880$.
+
+  <Check ref="maxima:binomial-substeps" />
+
+- **A table of t values.** The batch view reads critical values from a table and uses
+  the nearest smaller number of runs, so its intervals are never narrower than they
+  should be.
+
+  <Check ref="test:uses conservative t critical values" />
+
+- **Batches repeat.** A batch's seeds are derived from a base seed and the number of
+  runs, so running the same batch again gives the same results.
+
+  <Check ref="test:derives batch seeds from base seed and count only" />
+
+
+## Exercises
+
+1. A batch of 100 runs gives a confidence interval of a certain width. How many runs
+   would halve that width?
+
+<Answer>
+
+About 400. The width is proportional to $1/\sqrt{n}$, so halving it needs four times the
+runs.
+
+<Check ref="maxima:standard-error" />
+
+</Answer>
+
+2. Two policies' costs correlate at 0.75 when run on the same seeds, and have equal
+   spreads. Compared with independent runs, how many runs does a paired comparison need
+   for the same precision?
+
+<Answer>
+
+A quarter as many. The variance of the difference is $2\sigma^2(1 - 0.75)$, a quarter of
+the $2\sigma^2$ that independent runs give.
+
+<Check ref="maxima:paired-variance" />
+
+</Answer>
+
+3. Arrivals average 4 a day. What is the chance that a whole day passes with none?
+
+<Answer>
+
+$e^{-4} \approx 0.0183$, a little under 2%.
+
+<Check ref="maxima:no-arrival-day" />
+
+</Answer>
+
+<GameNote>
+
+Colonies in the rail game do not use resources at a perfectly steady rate, and the
+starter scenarios model that with rates that vary from hour to hour. A single run of a
+line is one possible colony. Before deciding one dispatch rule beats another, compare
+them in **Batch** over many seeds and check the interval leaves out zero.
+
+</GameNote>
+
+## References
+
+- Law, A.M. (2015) *Simulation modeling and analysis*. 5th edn. New York: McGraw-Hill
+  Education.
+- Wasserman, L. (2004) *All of statistics: a concise course in statistical inference*.
+  New York: Springer.

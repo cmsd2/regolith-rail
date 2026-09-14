@@ -28,6 +28,24 @@
     "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
   },
   {
+    "id": "book/randomness#1",
+    "page": "book/randomness",
+    "name": "Randomness and simulation (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.reorder {\n  random = true,\n  demand = 4,\n  lead_time = days(2),\n  review_period = hours(6),\n  order_cost = 0,\n  duration = days(30),\n}"
+  },
+  {
+    "id": "book/randomness#2",
+    "page": "book/randomness",
+    "name": "Randomness and simulation (example 2)",
+    "script": false,
+    "scenario": "classic.reorder",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
+  },
+  {
     "id": "classic/fixed-route-delivery#1",
     "page": "classic/fixed-route-delivery",
     "name": "Fixed-route delivery (example 1)",
