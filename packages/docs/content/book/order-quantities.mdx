@@ -29,6 +29,23 @@ falls with the quantity against one that rises, appears in many other decisions
 
 ## The model
 
+### Orders and reviews
+
+Part I's decisions were made by a train at a stop. Part II's are made by a station that
+has a supplier to order from. An order placed with the supplier arrives after a lead
+time, which in this chapter is zero. The station does not watch its stock continuously:
+it reviews it on a schedule, once every review period, and only at a review can it place
+an order.
+
+In `ops`, a policy for such a station gives a `review` table with a target, just as a
+policy for a train gives a target for each stop. At each review the policy orders the
+difference between the target and what the station holds, when that difference is
+positive. `ops.order_up_to { level = S }` targets $S$ at every review, so every review
+orders whatever has been used since the last. `ops.min_max { min = s, max = S }` targets
+$S$ only at a review where the station holds less than $s$, and otherwise orders nothing.
+This chapter uses the second; chapter 5 the first. A policy in plain Lua does the same
+work in an `on_review` function, described under [reviews and orders](/docs/api/review).
+
 ### The economic order quantity
 
 Let demand be a steady $D$ units a day, let each order cost $K$, and let each unit held
