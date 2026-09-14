@@ -145,6 +145,68 @@ could then overtake each other and the formula above would no longer hold.
 
 <Check ref="test:rejects lead times that differ by a review period or more" />
 
+## Case study: storm shock
+
+The `storm-shock` starter is chapter 1's line with a smaller mine, 40 units a day against
+the dome's 24, and a dust storm that arrives after three days. For one day the storm stops
+the mine: a supply shock. Half a day after it starts, repairs raise the dome's use to two
+and a half times normal, 60 units a day, for a day and a half: a demand shock. Both are
+states of the world, in which rates change while they last, and the timeline shows each as
+a band.
+
+<Scenario starter="storm-shock" />
+
+On a line, safety stock is what the demand station holds between visits. The train's
+round trip takes between eight and a third and nine and a third hours, so the dome uses
+eight to nine units between one visit and the next. Under balancing it holds about 10
+units when the storm begins, ten hours of normal use and four of the surge. Over seeds 1
+to 50 its station runs dry about 17 hours into the storm, stands empty for about 24
+hours in all, is still empty into the day after the storm has passed, and about 53 units
+of demand go unmet.
+
+<Check ref="test:on storm-shock over seeds 1 to 50 the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet" />
+
+The shock is larger than any buffer a 30-unit station can hold. The storm takes away 40
+units of the mine's output and adds 54 units to the dome's demand, 94 units against a
+station that holds 30. No safety stock rides it out. What the buffer decides is when the
+shortage starts and how long it lasts: the mine comes back a day into the storm and
+deliveries resume, and a dome still holding stock when they do hardly notices.
+
+<Check ref="maxima:storm-shock" />
+
+So keep the dome full, with the roles policy of chapter 1:
+
+```lua runnable scenario=storm-shock fix
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}
+```
+
+Between visits the dome now falls from 30 to about 21, and it holds about 23 units when
+the storm begins, nine hours of the surge. That reaches the mine's return: the station
+runs dry only late on the fifth day, for under two hours, with nothing after the storm,
+and about 4 units go unmet. A min–max target that lets the dome fall to 20 before
+refilling it holds less on average, 19 units, and leaves about 12 unmet. The buffer it
+gives up between refills is cover the storm needed.
+
+```lua runnable scenario=storm-shock
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = {
+    supply = ops.drain {},
+    demand = ops.min_max { min = 20000, max = 30000 },
+  },
+}
+```
+
+<Check ref="test:on storm-shock over seeds 1 to 50 keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12" />
+
+The chapter's method sizes safety stock for ordinary variability, and the few units that
+the dome's wandering use needs over a nine-hour visit are small beside a shock like this.
+A disruption is not variability. Part III returns to shocks of this size, and to what a
+line can do about them beyond holding a station full.
+
 ## Where the simulator differs
 
 - **No service level metric yet.** The simulator reports backorders and costs, not the

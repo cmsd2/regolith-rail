@@ -6,6 +6,7 @@ export const MOVED_PAGES: Readonly<Record<string, string>> = {
   "classic/newsvendor": "book/newsvendor",
   "classic/reorder": "book/order-quantities",
   "failure-modes/dead-stock": "book/flows#case-study-dead-stock",
+  "failure-modes/disruption-recovery": "book/safety-stock#case-study-storm-shock",
   "failure-modes/double-dispatch": "book/base-stock#case-study-double-dispatch",
   "failure-modes/half-capacity": "book/modelling#case-study-half-capacity",
 };

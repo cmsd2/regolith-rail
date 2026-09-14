@@ -22,8 +22,8 @@ describe("documentation examples", () => {
   it("prefer the example on the page being read when pages share its source", () => {
     const source = catalogueItem("example:policy:docs/ops/min-max#1")?.content as string;
     expect(findExampleItem(source, false, "ops/min-max")).toBe("example:policy:docs/ops/min-max#1");
-    expect(findExampleItem(source, false, "failure-modes/disruption-recovery")).toBe(
-      "example:policy:docs/failure-modes/disruption-recovery#1",
+    expect(findExampleItem(source, false, "book/safety-stock")).toBe(
+      "example:policy:docs/book/safety-stock#4",
     );
     expect(findExampleItem("return 'nothing like it'", false)).toBeNull();
   });

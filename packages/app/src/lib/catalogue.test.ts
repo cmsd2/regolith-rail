@@ -41,10 +41,10 @@ describe("catalogue", () => {
   it("lists only working policies: documentation snippets are kept for their pages, unlisted", () => {
     const listed = catalogue.filter((i) => i.listed !== false && i.source === "example");
     expect(listed.map((i) => [i.id, i.name])).toEqual([
-      ["example:policy:docs/book/base-stock#4", "Two trains fix"],
+      ["example:policy:docs/book/base-stock#5", "Two trains fix"],
       ["example:policy:docs/book/flows#1", "Relay station fix"],
       ["example:policy:docs/book/modelling#1", "Two stations fix"],
-      ["example:policy:docs/failure-modes/disruption-recovery#1", "Storm shock fix"],
+      ["example:policy:docs/book/safety-stock#3", "Storm shock fix"],
       ["example:policy:docs/failure-modes/ping-pong#1", "Mixed line fix"],
     ]);
     expect(catalogueItem("example:policy:docs/ops/min-max#1")?.listed).toBe(false);
@@ -92,7 +92,7 @@ describe("catalogue", () => {
   });
 
   it("pairs documentation examples with the scenario they run on", () => {
-    const example = catalogueItem("example:policy:docs/failure-modes/disruption-recovery#1");
+    const example = catalogueItem("example:policy:docs/book/safety-stock#3");
     expect(example?.example).toEqual({ scenario: "builtin:scenario:storm-shock", seed: 1 });
     expect(catalogueItem(example?.example?.scenario ?? "")).toBeDefined();
   });
@@ -108,7 +108,7 @@ describe("catalogue", () => {
     }
     const storm = catalogueItem("builtin:scenario:storm-shock");
     expect(storm?.kind === "scenario" && storm.lesson?.fix).toBe(
-      "example:policy:docs/failure-modes/disruption-recovery#1",
+      "example:policy:docs/book/safety-stock#3",
     );
   });
 
@@ -133,7 +133,7 @@ describe("catalogue", () => {
       createdAt: 1,
       updatedAt: 1,
     };
-    expect(lessonOf(copy, catalogueItem)?.docs).toBe("failure-modes/disruption-recovery");
+    expect(lessonOf(copy, catalogueItem)?.docs).toBe("book/safety-stock#case-study-storm-shock");
     const { origin: _origin, ...unlinked } = copy;
     const orphan: LibraryItem = {
       ...unlinked,

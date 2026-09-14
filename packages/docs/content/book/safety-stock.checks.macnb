@@ -78,6 +78,13 @@
    "metadata": {},
    "execution_count": null,
    "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: storm-shock */\n/* The storm-shock line: a mine making 40 a day, a dome using 24, legs of 72,000 at speed 5, a 30-unit train with 10-minute stops plus a minute a unit. */\nstorm_mine: 40$\nstorm_dome: 24$\nleg_hours: 72000 / 5 / 3600$\nround_trip_hours(load) := 2 * leg_hours + 2 * (10 + load) / 60$\nexpect_equal(\"round-trip-empty-stops\", round_trip_hours(0), 25/3);\nexpect_equal(\"round-trip-full-stops\", round_trip_hours(30), 28/3);\nexpect_equal(\"use-between-visits-least\", storm_dome * round_trip_hours(0) / 24, 25/3);\nexpect_equal(\"use-between-visits-most\", storm_dome * round_trip_hours(30) / 24, 28/3);\n/* The storm stops the mine for a day and raises the dome's use to 2.5 times for a day and a half. */\nsupply_lost: storm_mine * 1$\ndemand_added: (5/2 * storm_dome - storm_dome) * 3/2$\nexpect_equal(\"supply-lost\", supply_lost, 40);\nexpect_equal(\"demand-added\", demand_added, 54);\nexpect_equal(\"shock-size\", supply_lost + demand_added, 94);\nexpect_equal(\"shock-exceeds-station\", is(supply_lost + demand_added > 30), true);\n/* Cover in hours: 10 units at normal and surge use, and 23 units at surge use. */\ncover_hours(stock, per_day) := stock / per_day * 24$\nexpect_equal(\"balancing-cover-normal\", cover_hours(10, storm_dome), 10);\nexpect_equal(\"balancing-cover-surge\", cover_hours(10, 5/2 * storm_dome), 4);\nexpect_close(\"full-cover-surge\", cover_hours(23, 5/2 * storm_dome), 9.2, 0.05);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
   }
  ]
 }

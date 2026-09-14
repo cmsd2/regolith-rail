@@ -16,14 +16,14 @@
 
 ## 3. Chapter 3 on the two-station line
 
-- [ ] 3.1 Write a test on `two-station` over seeds 1 to 100 comparing the obvious rule with `balance-stock`: the paired difference in weighted unmet demand has a 95% interval excluding zero, and its sample standard deviation is below that of the independent difference. Verify it passes.
-- [ ] 3.2 Rewrite chapter 3's simulator section around that comparison, remove the protection-interval preview and the borrowed base-stock policy, and move the level 13 versus 15 comparison and its test citation to chapter 6's simulator section. Verify `docs:check` passes and chapter 3 cites no term from Part II.
+- [x] 3.1 Write a test on `two-station` over seeds 1 to 100 comparing the obvious rule with `balance-stock`: the paired difference in weighted unmet demand has a 95% interval excluding zero, and its sample standard deviation is below that of the independent difference. Verify it passes.
+- [x] 3.2 Rewrite chapter 3's simulator section around that comparison, remove the protection-interval preview and the borrowed base-stock policy, and move the level 13 versus 15 comparison and its test citation to chapter 6's simulator section. Verify `docs:check` passes and chapter 3 cites no term from Part II.
 
 ## 4. Storm shock into chapter 7
 
-- [ ] 4.1 Write tests on `storm-shock` over seeds 1 to 50: the `min_max` fix leaves less unmet demand than the baseline, and holds stock at the dome when the storm begins. Add Maxima cells for the round trip as a protection interval and the buffer's cover in hours. Verify the tests and `docs:claims` pass.
-- [ ] 4.2 Write the "Case study: storm shock" section in `book/safety-stock.mdx`, reading the storm as a demand shock over the round trip and sizing the buffer with the chapter's method, with the fix example marked `fix`. Verify the chapter-standard lint passes and the section's numbers cite the new checks.
-- [ ] 4.3 Move disruption recovery: delete `failure-modes/disruption-recovery.mdx`, add it to `MOVED_PAGES`, point the `storm-shock` starter at the case study, alias its fix id, regenerate the examples index, and prefix `failure-modes/ping-pong.mdx` with a line saying Part III tells it in full. Verify the catalogue and moved-page tests, and that Why the baseline fails on `storm-shock` opens chapter 7.
+- [x] 4.1 Write tests on `storm-shock` over seeds 1 to 50: the `min_max` fix leaves less unmet demand than the baseline, and holds stock at the dome when the storm begins. Add Maxima cells for the round trip as a protection interval and the buffer's cover in hours. Verify the tests and `docs:claims` pass.
+- [x] 4.2 Write the "Case study: storm shock" section in `book/safety-stock.mdx`, reading the storm as a demand shock over the round trip and sizing the buffer with the chapter's method, with the fix example marked `fix`. Verify the chapter-standard lint passes and the section's numbers cite the new checks.
+- [x] 4.3 Move disruption recovery: delete `failure-modes/disruption-recovery.mdx`, add it to `MOVED_PAGES`, point the `storm-shock` starter at the case study, alias its fix id, regenerate the examples index, and prefix `failure-modes/ping-pong.mdx` with a line saying Part III tells it in full. Verify the catalogue and moved-page tests, and that Why the baseline fails on `storm-shock` opens chapter 7.
 
 ## 5. Something to run in every chapter
 

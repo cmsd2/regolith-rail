@@ -126,6 +126,22 @@ interval.
 
 <Check ref="test:reaches the analytic expected cost of a base-stock policy with random demand" />
 
+Now compare it with a policy ordering up to 15:
+
+```lua runnable scenario=classic.reorder
+return ops.policy {
+  review = { target = ops.order_up_to { level = 15000 } },
+}
+```
+
+In **Batch**, tick **Compare**, and run both over 100 seeds. Both policies face the same
+demand, so their costs rise and fall together, and on seeds 1 to 100 the paired
+differences spread less than half as much as independent runs would. The interval for the
+difference leaves out zero: ordering up to 15 costs more, because every unit above the
+critical fractile is held more often than it is needed.
+
+<Check ref="test:comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more" />
+
 Now order up to the same level from stock on hand, in plain Lua:
 
 ```lua runnable scenario=classic.reorder

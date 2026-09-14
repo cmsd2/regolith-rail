@@ -53,15 +53,6 @@ so the gaps between arrivals are exponential, with mean $1/\lambda$.
 
 <Check ref="maxima:exponential-gap" />
 
-### Demand over a protection interval
-
-Inventory decisions care about demand over a stretch of time: the lead time before an
-order arrives, plus the time until the next chance to order. With 4 arrivals a day, a
-lead time of 2 days and a review every 6 hours, demand over that stretch has mean
-$4 \times 2.25 = 9$ and standard deviation 3. Chapter 6 builds on this.
-
-<Check ref="maxima:protection-demand" />
-
 ### Estimating by simulation
 
 Run a simulation $n$ times with different seeds and average the costs. The average
@@ -134,53 +125,54 @@ rate.
 
 <Check ref="test:keeps Poisson arrivals whole and repeatable for the same seed" />
 
-The `classic.reorder` template has one station replenished after a lead time. Open it,
-then turn on **random** in its parameters for Poisson demand. This version has 4
-arrivals a day, a lead time of 2 days and a review every 6 hours, as above:
+Chapter 1's line is the place to see what a seed changes. The `two-station` starter's
+dome uses 36 units a day on average, but its rate is redrawn every two hours, up to 20%
+either way, from the seed. Open it with the balancing baseline, run seed 1, then seed 2:
+the unmet demand differs, and neither run is the answer.
 
-<Scenario template="classic.reorder" />
+<Scenario starter="two-station" />
 
-```lua runnable script
-return classic.reorder {
-  random = true,
-  demand = 4,
-  lead_time = days(2),
-  review_period = hours(6),
-  order_cost = 0,
-  duration = days(30),
-}
-```
+Switch to **Batch** and run `balance-stock` over 100 seeds. Unmet demand averages 28.0
+units with a sample standard deviation of 3.1, so the standard error of the mean is 0.31
+and the 95% interval runs from about 27.4 to 28.6. The single runs range over more than
+ten units: any one of them could have been ten units out.
 
-Its reference policy orders up to 13 units at each review: the smallest level that
-demand over the protection interval stays at or below with probability at least
-$10/11$, the ratio of the backorder cost to the backorder and holding costs together.
+<Check ref="test:on two-station over seeds 1 to 100 balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand on every seed" />
 
-<Check ref="python:base-stock-level" />
+Now tick **Compare**, choose the obvious rule from chapter 1 as the second policy, and
+run again.
 
-Over 200 seeds, the average cost per day agrees with the analytic value within its
-confidence interval.
-
-<Check ref="test:reaches the analytic expected cost of a base-stock policy with random demand" />
-
-Now compare it with a policy ordering up to 15:
-
-```lua runnable scenario=classic.reorder
+```lua runnable scenario=two-station
 return ops.policy {
-  review = { target = ops.order_up_to { level = 15000 } },
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
 }
 ```
 
-In **Batch**, tick **Compare**, and run both over 100 seeds. The batch runs both
-policies on the same seeds, and reports the paired difference with a 95% confidence
-interval.
+The batch runs both policies on the same seeds, and reports each metric's paired
+difference with a 95% confidence interval.
 
 <Check ref="test:compares two policies on the same seeds" />
 
-On seeds 1 to 100 the paired differences spread less than half as much as independent
-runs would, and the interval for the difference leaves out zero: ordering up to 15 costs
-more.
+On unmet demand there is nothing to pair: the obvious rule meets all demand on every
+seed, so the difference is the baseline's own spread, and its interval, $28.0 pm 0.6$,
+leaves out zero by a wide margin. Stalled production is where pairing shows. Both
+policies stall the mine more on a seed where the dome happens to use less, so their
+stalls rise and fall together, with a correlation of about 0.75. The paired differences
+spread 2.98 units against the 3.73 that independent runs would give, a fifth less, so the
+same precision needs about two thirds as many runs.
 
-<Check ref="test:comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more" />
+Pairing can also hurt. The two policies' empty running moves in opposite directions with
+demand: balancing runs emptier on a seed where the dome uses less, and the obvious rule
+on one where it uses more. Their correlation is negative, and the paired differences
+spread more than independent runs would. Common random numbers reduce variance when
+the policies respond to the noise in the same direction, which is the usual case, but it
+is worth checking.
+
+<Check ref="test:on two-station over seeds 1 to 100 the two policies' stalled production rises and falls together with a correlation of about 0.75, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more" />
+
+Chapter 6 compares two order-up-to levels on the same seeds. There both policies answer
+the same demand in the same direction, and the paired spread falls to less than half.
 
 ## Where the simulator differs
 

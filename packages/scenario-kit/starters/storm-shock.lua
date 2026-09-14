@@ -7,7 +7,7 @@ return mars.line {
     .. "damage it leaves behind sends metal demand at the dome up for a sol "
     .. "and a half. Balancing runs the dome close to empty in normal "
     .. "operation, so it has no buffer for either shock and recovers slowly.",
-  docs = "failure-modes/disruption-recovery",
+  docs = "book/safety-stock#case-study-storm-shock",
   duration = sols(10),
   stations = {
     mars.small_station {

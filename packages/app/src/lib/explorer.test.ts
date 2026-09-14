@@ -58,7 +58,7 @@ describe("policy list", () => {
     const tree = policyTree(catalogue, [], fitContext(storm, lookup()));
     expect(labels(tree)).toEqual(["For this scenario", "Built in", "Other examples"]);
     expect(groupIds(tree, "For this scenario")).toEqual([
-      "example:policy:docs/failure-modes/disruption-recovery#1",
+      "example:policy:docs/book/safety-stock#3",
     ]);
     expect(groupIds(tree, "Built in")).toEqual([
       "builtin:policy:balance-stock",

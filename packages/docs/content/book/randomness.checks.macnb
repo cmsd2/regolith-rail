@@ -39,13 +39,6 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: protection-demand */\n/* Four arrivals a day over a lead time of 2 days and a review period of 6 hours. */\ncover_mean: 4 * (2 + 6/24)$\nexpect_equal(\"protection-mean\", cover_mean, 9);\nexpect_equal(\"protection-sd\", sqrt(cover_mean), 3);",
-   "metadata": {},
-   "execution_count": null,
-   "outputs": []
-  },
-  {
-   "cell_type": "code",
    "source": "/* check: standard-error */\n/* The mean of n independent runs has standard deviation sigma / sqrt(n): four times the runs halve it. */\nse(n) := sigma / sqrt(n)$\nexpect_equal(\"standard-error-quarter\", se(4 * n) / se(n), 1/2);\nexpect_equal(\"seeds-to-halve\", rhs(first(solve(sigma / sqrt(n2) = sigma / (2 * sqrt(100)), n2))), 400);",
    "metadata": {},
    "execution_count": null,

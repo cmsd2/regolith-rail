@@ -190,6 +190,16 @@ test.describe("the book", () => {
     await expect(page.getByTestId("doc-article").locator("h1")).toHaveText("Modelling operations");
   });
 
+  test("disruption recovery's old page sends readers to chapter 7's storm shock", async ({
+    page,
+  }) => {
+    await page.goto("/docs/failure-modes/disruption-recovery");
+    await expect(page).toHaveURL(/\/docs\/book\/safety-stock#case-study-storm-shock$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
+      "Safety stock and service levels",
+    );
+  });
+
   test("dead stock's old page sends readers to chapter 2's case study", async ({ page }) => {
     await page.goto("/docs/failure-modes/dead-stock");
     await expect(page).toHaveURL(/\/docs\/book\/flows#case-study-dead-stock$/);

@@ -151,6 +151,51 @@ function spread(values: number[]) {
 }
 
 describe("chapter 3, randomness and simulation", () => {
+  const OBVIOUS = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}`;
+  /** Sample correlation between two paired samples. */
+  const correlation = (x: number[], y: number[]) => {
+    const a = spread(x);
+    const b = spread(y);
+    const cov = x.reduce((sum, v, i) => sum + (v - a.mean) * ((y[i] as number) - b.mean), 0);
+    return cov / (x.length - 1) / (a.sd * b.sd);
+  };
+
+  it("on two-station over seeds 1 to 100 balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand on every seed", () => {
+    const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100).map(
+      (m) => m.unmetDemand / 1000,
+    );
+    const { mean: average, sd } = spread(balance);
+    expect(average).toBeGreaterThan(27.5);
+    expect(average).toBeLessThan(28.5);
+    expect(sd / 10).toBeGreaterThan(0.28);
+    expect(sd / 10).toBeLessThan(0.34);
+    expect(Math.max(...balance) - Math.min(...balance)).toBeGreaterThan(10);
+    for (const m of metricsOver("two-station", OBVIOUS, 100)) expect(m.unmetDemand).toBe(0);
+  }, 300_000);
+
+  it("on two-station over seeds 1 to 100 the two policies' stalled production rises and falls together with a correlation of about 0.75, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more", () => {
+    const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100);
+    const obvious = metricsOver("two-station", OBVIOUS, 100);
+    const compare = (pick: (m: (typeof balance)[number]) => number) => {
+      const a = balance.map(pick);
+      const b = obvious.map(pick);
+      const paired = spread(b.map((v, i) => v - (a[i] as number))).sd;
+      const independent = Math.sqrt(spread(a).sd * spread(a).sd + spread(b).sd * spread(b).sd);
+      return { correlation: correlation(a, b), ratio: paired / independent };
+    };
+    const stalled = compare((m) => m.stalledProduction / 1000);
+    expect(stalled.correlation).toBeGreaterThan(0.7);
+    expect(stalled.correlation).toBeLessThan(0.8);
+    expect(stalled.ratio).toBeGreaterThan(0.75);
+    expect(stalled.ratio).toBeLessThan(0.85);
+    const empty = compare((m) => m.emptyDistanceShare);
+    expect(empty.correlation).toBeLessThan(0);
+    expect(empty.ratio).toBeGreaterThan(1);
+  }, 300_000);
+
   it("comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more", () => {
     const params = {
       random: true,
@@ -283,6 +328,103 @@ describe("chapter 4, order quantities", () => {
     expect(Math.abs(costPerDay(10) - 25)).toBeLessThan(1);
     expect(Math.abs(costPerDay(40) - 25)).toBeLessThan(1);
   }, 120_000);
+});
+
+describe("chapter 7, the storm shock case study", () => {
+  const HOUR = 3_600_000;
+  const FILL = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}`;
+  const MIN_MAX = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.min_max { min = 20000, max = 30000 } },
+}`;
+
+  /**
+   * The dome's stock when the storm begins, when and for how long its station stands empty,
+   * and unmet demand, averaged over seeds.
+   */
+  function domeOver(source: string, seeds: number) {
+    const result = validateScenario(starterScenarios.find((s) => s.id === "storm-shock")?.document);
+    if (!result.ok) throw new Error("invalid starter storm-shock");
+    const policy = runtime.createPolicy(source);
+    try {
+      const runs = Array.from({ length: seeds }, (_, i) => {
+        const out = runSimulation(result.scenario, policy, { seed: i + 1, detail: "full" });
+        const stock = out.stock as Int32Array;
+        const sites = out.sites.length;
+        const rows = stock.length / sites;
+        const dome = out.sites.findIndex((s) => s.station === "Dome");
+        const at = (ms: number) =>
+          (stock[Math.floor(ms / out.tickMs) * sites + dome] as number) / 1000;
+        let empty = 0;
+        let emptyAfterStorm = 0;
+        let first = -1;
+        let last = 0;
+        let sum = 0;
+        for (let r = 0; r < rows; r++) {
+          const level = stock[r * sites + dome] as number;
+          sum += level;
+          if (level > 0) continue;
+          empty++;
+          last = r;
+          if (first < 0) first = r;
+          if (r * out.tickMs > 5 * DAY) emptyAfterStorm++;
+        }
+        return {
+          atStorm: at(3 * DAY),
+          average: sum / rows / 1000,
+          emptyHours: (empty * out.tickMs) / HOUR,
+          emptyAfterStormHours: (emptyAfterStorm * out.tickMs) / HOUR,
+          firstEmptyDay: first < 0 ? Number.POSITIVE_INFINITY : (first * out.tickMs) / DAY,
+          lastEmptyDay: (last * out.tickMs) / DAY,
+          unmet: out.metrics.unmetDemand / 1000,
+        };
+      });
+      const over = (pick: (r: (typeof runs)[number]) => number) => mean(runs.map(pick));
+      return {
+        atStorm: over((r) => r.atStorm),
+        average: over((r) => r.average),
+        emptyHours: over((r) => r.emptyHours),
+        emptyAfterStormHours: over((r) => r.emptyAfterStormHours),
+        firstEmptyDay: over((r) => r.firstEmptyDay),
+        lastEmptyDay: over((r) => r.lastEmptyDay),
+        unmet: over((r) => r.unmet),
+      };
+    } finally {
+      policy.close();
+    }
+  }
+
+  it("on storm-shock over seeds 1 to 50 the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet", () => {
+    const dome = domeOver(BUILT_IN_POLICIES["balance-stock"], 50);
+    expect(dome.atStorm).toBeGreaterThan(8.5);
+    expect(dome.atStorm).toBeLessThan(10.5);
+    expect(dome.firstEmptyDay).toBeGreaterThan(3.6);
+    expect(dome.firstEmptyDay).toBeLessThan(3.8);
+    expect(dome.emptyHours).toBeGreaterThan(22);
+    expect(dome.emptyHours).toBeLessThan(26);
+    expect(dome.lastEmptyDay).toBeGreaterThan(5);
+    expect(dome.unmet).toBeGreaterThan(50);
+    expect(dome.unmet).toBeLessThan(56);
+  }, 600_000);
+
+  it("on storm-shock over seeds 1 to 50 keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12", () => {
+    const full = domeOver(FILL, 50);
+    expect(full.atStorm).toBeGreaterThan(22);
+    expect(full.atStorm).toBeLessThan(24.5);
+    expect(full.emptyHours).toBeLessThan(2);
+    expect(full.emptyAfterStormHours).toBe(0);
+    expect(full.firstEmptyDay).toBeGreaterThan(4.8);
+    expect(full.unmet).toBeGreaterThan(3);
+    expect(full.unmet).toBeLessThan(6);
+    const minMax = domeOver(MIN_MAX, 50);
+    expect(minMax.average).toBeGreaterThan(18);
+    expect(minMax.average).toBeLessThan(20);
+    expect(minMax.unmet).toBeGreaterThan(10);
+    expect(minMax.unmet).toBeLessThan(14);
+  }, 600_000);
 });
 
 describe("chapter 8, forecasting", () => {
