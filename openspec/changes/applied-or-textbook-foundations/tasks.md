@@ -7,7 +7,7 @@
 
 - [x] 2.1 Add `Book` to `SECTIONS`, and `part` and `chapter` to the frontmatter type. Add the `BOOK` constant with Parts I–V and chapters 1–7, marking planned parts. Verify unit tests for frontmatter parsing, and that the docs check rejects a chapter whose frontmatter disagrees with `BOOK`.
 - [ ] 2.2 Write the contents page `book.mdx` from `BOOK`. Group the docs navigation by part. Add previous and next chapter links to chapter pages. Verify an e2e test that opens the contents, sees Parts III–V marked as coming later, and follows next from chapter 3 to chapter 4.
-- [ ] 2.3 Add the chapter-standard lint to `docs:check`: fixed second-level headings in order, one `GameNote` before References. Add a `GameNote` component styled as a side note. Verify unit tests for a missing Exercises heading and a missing side note, each naming the chapter.
+- [x] 2.3 Add the chapter-standard lint to `docs:check`: fixed second-level headings in order, one `GameNote` before References. Add a `GameNote` component styled as a side note. Verify unit tests for a missing Exercises heading and a missing side note, each naming the chapter.
 
 ## 3. Checked claims
 

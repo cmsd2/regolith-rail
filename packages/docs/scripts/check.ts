@@ -4,6 +4,7 @@ import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
 import { constructs } from "@regolith-rail/scenario-kit";
 import {
   checkBook,
+  checkChapterStandard,
   checkConstructs,
   checkExampleIndex,
   checkFrontmatter,
@@ -30,6 +31,7 @@ const problems = [
   ...checkTemplatePages(constructs, new Set(pages.map((p) => p.slug))),
   ...checkFrontmatter(pages),
   ...checkBook(pages),
+  ...checkChapterStandard(pages),
   ...checkExampleIndex(committedExamples, exampleIndex(pages)),
 ];
 

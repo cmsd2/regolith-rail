@@ -109,6 +109,16 @@ export function BuildInfo() {
   );
 }
 
+/** A chapter's side note connecting its topic to rail lines in the game, set apart from the main text. */
+export function GameNote({ children }: { children: ReactNode }) {
+  return (
+    <aside className={styles.gameNote} aria-label="On the rail line" data-testid="game-note">
+      <p className={styles.gameNoteLabel}>On the rail line</p>
+      {children}
+    </aside>
+  );
+}
+
 /** The book's parts and chapters, with chapters not yet written marked as coming later. */
 export function BookContents() {
   return (
@@ -141,6 +151,7 @@ export const mdxComponents: MDXComponents = {
   BookContents,
   BuildInfo,
   Example,
+  GameNote,
   Evidence,
   Callout,
 };
