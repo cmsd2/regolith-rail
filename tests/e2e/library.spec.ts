@@ -166,7 +166,10 @@ test.describe("library explorer", () => {
     await expect(page.getByTestId("slot-policy-name")).toHaveText("naive (copy)");
     expect(await editorText(page, "policy-editor")).toContain("-- my baseline");
     await openItem(page, "builtin:policy:naive");
-    expect(await editorText(page, "policy-editor")).not.toContain("-- my baseline");
+    await expectSlot(page, "policy", "builtin:policy:naive");
+    await expect(page.getByTestId("policy-editor").locator(".cm-content")).not.toContainText(
+      "-- my baseline",
+    );
   });
 
   test("duplicates, exports and deletes items", async ({ page }) => {
