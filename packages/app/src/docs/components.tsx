@@ -109,6 +109,52 @@ export function BuildInfo() {
   );
 }
 
+/**
+ * The check behind a claim, filled in at build time: what it is, where it lives and, for Maxima
+ * and Python checks, the code that verifies it.
+ */
+export function Check({
+  ref: reference,
+  kind,
+  label,
+  file,
+  source,
+  error,
+}: {
+  ref: string;
+  kind?: string;
+  label?: string;
+  file?: string;
+  source?: string;
+  error?: string;
+}) {
+  if (error) {
+    return (
+      <p className={styles.checkError} data-testid="check" data-check={reference}>
+        Unresolved check: {error}
+      </p>
+    );
+  }
+  return (
+    <details className={styles.check} data-testid="check" data-check={reference} data-kind={kind}>
+      <summary>Check</summary>
+      <p className={styles.checkLabel}>
+        {label}
+        {file && (
+          <>
+            , in <code>{file}</code>
+          </>
+        )}
+      </p>
+      {source && (
+        <pre className={styles.checkSource}>
+          <code>{source}</code>
+        </pre>
+      )}
+    </details>
+  );
+}
+
 /** A chapter's side note connecting its topic to rail lines in the game, set apart from the main text. */
 export function GameNote({ children }: { children: ReactNode }) {
   return (
@@ -150,6 +196,7 @@ export const mdxComponents: MDXComponents = {
   a: DocLink,
   BookContents,
   BuildInfo,
+  Check,
   Example,
   GameNote,
   Evidence,

@@ -1,6 +1,7 @@
 // Parts that read files or run policies, for the build and the documentation check.
 export * from "./book.ts";
 export * from "./chapters.ts";
+export * from "./claims.ts";
 export * from "./content.ts";
 export * from "./examples.ts";
 export * from "./links.ts";
