@@ -140,3 +140,18 @@ test.describe("documentation panel", () => {
     await expect(page.getByTestId("docs-panel").locator("h1")).toHaveText("ops.lookahead");
   });
 });
+
+test.describe("the book", () => {
+  test("lists its parts, with those not yet written marked as coming later", async ({ page }) => {
+    await page.goto("/docs/book");
+    const contents = page.getByTestId("book-contents");
+    await expect(contents).toBeVisible();
+    for (const part of [3, 4, 5]) {
+      await expect(page.getByTestId(`book-part-${part}`).locator("h2")).toContainText(
+        "coming later",
+      );
+      await expect(page.getByTestId(`book-part-${part}`).getByRole("link")).toHaveCount(0);
+    }
+    await expect(page.getByRole("navigation", { name: "Documentation" })).toContainText("Contents");
+  });
+});

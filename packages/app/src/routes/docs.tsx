@@ -1,3 +1,4 @@
+import { BOOK, BOOK_CONTENTS, isWritten, partNumeral } from "@regolith-rail/docs";
 import { NavLink, useLocation } from "react-router";
 import { Page } from "../components/Page.tsx";
 import { DocArticle } from "../docs/DocArticle.tsx";
@@ -18,21 +19,59 @@ export function meta({ location }: Route.MetaArgs) {
   ];
 }
 
+/** The book's written chapters, grouped by part under the contents page. */
+function BookNav() {
+  return (
+    <>
+      <ul>
+        <li>
+          <NavLink to={`/docs/${BOOK_CONTENTS}`} end>
+            Contents
+          </NavLink>
+        </li>
+      </ul>
+      {BOOK.filter(isWritten).map((part) => (
+        <div key={part.part} className={styles.navPart}>
+          <h3>
+            Part {partNumeral(part.part)}: {part.title}
+          </h3>
+          <ul>
+            {part.chapters.map(
+              (c) =>
+                c.slug && (
+                  <li key={c.chapter}>
+                    <NavLink to={`/docs/${c.slug}`} end>
+                      {c.chapter}. {c.title}
+                    </NavLink>
+                  </li>
+                ),
+            )}
+          </ul>
+        </div>
+      ))}
+    </>
+  );
+}
+
 function DocsNav() {
   return (
     <nav className={styles.nav} aria-label="Documentation">
       {docSections().map(({ section, pages }) => (
         <div key={section}>
           <h2>{section}</h2>
-          <ul>
-            {pages.map((page) => (
-              <li key={page.slug}>
-                <NavLink to={page.slug ? `/docs/${page.slug}` : "/docs"} end>
-                  {page.title}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          {section === "Book" ? (
+            <BookNav />
+          ) : (
+            <ul>
+              {pages.map((page) => (
+                <li key={page.slug}>
+                  <NavLink to={page.slug ? `/docs/${page.slug}` : "/docs"} end>
+                    {page.title}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       ))}
     </nav>

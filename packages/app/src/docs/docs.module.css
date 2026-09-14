@@ -314,3 +314,37 @@
     max-height: none;
   }
 }
+
+.navPart h3 {
+  margin: 0.5rem 0 0.15rem 0.5rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bookContents,
+.bookContents ol {
+  padding-left: 1.5rem;
+}
+
+.bookContents > li {
+  list-style: none;
+}
+
+.bookContents h2 {
+  margin: 1.25rem 0 0.25rem;
+  font-size: 17px;
+}
+
+.coming {
+  color: var(--muted);
+}
+
+.chapterNav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}

@@ -1,4 +1,12 @@
-import { EVIDENCE_LEVELS, GAME, GAME_VERSION, isEvidenceLevel } from "@regolith-rail/docs";
+import {
+  BOOK,
+  EVIDENCE_LEVELS,
+  GAME,
+  GAME_VERSION,
+  isEvidenceLevel,
+  isWritten,
+  partNumeral,
+} from "@regolith-rail/docs";
 import { POLICY_API_VERSION, starterScenarios } from "@regolith-rail/engine";
 import { classicTemplates } from "@regolith-rail/scenario-kit";
 import type { MDXComponents } from "mdx/types";
@@ -101,8 +109,36 @@ export function BuildInfo() {
   );
 }
 
+/** The book's parts and chapters, with chapters not yet written marked as coming later. */
+export function BookContents() {
+  return (
+    <ol className={styles.bookContents} data-testid="book-contents">
+      {BOOK.map((part) => (
+        <li key={part.part} data-testid={`book-part-${part.part}`}>
+          <h2>
+            Part {partNumeral(part.part)}: {part.title}
+            {!isWritten(part) && <span className={styles.coming}> (coming later)</span>}
+          </h2>
+          <ol start={part.chapters[0]?.chapter}>
+            {part.chapters.map((c) => (
+              <li key={c.chapter}>
+                {c.slug ? (
+                  <DocLink href={`/docs/${c.slug}`}>{c.title}</DocLink>
+                ) : (
+                  <span className={styles.coming}>{c.title}</span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export const mdxComponents: MDXComponents = {
   a: DocLink,
+  BookContents,
   BuildInfo,
   Example,
   Evidence,
