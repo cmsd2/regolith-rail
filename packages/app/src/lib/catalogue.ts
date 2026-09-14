@@ -5,7 +5,6 @@ import {
   type ClassicTemplate,
   classicConstructs,
   classicTemplates,
-  examplePolicies,
   policyHeader,
   type TemplateParams,
 } from "@regolith-rail/scenario-kit";
@@ -73,25 +72,21 @@ function builtInPolicyItems(): PolicyItem[] {
   }));
 }
 
-function examplePolicyItems(): PolicyItem[] {
-  return examplePolicies.map((policy) => ({
-    ...readOnly,
-    id: itemId("example", "policy", policy.file),
-    kind: "policy",
-    source: "example",
-    name: policy.name,
-    description: policy.description,
-    content: policy.source,
-  }));
-}
-
-function docsExampleItems(): LibraryItem[] {
+/**
+ * Every runnable documentation example, so a docs page can open one. Most are snippets that make sense
+ * beside their page, so only the starters' suggested fixes are listed, named for their scenario.
+ */
+function docsExampleItems(starters: readonly ScenarioItem[]): LibraryItem[] {
+  const fixes = new Map(
+    starters.flatMap((s): [ItemId, ScenarioItem][] => (s.lesson?.fix ? [[s.lesson.fix, s]] : [])),
+  );
   return examples.map((example): LibraryItem => {
     const base = {
       ...readOnly,
       source: "example" as const,
       name: example.name,
       example: { scenario: scenarioItemId(example.scenario), seed: example.seed },
+      listed: false,
     };
     return example.script
       ? {
@@ -107,9 +102,19 @@ function docsExampleItems(): LibraryItem[] {
           kind: "policy",
           description: `A policy from the ${example.name} documentation page.`,
           content: example.source,
+          ...fixFor(fixes.get(docsExampleId("policy", example.id)), example.name),
         };
   });
 }
+
+const fixFor = (starter: ScenarioItem | undefined, page: string) =>
+  starter
+    ? {
+        name: `${starter.name} fix`,
+        description: `The suggested fix for ${starter.name}, from the ${page} page.`,
+        listed: true,
+      }
+    : {};
 
 const templateConstruct = (template: ClassicTemplate) =>
   classicConstructs.find((c) => c.name === template.name);
@@ -145,13 +150,7 @@ function classicItems(): LibraryItem[] {
 
 function buildCatalogue(): LibraryItem[] {
   const starters = starterItems();
-  return [
-    ...starters,
-    ...builtInPolicyItems(),
-    ...examplePolicyItems(),
-    ...docsExampleItems(),
-    ...classicItems(),
-  ];
+  return [...starters, ...builtInPolicyItems(), ...docsExampleItems(starters), ...classicItems()];
 }
 
 /** Every read-only item the site ships, in listing order. */

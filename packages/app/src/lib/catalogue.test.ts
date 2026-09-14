@@ -33,14 +33,21 @@ describe("catalogue", () => {
         expect(catalogueItem(itemId("classic", kind, template.name)), template.name).toBeDefined();
       }
     }
-    expect(ids("example", "policy")).toEqual(
-      expect.arrayContaining([
-        "example:policy:moving-average",
-        "example:policy:docs/ops/min-max#1",
-      ]),
-    );
+    expect(ids("example", "policy")).toContain("example:policy:docs/ops/min-max#1");
     expect(ids("example", "scenario")).toContain("example:scenario:docs/scenarios/writing#1");
     expect(catalogue.filter((i) => i.kind === "experiment")).toEqual([]);
+  });
+
+  it("lists only working policies: documentation snippets are kept for their pages, unlisted", () => {
+    const listed = catalogue.filter((i) => i.listed !== false && i.source === "example");
+    expect(listed.map((i) => [i.id, i.name])).toEqual([
+      ["example:policy:docs/failure-modes/dead-stock#1", "Relay station fix"],
+      ["example:policy:docs/failure-modes/disruption-recovery#1", "Storm shock fix"],
+      ["example:policy:docs/failure-modes/double-dispatch#1", "Two trains fix"],
+      ["example:policy:docs/failure-modes/half-capacity#1", "Two stations fix"],
+      ["example:policy:docs/failure-modes/ping-pong#1", "Mixed line fix"],
+    ]);
+    expect(catalogueItem("example:policy:docs/classic/reorder#2")?.listed).toBe(false);
   });
 
   it("gives every item a valid, unique id, a name and a one-line description", () => {

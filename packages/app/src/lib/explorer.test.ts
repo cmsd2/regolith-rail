@@ -39,7 +39,7 @@ const lookup =
 describe("scenario list", () => {
   it("groups scenarios by source and leaves out empty groups", () => {
     const tree = scenarioTree(catalogue, []);
-    expect(labels(tree)).toEqual(["Built in", "Examples", "Classic problems"]);
+    expect(labels(tree)).toEqual(["Built in", "Classic problems"]);
     expect(labels(tree[0]?.children ?? [])).toEqual([
       "Two stations",
       "Relay station",
@@ -59,7 +59,6 @@ describe("policy list", () => {
     expect(labels(tree)).toEqual(["For this scenario", "Built in", "Other examples"]);
     expect(groupIds(tree, "For this scenario")).toEqual([
       "example:policy:docs/failure-modes/disruption-recovery#1",
-      "example:policy:docs/ops/min-max#1",
     ]);
     expect(groupIds(tree, "Built in")).toEqual([
       "builtin:policy:naive",
@@ -80,12 +79,7 @@ describe("policy list", () => {
       updatedAt: 1,
     };
     const tree = policyTree(catalogue, [copy], fitContext(copy, lookup([copy])));
-    expect(groupIds(tree, "For this scenario")).toEqual(
-      expect.arrayContaining([
-        "classic:policy:classic.reorder",
-        "example:policy:docs/classic/reorder#2",
-      ]),
-    );
+    expect(groupIds(tree, "For this scenario")).toEqual(["classic:policy:classic.reorder"]);
     expect(groupIds(tree, "Other examples")).not.toContain("classic:policy:classic.reorder");
   });
 

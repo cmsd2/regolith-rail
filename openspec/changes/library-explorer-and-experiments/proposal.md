@@ -28,8 +28,9 @@ replaces the local saving delivered in M5.
   - **Choosing:** choosing a slot shows the matching list. The batch view offers choosing policy B too.
 - **Library explorer.** Below the slots, three lists shown one at a time:
   - **Scenarios**, grouped by source: Built in, Examples, Classic problems, Mine and Shared with me.
-  - **Policies**, grouped by fit to the current scenario. Its fix, reference policy and examples come first,
-    then built-in, Mine and shared policies, with other examples collapsed last. Policies that define no hook
+  - **Policies**, grouped by fit to the current scenario. Its fix or reference policy comes first, then
+    built-in, Mine and shared policies, with other fixes and reference policies collapsed last. Documentation
+    snippets are not listed; they open from their pages. Policies that define no hook
     the scenario calls are dimmed with the reason.
   - **Saved runs**, the player's and shared experiments.
   - **Selecting and using:** clicking an item only selects it and shows its description and actions.

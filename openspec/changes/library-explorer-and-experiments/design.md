@@ -195,11 +195,16 @@ click swapped the editor.
 
 The Policies list groups by fit to the scenario in the Scenario slot:
 
-1. **For this scenario:** catalogue policies whose `example.scenario` is that scenario, its suggested fix, and
-   for a classic template its reference policy. A Mine or shared scenario uses the shipped scenario it was
+1. **For this scenario:** listed catalogue policies whose `example.scenario` is that scenario, its suggested
+   fix, and for a classic template its reference policy. A Mine or shared scenario uses the shipped scenario it was
    copied from, following `origin`.
 2. **Built in**, **Mine**, **Shared with me**.
 3. **Other examples**, collapsed.
+
+The lists are curated. Docs runnable examples are catalogue items so a page can open them, but only the
+starters' suggested fixes are listed, named "<scenario> fix". The rest are snippets beside their prose, and
+the classic pages' condensed reference policies would repeat the reference policy items. The scenario kit's
+example policies are the classic reference policies, so they are not separate items.
 
 Fit is judged from the hooks a policy defines and what the scenario offers. `on_stop` needs vehicles, and
 `on_review` needs stations with reviews. The hooks come from the checker worker's `hooksOf`, which only loads

@@ -11,6 +11,10 @@ Scenarios, Policies and Saved runs.
 
 - **Scenarios:** grouped by source (Built in, Examples, Classic problems, Mine and Shared with me).
 - **Policies:** grouped as described in Policy fit.
+- **Curated:** the lists SHALL show whole, working items only: the built-in policies, the classic templates
+  and their reference policies, and each starter's suggested fix, named after its scenario. Other runnable
+  documentation snippets SHALL NOT be listed; they open from their pages. The same policy SHALL NOT be listed
+  twice.
 - **Groups:** a group SHALL be omitted when it has no items. Groups SHALL be expandable and collapsible.
 - **Items:** each item SHALL show its name, and its one-line description when selected.
 - **Current items:** the lists SHALL mark the items currently filling the run's slots.
@@ -82,18 +86,17 @@ be phrased against the naive baseline, so they make sense whatever policy is in 
 ### Requirement: Policy fit
 The Policies list SHALL order and mark policies by how they fit the scenario in the Scenario slot.
 
-- **For this scenario:** first, the policies written for it: its suggested fix, its reference policy, and
-  documentation examples that run on it.
+- **For this scenario:** first, the policies written for it: its suggested fix, or its reference policy.
 - **Then:** Built in, Mine and Shared with me.
-- **Other examples:** last, and collapsed.
+- **Other examples:** the other suggested fixes and reference policies, last, and collapsed.
 - **Unfit policies:** a policy that defines no hook the scenario calls, such as only `on_review` on a scenario
   without reviews, or only `on_stop` on a scenario without vehicles, SHALL be shown dimmed with the reason.
   It SHALL still be usable.
 
 #### Scenario: Examples for the current scenario come first
 - **WHEN** the Scenario slot holds `storm-shock`
-- **THEN** For this scenario lists the Disruption recovery fix and the documentation examples that run on
-  `storm-shock`, above the built-in policies
+- **THEN** For this scenario lists the Storm shock fix above the built-in policies, and no documentation
+  snippet is listed
 
 #### Scenario: A policy that cannot act here is marked
 - **WHEN** the Scenario slot holds `two-station` and the Policies list is shown
