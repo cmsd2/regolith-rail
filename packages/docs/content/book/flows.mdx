@@ -180,11 +180,13 @@ longer runs back and forth topping up a station that uses nothing.
 
 ## Case study: dead stock
 
-Why does the junction fill? Balancing aims every station at the line's average stock, and
-the junction is a station, so it is aimed at the average like the others. With three
-stations, about a third of the stock on the line ends up at the one place that cannot use
-it. The starter's description calls it dead stock: metal that was mined and carried and
-then does nothing.
+Under balancing, the train has the same target at every stop: the mean of the stock held
+at the three stations. The junction stores metal, so it counts as one of the three, and
+the train unloads there whenever the junction holds less than the mean and loads there
+whenever it holds more. Nothing is consumed at the junction, so its stock settles at the
+mean and stays there, and about a third of what the stations hold sits at the one place
+that cannot use it. The starter's description calls this dead stock: metal that was mined
+and carried and then does nothing.
 
 Little's law puts a time on it. Over seeds 1 to 20 the balancing baseline delivers
 about 32.5 units a day and holds about 52 units on the line, 24.6 at the mine, 13.5 at
