@@ -128,9 +128,9 @@ export default function Workbench() {
     return () => document.removeEventListener("click", open, true);
   }, []);
   return (
-    <Page>
+    <Page docsInPanel>
       <BrowserSupport>
-        <div className={styles.layout}>
+        <div className={docsOpen ? `${styles.layout} ${styles.withDocs}` : styles.layout}>
           <div className={styles.toolbar}>
             <ViewSwitch />
             <ScenarioControls />
@@ -147,18 +147,20 @@ export default function Workbench() {
             <div />
           )}
           <div className={styles.views}>
-            {mounted && docsOpen && (
-              <Suspense fallback={<p className={styles.muted}>Loading documentation…</p>}>
-                <DocsPanel />
-              </Suspense>
-            )}
-            {mounted && !docsOpen && view === "run" && <RunView />}
-            {mounted && !docsOpen && view === "batch" && (
+            {mounted && view === "run" && <RunView />}
+            {mounted && view === "batch" && (
               <Suspense fallback={<p className={styles.muted}>Loading…</p>}>
                 <BatchView />
               </Suspense>
             )}
           </div>
+          {mounted && docsOpen && (
+            <div className={styles.docs}>
+              <Suspense fallback={<p className={styles.muted}>Loading documentation…</p>}>
+                <DocsPanel />
+              </Suspense>
+            </div>
+          )}
         </div>
       </BrowserSupport>
     </Page>
