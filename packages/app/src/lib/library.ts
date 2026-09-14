@@ -54,6 +54,8 @@ interface ItemBase {
   updatedAt: number;
   /** False for items that exist only to fill a slot, such as an experiment's parts. */
   listed?: boolean;
+  /** For a documentation example: the scenario it runs on, and its seed. */
+  example?: { scenario: ItemId; seed: number };
 }
 
 export interface ScenarioItem extends ItemBase {
