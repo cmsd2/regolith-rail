@@ -37,7 +37,7 @@ See proposal.md for why. The requirements are in `specs/textbook`, `specs/checke
 
 ### 1. Chapters at stable, unnumbered slugs
 
-- **Addresses.** Chapters live at `content/book/<slug>.mdx`, and the contents page at `content/book/index.mdx`.
+- **Addresses.** Chapters live at `content/book/<slug>.mdx`, and the contents page at `content/book.mdx` (slug `book`).
   The slugs are `modelling`, `randomness`, `base-stock`, `newsvendor`, `order-quantities`, `safety-stock` and
   `forecasting`.
 - **Numbering.** Frontmatter gives `section: Book`, `part` and `chapter`. A `BOOK` constant in `docs/src` lists
@@ -167,8 +167,15 @@ check requires one per chapter and verifies that the named item exists.
 - **[Maxima output or error detection differs between versions]** → The CI Maxima comes from Ubuntu's apt
   package and local installs may differ. Checks compare exact rationals or use `expect_close` with explicit
   tolerances, never printed text.
-- **[`aximar-mcp` safety filter blocks `load`]** → Verify first. If it blocks, the runner passes
-  `--allow-dangerous`, since the notebooks are repository content reviewed like code.
+- **[`aximar-mcp` safety filter blocks `load`]** → Confirmed by the spike with `tools-v0.4.1` and Maxima 5.48.1:
+  - A cell calling `load(distrib)` stops the run with "contains dangerous function(s): load" and exit 1.
+  - The runner therefore passes `--allow-dangerous`, since the notebooks are repository content reviewed like
+    code. With it, the notebook passed with exit 0.
+  - A cell whose `expect_equal` fails exits 1 and prints `check failed: wrong got 3/5 want 2/5`.
+  - Cell sources, including `/* check: … */` comments, are kept in the saved notebook.
+  - Release archive SHA-256 values:
+    - Linux: `da2950147db88e47622303ab430c6d1e626457686e96a5ca8e6556c0691d7255`.
+    - Windows: `92d7e98e955823640d320b6b1cb0ffd7e7c42f36dc55eb87f77e6d0d4f37e039`.
 - **[The tools release is rebuilt or removed]** → The workflow pins a URL and checksum. The fallback is building
   `aximar-mcp` from the tagged source with `cargo install --git … --tag tools-v0.4.1`.
 - **[Checks that print but don't assert]** → The helpers make asserting the easy path. Review rejects cells

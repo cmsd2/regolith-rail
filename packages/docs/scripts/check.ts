@@ -3,6 +3,7 @@ import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
 import { constructs } from "@regolith-rail/scenario-kit";
 import {
+  checkBook,
   checkConstructs,
   checkExampleIndex,
   checkFrontmatter,
@@ -28,6 +29,7 @@ const problems = [
   ...checkConstructs(constructs, runtime.libraryConstructs()),
   ...checkTemplatePages(constructs, new Set(pages.map((p) => p.slug))),
   ...checkFrontmatter(pages),
+  ...checkBook(pages),
   ...checkExampleIndex(committedExamples, exampleIndex(pages)),
 ];
 

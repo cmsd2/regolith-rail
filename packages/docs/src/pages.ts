@@ -18,6 +18,7 @@ import {
 /** Sections of the documentation, in navigation order. */
 export const SECTIONS = [
   "Getting started",
+  "Book",
   "Guides",
   "Failure modes",
   "Classic problems",
@@ -39,6 +40,9 @@ export interface DocFrontmatter {
   description?: string;
   section: Section;
   order?: number;
+  /** A Book chapter's part and chapter numbers, as the book's contents lists them. */
+  part?: number;
+  chapter?: number;
 }
 
 export type ReferenceKind =

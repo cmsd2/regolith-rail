@@ -1,12 +1,12 @@
 ## 1. Tools spike
 
-- [ ] 1.1 Install `aximar-mcp` from the `tools-v0.4.1` release locally. With `AXIMAR_MAXIMA_PATH` pointing at Maxima, confirm three things with scratch notebooks, and record the findings in design.md: a cell calling `error("…")` makes `aximar-mcp run` exit 1; `load(distrib)` passes the safety filter, or needs `--allow-dangerous`; and a `/* check: name */` comment survives a run. Verify by quoting each notebook's exit code.
-- [ ] 1.2 Confirm `uv run --script` runs a script with an inline `# /// script` block pinning sympy and scipy, and exits non-zero when a `check_*` function asserts false. Verify with a scratch script's exit codes.
+- [x] 1.1 Install `aximar-mcp` from the `tools-v0.4.1` release locally. With `AXIMAR_MAXIMA_PATH` pointing at Maxima, confirm three things with scratch notebooks, and record the findings in design.md: a cell calling `error("…")` makes `aximar-mcp run` exit 1; `load(distrib)` passes the safety filter, or needs `--allow-dangerous`; and a `/* check: name */` comment survives a run. Verify by quoting each notebook's exit code.
+- [x] 1.2 Confirm `uv run --script` runs a script with an inline `# /// script` block pinning sympy and scipy, and exits non-zero when a `check_*` function asserts false. Verify with a scratch script's exit codes.
 
 ## 2. Book structure
 
-- [ ] 2.1 Add `Book` to `SECTIONS`, and `part` and `chapter` to the frontmatter type. Add the `BOOK` constant with Parts I–V and chapters 1–7, marking planned parts. Verify unit tests for frontmatter parsing, and that the docs check rejects a chapter whose frontmatter disagrees with `BOOK`.
-- [ ] 2.2 Write `book/index.mdx` from `BOOK`. Group the docs navigation by part. Add previous and next chapter links to chapter pages. Verify an e2e test that opens the contents, sees Parts III–V marked as coming later, and follows next from chapter 3 to chapter 4.
+- [x] 2.1 Add `Book` to `SECTIONS`, and `part` and `chapter` to the frontmatter type. Add the `BOOK` constant with Parts I–V and chapters 1–7, marking planned parts. Verify unit tests for frontmatter parsing, and that the docs check rejects a chapter whose frontmatter disagrees with `BOOK`.
+- [ ] 2.2 Write the contents page `book.mdx` from `BOOK`. Group the docs navigation by part. Add previous and next chapter links to chapter pages. Verify an e2e test that opens the contents, sees Parts III–V marked as coming later, and follows next from chapter 3 to chapter 4.
 - [ ] 2.3 Add the chapter-standard lint to `docs:check`: fixed second-level headings in order, one `GameNote` before References. Add a `GameNote` component styled as a side note. Verify unit tests for a missing Exercises heading and a missing side note, each naming the chapter.
 
 ## 3. Checked claims
