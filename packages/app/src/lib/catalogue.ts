@@ -278,3 +278,40 @@ export function experimentParts(experiment: ExperimentItem): (ScenarioItem | Pol
       : []),
   ];
 }
+
+const SOURCE_PREFERENCE = ["builtin", "classic", "example"];
+
+const preferred = <T extends LibraryItem>(items: T[]) =>
+  items.sort(
+    (a, b) => SOURCE_PREFERENCE.indexOf(a.source) - SOURCE_PREFERENCE.indexOf(b.source),
+  )[0];
+
+/**
+ * The shipped policy whose source this is, if any, including a classic template's reference
+ * policy for the parameters of the scenario it runs on.
+ */
+export function shippedPolicyFor(
+  source: string,
+  scenario?: ScenarioSource,
+): PolicyItem | undefined {
+  const shipped = catalogue.filter(
+    (item): item is PolicyItem => item.kind === "policy" && item.content === source,
+  );
+  if (shipped.length > 0) return preferred(shipped);
+  if (scenario?.template) {
+    const reference = referencePolicyItem(scenario.template.name, scenario.template.params);
+    if (reference.content === source) return reference;
+  }
+  return undefined;
+}
+
+/** The shipped scenario whose source this is, if any, such as an unedited starter or template. */
+export function shippedScenarioFor(record: ScenarioSource): ScenarioItem | undefined {
+  const shipped = catalogue.filter(
+    (item): item is ScenarioItem =>
+      item.kind === "scenario" &&
+      item.content.kind === record.kind &&
+      item.content.source === record.source,
+  );
+  return shipped.length > 0 ? preferred(shipped) : undefined;
+}

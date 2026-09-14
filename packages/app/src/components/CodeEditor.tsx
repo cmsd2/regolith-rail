@@ -1,4 +1,4 @@
-import { EditorState, type Extension } from "@codemirror/state";
+import { Annotation, EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { useEffect, useRef } from "react";
@@ -38,6 +38,9 @@ const theme = EditorView.theme({
   },
 });
 
+/** Marks changes that bring the editor in line with its value, which are not the player's edits. */
+const syncing = Annotation.define<boolean>();
+
 /** A CodeMirror editor that owns its view and syncs with an external value. */
 export function CodeEditor({
   value,
@@ -67,7 +70,9 @@ export function CodeEditor({
           EditorState.readOnly.of(readOnly),
           EditorView.editable.of(!readOnly),
           EditorView.updateListener.of((update) => {
-            if (update.docChanged) change.current(update.state.doc.toString());
+            if (!update.docChanged) return;
+            if (update.transactions.every((tr) => tr.annotation(syncing))) return;
+            change.current(update.state.doc.toString());
           }),
           ...extensions,
         ],
@@ -83,7 +88,10 @@ export function CodeEditor({
   useEffect(() => {
     const editor = view.current;
     if (editor && editor.state.doc.toString() !== value) {
-      editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: value } });
+      editor.dispatch({
+        changes: { from: 0, to: editor.state.doc.length, insert: value },
+        annotations: syncing.of(true),
+      });
     }
   }, [value]);
 

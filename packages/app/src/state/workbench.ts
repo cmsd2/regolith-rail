@@ -1,7 +1,26 @@
 import { type RunOutput, type Scenario, validateScenario } from "@regolith-rail/engine";
-import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { STARTER_SCRIPTS, type TemplateParams, templateCall } from "@regolith-rail/scenario-kit";
 import { createStore, type StoreApi } from "zustand/vanilla";
+import {
+  catalogueItem,
+  referenceOf,
+  referencePolicyItem,
+  shippedPolicyFor,
+  shippedScenarioFor,
+  stableHash,
+} from "../lib/catalogue.ts";
+import {
+  copyName,
+  type ItemId,
+  isEditable,
+  itemId,
+  type LibraryItem,
+  newMineId,
+  type PolicyItem,
+  type ScenarioItem,
+} from "../lib/library.ts";
+import { duplicated, renamed, takenNames } from "../lib/library-ops.ts";
+import type { SessionRecord } from "../lib/library-storage.ts";
 import {
   DEFAULT_SCENARIO,
   documentText,
@@ -11,8 +30,6 @@ import {
   type ScenarioError,
   type ScenarioKind,
   type ScenarioSource,
-  starterSource,
-  templateSource,
 } from "../lib/scenario-source.ts";
 import type { BatchPool, SimulationClient } from "../workers/client.ts";
 import { CancelledError } from "../workers/client.ts";
@@ -23,7 +40,7 @@ export { DEFAULT_SCENARIO };
 export type RunStatus = "idle" | "running" | "done" | "failed";
 
 export interface PolicyDraft {
-  /** Name shown to the player, such as a saved policy's name. */
+  /** Name of the library item the policy comes from. */
   name: string;
   source: string;
 }
@@ -54,7 +71,22 @@ export interface Notice {
   topic: string;
 }
 
-/** Work that can be restored from a share link, a draft or a save. */
+export type SlotName = "scenario" | "policy" | "compare";
+
+/** The library items the run uses. */
+export interface Slots {
+  scenario: ItemId;
+  policy: ItemId;
+  compare: ItemId;
+}
+
+export const DEFAULT_SLOTS: Slots = {
+  scenario: itemId("builtin", "scenario", DEFAULT_SCENARIO),
+  policy: itemId("builtin", "policy", "naive"),
+  compare: itemId("builtin", "policy", "supply-to-demand"),
+};
+
+/** Work that can be restored from a share link or a documentation example. */
 export interface WorkContent {
   view?: WorkbenchState["view"];
   policy: PolicyDraft;
@@ -66,12 +98,19 @@ export interface WorkContent {
 }
 
 export interface WorkbenchState {
-  /** Whether the session has restored any shared or draft work. */
+  /** Whether the session has restored any shared or saved work. */
   loaded: boolean;
   notices: Notice[];
   view: "run" | "batch";
+  /** Which library items fill the run. */
+  slots: Slots;
+  /** Mine and shared items, and unlisted items a slot uses; shipped items come from the catalogue. */
+  items: Record<ItemId, LibraryItem>;
+  /** The Policy slot's item, as the editor and runs use it. */
   policy: PolicyDraft;
+  /** The Compare slot's item. */
   policyB: PolicyDraft;
+  /** The Scenario slot's item, with its evaluation. */
   scenario: ScenarioDraft;
   seed: number;
   saveReloadTest: boolean;
@@ -93,16 +132,27 @@ export interface WorkbenchState {
   setLoaded(): void;
   notify(kind: Notice["kind"], topic: string, message: string): void;
   dismissNotice(id: number): void;
+  /** The item with this id, stored, in use or shipped. */
+  itemById(id: ItemId): LibraryItem | undefined;
+  /** Puts stored items in the library and, when there is one, restores the session's slots. */
+  loadLibrary(items: readonly LibraryItem[], session?: SessionRecord): void;
+  /** Fills a slot with a library item of the matching kind. Nothing runs. */
+  fillSlot(slot: SlotName, id: ItemId): void;
   /** Replaces the work in progress, clearing results. Nothing runs. */
   restore(content: WorkContent): void;
+  renameItem(id: ItemId, name: string): void;
+  /** Keeps a slot's item under Mine with a name: renames a Mine item, or copies anything else. */
+  saveSlotAs(slot: SlotName, name: string): void;
+  /** Copies any item into Mine and returns the copy's id. */
+  duplicateItem(id: ItemId): ItemId | null;
+  /** Deletes a Mine item; a slot that uses it keeps its contents as an unsaved copy. */
+  deleteItem(id: ItemId): void;
   /** Opens a documentation page, such as `ops/min-max#param-low`, in the panel. */
   openDocs(target: string): void;
   docsBack(): void;
   closeDocs(): void;
   setView(view: WorkbenchState["view"]): void;
   setPolicySource(source: string): void;
-  setPolicy(policy: PolicyDraft): void;
-  setPolicyB(policy: PolicyDraft): void;
   selectStarter(id: string): void;
   /** Picks a classic template with its default parameters and its reference policy. */
   selectTemplate(name: string): void;
@@ -110,8 +160,6 @@ export interface WorkbenchState {
   setTemplateParams(params: TemplateParams): void;
   /** Replaces the scenario source, keeping its kind. */
   setScenarioSource(source: string): void;
-  /** Opens a scenario from a save or another record. */
-  openScenario(source: ScenarioSource): void;
   /** Converts a valid scenario to a script or to JSON. */
   setScenarioKind(kind: ScenarioKind): void;
   setSeed(seed: number): void;
@@ -137,6 +185,8 @@ export interface WorkbenchDependencies {
   pool: BatchPool;
   /** Evaluates scenario scripts; runs use `client`, so cancelling a run leaves it alone. */
   evaluator?: SimulationClient;
+  /** The time items are stamped with. */
+  now?: () => number;
 }
 
 /** Parses and validates scenario text, reporting JSON syntax errors like validation errors. */
@@ -157,11 +207,43 @@ export function parseScenarioText(text: string): Pick<ScenarioDraft, "scenario" 
 export const referencePolicyName = (template: string) =>
   `${template.replace(/^classic\./, "").replace(/_/g, "-")}-reference.lua`;
 
+const SLOT_KIND = { scenario: "scenario", policy: "policy", compare: "policy" } as const;
+
+/** What the session keeps of the workbench between visits. */
+export function toSessionRecord(state: WorkbenchState): SessionRecord {
+  const used = [...new Set(Object.values(state.slots))];
+  return {
+    slots: { ...state.slots },
+    items: used.flatMap((id) => {
+      const item = state.items[id];
+      return item && item.listed === false ? [item] : [];
+    }),
+    seed: state.seed,
+    view: state.view,
+    saveReloadTest: state.saveReloadTest,
+    batch: {
+      seedCount: state.batch.seedCount,
+      baseSeed: state.batch.baseSeed,
+      compare: state.batch.compare,
+    },
+  };
+}
+
+/** Items the player keeps: Mine and shared items that are listed in the library. */
+export const storedItems = (state: WorkbenchState) =>
+  Object.values(state.items).filter(
+    (item) => item.listed !== false && (item.source === "mine" || item.source === "shared"),
+  );
+
+const policyDraft = (item: LibraryItem | undefined): PolicyDraft =>
+  item?.kind === "policy" ? { name: item.name, source: item.content } : { name: "", source: "" };
+
 export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<WorkbenchState> {
   let noticeId = 0;
   // Only the latest evaluation may update the scenario.
   let revision = 0;
   const evaluator = dependencies.evaluator ?? dependencies.client;
+  const now = dependencies.now ?? Date.now;
 
   return createStore<WorkbenchState>()((set, get) => {
     /** A draft for a source: at once for JSON and unedited starters, later for other scripts. */
@@ -199,13 +281,96 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       return { ...source, status: "evaluating", scenario: null, errors: [] };
     };
 
+    const lookup = (items: Record<ItemId, LibraryItem>, id: ItemId) =>
+      items[id] ?? catalogueItem(id);
+
+    /** The state for new slots and items, re-deriving only what changed. */
+    const withSlots = (
+      state: Pick<WorkbenchState, "slots" | "items">,
+      slots: Slots,
+      items: Record<ItemId, LibraryItem>,
+      scenario?: ScenarioDraft,
+    ): Partial<WorkbenchState> => {
+      const scenarioItem = lookup(items, slots.scenario) as ScenarioItem | undefined;
+      const previous = lookup(state.items, state.slots.scenario) as ScenarioItem | undefined;
+      const changed =
+        slots.scenario !== state.slots.scenario || scenarioItem?.content !== previous?.content;
+      return {
+        slots,
+        items,
+        policy: policyDraft(lookup(items, slots.policy)),
+        policyB: policyDraft(lookup(items, slots.compare)),
+        ...(scenario
+          ? { scenario }
+          : changed && scenarioItem
+            ? { scenario: evaluate(scenarioItem.content) }
+            : {}),
+      };
+    };
+
+    /** Adds an unlisted item to the items in use, so a slot can refer to it. */
+    const using = (items: Record<ItemId, LibraryItem>, item: LibraryItem) =>
+      item.listed === false && !items[item.id] ? { ...items, [item.id]: item } : items;
+
+    /** Items and slots after editing a slot: in place for Mine items, otherwise as a new copy. */
+    const edited = (
+      state: Pick<WorkbenchState, "slots" | "items">,
+      slot: SlotName,
+      content: string | ScenarioSource,
+    ): { slots: Slots; items: Record<ItemId, LibraryItem> } => {
+      const current = lookup(state.items, state.slots[slot]);
+      if (!current) return state;
+      const time = now();
+      if (isEditable(current.id)) {
+        const updated = { ...current, content, updatedAt: time } as LibraryItem;
+        return { slots: state.slots, items: { ...state.items, [current.id]: updated } };
+      }
+      const kind = SLOT_KIND[slot];
+      const copy = {
+        id: newMineId(kind),
+        kind,
+        source: "mine",
+        name: copyName(current.name, takenNames(Object.values(state.items), kind)),
+        origin: current.id,
+        content,
+        createdAt: time,
+        updatedAt: time,
+      } as LibraryItem;
+      return {
+        slots: { ...state.slots, [slot]: copy.id },
+        items: { ...state.items, [copy.id]: copy },
+      };
+    };
+
+    /** An unlisted, read-only item for shared content that matches nothing shipped. */
+    const sharedItem = (
+      kind: "policy" | "scenario",
+      name: string,
+      content: string | ScenarioSource,
+    ): LibraryItem =>
+      ({
+        id: itemId("shared", kind, stableHash(content)),
+        kind,
+        source: "shared",
+        name,
+        content,
+        createdAt: now(),
+        updatedAt: now(),
+        listed: false,
+      }) as LibraryItem;
+
+    const initialItems: Record<ItemId, LibraryItem> = {};
+    const initialScenario = catalogueItem(DEFAULT_SLOTS.scenario) as ScenarioItem;
+
     return {
       loaded: false,
       notices: [],
       view: "run",
-      policy: { name: "naive.lua", source: BUILT_IN_POLICIES.naive },
-      policyB: { name: "supply-to-demand.lua", source: BUILT_IN_POLICIES["supply-to-demand"] },
-      scenario: evaluate(starterSource(DEFAULT_SCENARIO)),
+      slots: DEFAULT_SLOTS,
+      items: initialItems,
+      policy: policyDraft(catalogueItem(DEFAULT_SLOTS.policy)),
+      policyB: policyDraft(catalogueItem(DEFAULT_SLOTS.compare)),
+      scenario: evaluate(initialScenario.content),
       seed: 1,
       saveReloadTest: false,
       run: { status: "idle", progress: 0, output: null, error: null },
@@ -230,30 +395,152 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
         set((s) => ({ notices: [...s.notices, { id: ++noticeId, kind, topic, message }] })),
       dismissNotice: (id) => set((s) => ({ notices: s.notices.filter((n) => n.id !== id) })),
 
+      itemById: (id) => lookup(get().items, id),
+
+      loadLibrary(stored, session) {
+        set((s) => {
+          let items: Record<ItemId, LibraryItem> = {};
+          for (const item of stored) items[item.id] = item;
+          for (const item of session?.items ?? []) items = using(items, item);
+          const valid = (id: ItemId | null | undefined, slot: SlotName) => {
+            const item = id ? lookup(items, id) : undefined;
+            return item?.kind === SLOT_KIND[slot] ? item.id : DEFAULT_SLOTS[slot];
+          };
+          const slots: Slots = session
+            ? {
+                scenario: valid(session.slots.scenario, "scenario"),
+                policy: valid(session.slots.policy, "policy"),
+                compare: valid(session.slots.compare, "compare"),
+              }
+            : s.slots;
+          return {
+            ...withSlots({ slots: s.slots, items: s.items }, slots, items),
+            ...(session
+              ? {
+                  seed: session.seed,
+                  view: session.view,
+                  saveReloadTest: session.saveReloadTest,
+                  batch: { ...s.batch, ...session.batch },
+                }
+              : {}),
+          };
+        });
+      },
+
+      fillSlot(slot, id) {
+        set((s) => {
+          const item = lookup(s.items, id);
+          if (item?.kind !== SLOT_KIND[slot]) return {};
+          return withSlots(s, { ...s.slots, [slot]: id }, using(s.items, item));
+        });
+      },
+
       restore(content) {
         dependencies.client.cancel();
         dependencies.pool.cancel();
-        set((s) => ({
-          view: content.view ?? s.view,
-          policy: content.policy,
-          policyB: content.policyB ?? s.policyB,
-          scenario: evaluate(content.scenario),
-          seed: content.seed,
-          saveReloadTest: content.saveReloadTest ?? s.saveReloadTest,
-          run: { status: "idle", progress: 0, output: null, error: null },
-          selectedStop: null,
-          selectedReview: null,
-          reveal: null,
-          batch: {
-            ...s.batch,
-            ...content.batch,
-            status: "idle",
-            done: 0,
-            total: 0,
-            results: null,
-            error: null,
-          },
-        }));
+        set((s) => {
+          let items = s.items;
+          const resolve = (
+            kind: "policy" | "scenario",
+            shipped: LibraryItem | undefined,
+            name: string,
+            value: string | ScenarioSource,
+          ) => {
+            const item = shipped ?? sharedItem(kind, name, value);
+            items = using(items, item);
+            return item.id;
+          };
+          const scenario = resolve(
+            "scenario",
+            shippedScenarioFor(content.scenario),
+            "Shared scenario",
+            content.scenario,
+          );
+          const policyName = (draft: PolicyDraft) =>
+            draft.name.replace(/\.lua$/, "") || "Shared policy";
+          const policy = resolve(
+            "policy",
+            shippedPolicyFor(content.policy.source, content.scenario),
+            policyName(content.policy),
+            content.policy.source,
+          );
+          const compare = content.policyB
+            ? resolve(
+                "policy",
+                shippedPolicyFor(content.policyB.source, content.scenario),
+                policyName(content.policyB),
+                content.policyB.source,
+              )
+            : s.slots.compare;
+          return {
+            ...withSlots(s, { scenario, policy, compare }, items),
+            view: content.view ?? s.view,
+            seed: content.seed,
+            saveReloadTest: content.saveReloadTest ?? s.saveReloadTest,
+            run: { status: "idle", progress: 0, output: null, error: null },
+            selectedStop: null,
+            selectedReview: null,
+            reveal: null,
+            batch: {
+              ...s.batch,
+              ...content.batch,
+              status: "idle",
+              done: 0,
+              total: 0,
+              results: null,
+              error: null,
+            },
+          };
+        });
+      },
+
+      renameItem(id, name) {
+        set((s) => {
+          const item = s.items[id];
+          if (!item || !isEditable(id)) return {};
+          const next = renamed(item, name, Object.values(s.items), now());
+          return withSlots(s, s.slots, { ...s.items, [id]: next });
+        });
+      },
+
+      saveSlotAs(slot, name) {
+        set((s) => {
+          const item = lookup(s.items, s.slots[slot]);
+          if (!item) return {};
+          const time = now();
+          const base = isEditable(item.id)
+            ? { ...item, listed: true }
+            : duplicated(item, Object.values(s.items), time);
+          const { listed: _listed, ...kept } = base;
+          const next = renamed(kept as LibraryItem, name, Object.values(s.items), time);
+          return withSlots(s, { ...s.slots, [slot]: next.id }, { ...s.items, [next.id]: next });
+        });
+      },
+
+      duplicateItem(id) {
+        const s = get();
+        const item = lookup(s.items, id);
+        if (!item) return null;
+        const copy = duplicated(item, Object.values(s.items), now());
+        set(withSlots(s, s.slots, { ...s.items, [copy.id]: copy }));
+        return copy.id;
+      },
+
+      deleteItem(id) {
+        set((s) => {
+          const item = s.items[id];
+          if (!item || !isEditable(id)) return {};
+          const { [id]: _deleted, ...items } = s.items;
+          const slots = { ...s.slots };
+          for (const slot of Object.keys(slots) as SlotName[]) {
+            if (slots[slot] !== id) continue;
+            // The slot keeps its contents as an unsaved, unlisted copy.
+            const copy = { ...item, id: newMineId(item.kind), listed: false };
+            items[copy.id] = copy;
+            slots[slot] = copy.id;
+          }
+          return withSlots(s, slots, items);
+        });
       },
 
       openDocs: (target) =>
@@ -261,70 +548,88 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       docsBack: () => set((s) => ({ docs: s.docs.slice(0, -1) })),
       closeDocs: () => set({ docs: [] }),
       setView: (view) => set({ view }),
-      setPolicySource: (source) => set((s) => ({ policy: { ...s.policy, source } })),
-      setPolicy: (policy) => set({ policy }),
-      setPolicyB: (policyB) => set({ policyB }),
-      selectStarter: (id) => set({ scenario: evaluate(starterSource(id)) }),
+
+      setPolicySource(source) {
+        set((s) => {
+          if (source === s.policy.source) return {};
+          const next = edited(s, "policy", source);
+          return withSlots(s, next.slots, next.items);
+        });
+      },
+
+      selectStarter: (id) => get().fillSlot("scenario", itemId("builtin", "scenario", id)),
+
       selectTemplate(name) {
-        const template = findTemplate(name);
-        if (!template) return;
-        set({
-          scenario: evaluate(templateSource(name, template.defaults)),
-          policy: {
-            name: referencePolicyName(name),
-            source: template.reference(template.defaults).policy,
-          },
-        });
+        const { fillSlot } = get();
+        fillSlot("scenario", itemId("classic", "scenario", name));
+        fillSlot("policy", itemId("classic", "policy", name));
       },
+
       setTemplateParams(params) {
-        const { scenario, policy } = get();
-        const template = scenario.template && findTemplate(scenario.template.name);
-        if (!scenario.template || !template) return;
-        const next = { ...scenario.template.params, ...params };
-        // The reference policy follows the parameters while the player has not edited it.
-        const unedited = policy.source === template.reference(scenario.template.params).policy;
-        set({
-          scenario: evaluate(templateSource(template.name, next)),
-          ...(unedited
-            ? { policy: { name: policy.name, source: template.reference(next).policy } }
-            : {}),
+        set((s) => {
+          const current = s.scenario;
+          const template = current.template && findTemplate(current.template.name);
+          if (!current.template || !template) return {};
+          const next = { ...current.template.params, ...params };
+          const scenario = edited(s, "scenario", {
+            kind: "script",
+            source: templateCall(template.name, next),
+            starterId: null,
+            template: { name: template.name, params: next },
+          });
+          // The reference policy follows the parameters while the player has not edited it.
+          let { items, slots } = scenario;
+          if (referenceOf(slots.policy) === template.name) {
+            const reference: PolicyItem = referencePolicyItem(template.name, next);
+            items = using(items, reference);
+            slots = { ...slots, policy: reference.id };
+          }
+          return withSlots(s, slots, items);
         });
       },
+
       setScenarioSource(source) {
-        const { kind, starterId, template } = get().scenario;
-        const keepsStarter =
-          kind === "script" && starterId !== null && STARTER_SCRIPTS[starterId] === source;
-        const keepsTemplate =
-          kind === "script" &&
-          template !== undefined &&
-          templateCall(template.name, template.params) === source;
-        set({
-          scenario: evaluate({
+        set((s) => {
+          if (source === s.scenario.source) return {};
+          const { kind, starterId, template } = s.scenario;
+          const keepsStarter =
+            kind === "script" && starterId !== null && STARTER_SCRIPTS[starterId] === source;
+          const keepsTemplate =
+            kind === "script" &&
+            template !== undefined &&
+            templateCall(template.name, template.params) === source;
+          const next = edited(s, "scenario", {
             kind,
             source,
             starterId: keepsStarter ? starterId : null,
             ...(keepsTemplate ? { template } : {}),
-          }),
+          });
+          return withSlots(s, next.slots, next.items);
         });
       },
-      openScenario: (source) => set({ scenario: evaluate(source) }),
+
       setScenarioKind(kind) {
-        const current = get().scenario;
-        if (current.kind === kind || !current.scenario) return;
-        ++revision;
-        // Both conversions give an equivalent document, so the scenario stays as it is.
-        set({
-          scenario: {
+        set((s) => {
+          const current = s.scenario;
+          if (current.kind === kind || !current.scenario) return {};
+          ++revision;
+          // Both conversions give an equivalent document, so the scenario stays as it is.
+          const content: ScenarioSource = {
             kind,
             source:
               kind === "json" ? documentText(current.scenario) : documentToScript(current.scenario),
             starterId: null,
+          };
+          const next = edited(s, "scenario", content);
+          return withSlots(s, next.slots, next.items, {
+            ...content,
             status: "ready",
             scenario: current.scenario,
             errors: [],
-          },
+          });
         });
       },
+
       setSeed: (seed) => set({ seed }),
       setSaveReloadTest: (saveReloadTest) => set({ saveReloadTest }),
       selectStop: (selectedStop) => set({ selectedStop, selectedReview: null }),
@@ -399,7 +704,11 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       },
 
       async openSeed(which, seed) {
-        if (which === "b") set((s) => ({ policy: s.policyB, policyB: s.policy }));
+        if (which === "b") {
+          set((s) =>
+            withSlots(s, { ...s.slots, policy: s.slots.compare, compare: s.slots.policy }, s.items),
+          );
+        }
         set({ seed, view: "run" });
         await get().startRun();
       },

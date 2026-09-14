@@ -17,7 +17,7 @@ function BatchConfig() {
   const policyB = useWorkbench((s) => s.policyB);
   const scenarioTitle = useWorkbench((s) => s.scenario.scenario?.title ?? "Invalid scenario");
   const valid = useWorkbench((s) => s.scenario.scenario !== null);
-  const { setBatchOptions, setPolicyB, startBatch, cancelBatch } = workbench.getState();
+  const { setBatchOptions, fillSlot, startBatch, cancelBatch } = workbench.getState();
   const running = batch.status === "running";
   const builtIns = Object.keys(BUILT_IN_POLICIES) as (keyof typeof BUILT_IN_POLICIES)[];
   return (
@@ -76,7 +76,7 @@ function BatchConfig() {
             value={builtIns.find((name) => BUILT_IN_POLICIES[name] === policyB.source) ?? ""}
             onChange={(e) => {
               const name = e.target.value as keyof typeof BUILT_IN_POLICIES;
-              if (name) setPolicyB({ name: `${name}.lua`, source: BUILT_IN_POLICIES[name] });
+              if (name) fillSlot("compare", `builtin:policy:${name}`);
             }}
             data-testid="batch-policy-b"
           >

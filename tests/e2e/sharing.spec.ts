@@ -114,11 +114,13 @@ test.describe("local saving", () => {
     expect(await editorText(reopened, "policy-editor")).toContain("-- my draft");
   });
 
-  test("saves, renames, opens and deletes a policy", async ({ page }) => {
+  test("names, renames, reopens and deletes a policy", async ({ page }) => {
     await openWorkbench(page);
     const saved = page.getByTestId("saved-policy");
     await saved.locator("summary").click();
     await setEditorText(page, "policy-editor", "-- keep me\nreturn {}\n");
+    // Editing the built-in baseline made a copy of it under Mine.
+    await expect(saved.getByTestId("saved-item")).toContainText("naive (copy)");
     await saved.getByTestId("save-name").fill("keeper.lua");
     await saved.getByTestId("save").click();
     await expect(saved.getByTestId("saved-item")).toHaveCount(1);
@@ -128,18 +130,18 @@ test.describe("local saving", () => {
     await saved.getByTestId("saved-rename-input").fill("renamed.lua");
     await saved.getByTestId("saved-rename-input").press("Enter");
     await expect(saved.getByTestId("saved-item")).toContainText("renamed.lua");
-
-    await setEditorText(page, "policy-editor", "return {}\n");
-    await saved.getByTestId("saved-open").click();
-    expect(await editorText(page, "policy-editor")).toContain("-- keep me");
+    await expect(page.getByTestId("draft-status").first()).toHaveText("Draft saved");
 
     await page.reload();
     await expect(page.getByTestId("policy-editor").locator(".cm-content")).toBeVisible();
+    expect(await editorText(page, "policy-editor")).toContain("-- keep me");
     await page.getByTestId("saved-policy").locator("summary").click();
     await expect(page.getByTestId("saved-item")).toContainText("renamed.lua");
     await page.getByTestId("saved-delete").click();
     await page.getByTestId("saved-delete-confirm").click();
     await expect(page.getByTestId("saved-item")).toHaveCount(0);
+    // The policy in use stays in the editor as an unsaved copy.
+    expect(await editorText(page, "policy-editor")).toContain("-- keep me");
   });
 
   test("keeps working with a notice when storage is unavailable", async ({ page }) => {

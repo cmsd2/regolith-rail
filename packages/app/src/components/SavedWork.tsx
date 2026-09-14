@@ -1,38 +1,22 @@
 import { useState } from "react";
-import { upgradeScenarioRecord } from "../lib/scenario-source.ts";
-import type { SavedItem } from "../lib/storage.ts";
-import { library, useLibrary, useWorkbench, workbench } from "../state/instance.ts";
+import type { LibraryItem } from "../lib/library.ts";
+import { useLibrary, useWorkbench, workbench } from "../state/instance.ts";
 import styles from "./EditorPanel.module.css";
 
-type Kind = SavedItem["kind"];
+type Kind = "policy" | "scenario";
 
 const DRAFT_LABELS = {
   none: "",
-  pending: "Saving draft…",
+  pending: "Saving…",
   saved: "Draft saved",
   failed: "Draft not saved",
 } as const;
 
-function SavedRow({ item }: { item: SavedItem }) {
+function SavedRow({ item }: { item: LibraryItem }) {
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(item.name);
   const [confirming, setConfirming] = useState(false);
-  const { rename, remove } = library.getState();
-
-  function open() {
-    const { setPolicy, openScenario } = workbench.getState();
-    if (item.kind === "policy") {
-      setPolicy({ name: item.name, source: item.source });
-      return;
-    }
-    // Saves from before scenario scripts hold JSON text without a kind.
-    const record = upgradeScenarioRecord(
-      item.scenarioKind
-        ? { kind: item.scenarioKind, source: item.text, starterId: null }
-        : { starterId: null, text: item.text },
-    );
-    if (record) openScenario(record);
-  }
+  const { renameItem, deleteItem, fillSlot } = workbench.getState();
 
   return (
     <li data-testid="saved-item">
@@ -41,7 +25,7 @@ function SavedRow({ item }: { item: SavedItem }) {
           onSubmit={(e) => {
             e.preventDefault();
             const next = name.trim();
-            if (next) void rename(item.kind, item.name, next);
+            if (next) renameItem(item.id, next);
             setRenaming(false);
           }}
         >
@@ -56,7 +40,11 @@ function SavedRow({ item }: { item: SavedItem }) {
       ) : (
         <span className={styles.savedName}>{item.name}</span>
       )}
-      <button type="button" onClick={open} data-testid="saved-open">
+      <button
+        type="button"
+        onClick={() => fillSlot(item.kind === "policy" ? "policy" : "scenario", item.id)}
+        data-testid="saved-open"
+      >
         Open
       </button>
       {!renaming && (
@@ -68,7 +56,7 @@ function SavedRow({ item }: { item: SavedItem }) {
         <button
           type="button"
           className={styles.danger}
-          onClick={() => void remove(item.kind, item.name)}
+          onClick={() => deleteItem(item.id)}
           onBlur={() => setConfirming(false)}
           data-testid="saved-delete-confirm"
         >
@@ -83,36 +71,26 @@ function SavedRow({ item }: { item: SavedItem }) {
   );
 }
 
-/** Saves and opens named policies or scenarios, matching the open editor tab. */
+/** Names and opens the player's own policies or scenarios, matching the open editor tab. */
 export function SavedWork({ kind }: { kind: Kind }) {
   const available = useLibrary((s) => s.available);
-  const items = useLibrary((s) => s.items).filter((item) => item.kind === kind);
   const draft = useLibrary((s) => s.draft);
-  const policyName = useWorkbench((s) => s.policy.name);
+  const allItems = useWorkbench((s) => s.items);
+  const currentName = useWorkbench((s) =>
+    kind === "policy" ? s.policy.name : (s.itemById(s.slots.scenario)?.name ?? "scenario"),
+  );
   const [name, setName] = useState<string | null>(null);
 
   if (available === false) return null;
-  const defaultName =
-    kind === "policy" ? policyName : (workbench.getState().scenario.scenario?.title ?? "scenario");
-  const current = name ?? defaultName;
+  const items = Object.values(allItems)
+    .filter((item) => item.kind === kind && item.source === "mine" && item.listed !== false)
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const current = name ?? currentName;
 
-  async function save() {
+  function save() {
     const trimmed = current.trim();
     if (!trimmed) return;
-    const state = workbench.getState();
-    const savedAt = Date.now();
-    await library.getState().save(
-      kind === "policy"
-        ? { kind, name: trimmed, source: state.policy.source, savedAt }
-        : {
-            kind,
-            name: trimmed,
-            text: state.scenario.source,
-            scenarioKind: state.scenario.kind,
-            savedAt,
-          },
-    );
-    if (kind === "policy") state.setPolicy({ ...state.policy, name: trimmed });
+    workbench.getState().saveSlotAs(kind === "policy" ? "policy" : "scenario", trimmed);
     setName(null);
   }
 
@@ -128,7 +106,7 @@ export function SavedWork({ kind }: { kind: Kind }) {
         className={styles.saveRow}
         onSubmit={(e) => {
           e.preventDefault();
-          void save();
+          save();
         }}
       >
         <input
@@ -144,7 +122,7 @@ export function SavedWork({ kind }: { kind: Kind }) {
       {items.length > 0 && (
         <ul className={styles.savedList}>
           {items.map((item) => (
-            <SavedRow key={`${item.name}:${item.savedAt}`} item={item} />
+            <SavedRow key={item.id} item={item} />
           ))}
         </ul>
       )}

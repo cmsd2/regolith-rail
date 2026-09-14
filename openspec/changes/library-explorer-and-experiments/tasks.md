@@ -17,10 +17,10 @@
 
 ## 4. Slots, copy on edit and automatic saving
 
-- [ ] 4.1 Replace the workbench's policy, policy B and scenario fields with slots that refer to items. Keep evaluation status keyed by content, and derive editor contents and run requests from the slots. Verify the existing workbench unit tests pass after being updated to slots, and golden hashes are unchanged.
-- [ ] 4.2 Implement `editSlot` with copy on edit for read-only items and in-place updates for Mine items, including template parameter changes. Verify unit tests: the first edit of naive creates "naive (copy)" and re-points the slot, a second edit updates the copy, and the built-in item is unchanged.
-- [ ] 4.3 Implement reference policies that follow their template's parameters, and stop following once edited. Verify the newsvendor `lost_cost` unit test and an edited-reference test pass.
-- [ ] 4.4 Save Mine items and the session record automatically 500 ms after changes and on `pagehide`, with a saving indicator. Restore slots on start. Verify session unit tests for automatic saving, restoring slots, storage unavailable, and a slot whose item was deleted.
+- [x] 4.1 Replace the workbench's policy, policy B and scenario fields with slots that refer to items. Keep evaluation status keyed by content, and derive editor contents and run requests from the slots. Verify the existing workbench unit tests pass after being updated to slots, and golden hashes are unchanged.
+- [x] 4.2 Implement `editSlot` with copy on edit for read-only items and in-place updates for Mine items, including template parameter changes. Verify unit tests: the first edit of naive creates "naive (copy)" and re-points the slot, a second edit updates the copy, and the built-in item is unchanged.
+- [x] 4.3 Implement reference policies that follow their template's parameters, and stop following once edited. Verify the newsvendor `lost_cost` unit test and an edited-reference test pass.
+- [x] 4.4 Save Mine items and the session record automatically 500 ms after changes and on `pagehide`, with a saving indicator. Restore slots on start. Verify session unit tests for automatic saving, restoring slots, storage unavailable, and a slot whose item was deleted.
 
 ## 5. Experiments and sharing
 

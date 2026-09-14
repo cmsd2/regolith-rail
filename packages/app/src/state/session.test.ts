@@ -1,9 +1,9 @@
 import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { describe, expect, it } from "vitest";
 import relayV1 from "../../../engine/src/testing/format1/relay.json" with { type: "json" };
-import { starterSource } from "../lib/scenario-source.ts";
+import { type LibraryStorage, memoryLibraryStorage } from "../lib/library-storage.ts";
 import { encodeShare, toShareState } from "../lib/share.ts";
-import { memoryStorage, unavailableStorage, type WorkStorage } from "../lib/storage.ts";
+import { memoryStorage, type WorkStorage } from "../lib/storage.ts";
 import { BatchPool, SimulationClient, type WorkerHandle } from "../workers/client.ts";
 import { createLibrary } from "./library.ts";
 import { startSession } from "./session.ts";
@@ -16,7 +16,7 @@ const noWorker = (): WorkerHandle => {
   throw new Error("nothing should run");
 };
 
-function setup(storage: WorkStorage = memoryStorage()) {
+function setup(storage: LibraryStorage = memoryLibraryStorage(), former?: WorkStorage) {
   const workbench = createWorkbench({
     client: new SimulationClient(noWorker),
     pool: new BatchPool(noWorker, 1),
@@ -28,11 +28,12 @@ function setup(storage: WorkStorage = memoryStorage()) {
       workbench,
       library,
       storage: Promise.resolve(storage),
+      ...(former ? { formerStorage: Promise.resolve(former) } : {}),
       hash,
       clearHash: () => {
         hashCleared = true;
       },
-      draftDelayMs: 0,
+      saveDelayMs: 0,
     });
   return { workbench, library, storage, start, hashCleared: () => hashCleared };
 }
@@ -42,7 +43,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 10));
 describe("session", () => {
   it("opens a share link without running it", async () => {
     const source = setup();
-    source.workbench.getState().setPolicy({ name: "mine.lua", source: "return {}" });
+    source.workbench.getState().setPolicySource("return {}");
     source.workbench.getState().selectStarter("relay");
     source.workbench.getState().setView("batch");
     source.workbench.getState().setBatchOptions({ compare: true, seedCount: 30, baseSeed: 4 });
@@ -52,8 +53,8 @@ describe("session", () => {
     await target.start(hash);
     const state = target.workbench.getState();
     expect(state.loaded).toBe(true);
-    expect(state.policy).toEqual({ name: "mine.lua", source: "return {}" });
-    expect(state.scenario.starterId).toBe("relay");
+    expect(state.policy.source).toBe("return {}");
+    expect(state.slots.scenario).toBe("builtin:scenario:relay");
     expect(state.view).toBe("batch");
     expect(state.batch).toMatchObject({ compare: true, seedCount: 30, baseSeed: 4 });
     expect(state.run.status).toBe("idle");
@@ -61,81 +62,106 @@ describe("session", () => {
     expect(target.hashCleared()).toBe(true);
   });
 
-  it("reports a damaged link and keeps the draft", async () => {
-    const storage = memoryStorage();
-    const draft = {
-      policy: { name: "draft.lua", source: "return { on_stop = function() end }" },
-      policyB: { name: "b.lua", source: BUILT_IN_POLICIES.naive },
-      scenario: starterSource("relay"),
-      seed: 9,
-    };
-    await storage.saveDraft(draft);
-    const { workbench, start } = setup(storage);
-    await start("#v1.AAAA");
-    expect(workbench.getState().notices.map((n) => n.topic)).toEqual(["share-damaged"]);
-    expect(workbench.getState().policy).toEqual(draft.policy);
-    expect(await storage.loadDraft()).toEqual(draft);
+  it("reports a damaged link and restores the saved slots", async () => {
+    const first = setup();
+    await first.start();
+    first.workbench.getState().setPolicySource("return { on_stop = function() end }");
+    await settle();
+
+    const second = setup(first.storage);
+    await second.start("#v1.AAAA");
+    expect(second.workbench.getState().notices.map((n) => n.topic)).toEqual(["share-damaged"]);
+    expect(second.workbench.getState().policy.source).toBe("return { on_stop = function() end }");
   });
 
-  it("saves edits as a draft and restores them next time", async () => {
-    const storage = memoryStorage();
+  it("saves edits automatically and restores the slots and Mine items next time", async () => {
+    const storage = memoryLibraryStorage();
     const first = setup(storage);
     const stop = await first.start();
     first.workbench.getState().setPolicySource("-- edited\nreturn {}");
+    first.workbench.getState().selectStarter("relay");
     first.workbench.getState().setSeed(12);
     await settle();
     expect(first.library.getState().draft).toBe("saved");
+    expect((await storage.listItems()).map((i) => i.name)).toEqual(["naive (copy)"]);
     stop();
 
     const second = setup(storage);
     await second.start();
-    expect(second.workbench.getState().policy.source).toBe("-- edited\nreturn {}");
-    expect(second.workbench.getState().seed).toBe(12);
+    const state = second.workbench.getState();
+    expect(state.policy).toEqual({ name: "naive (copy)", source: "-- edited\nreturn {}" });
+    expect(state.slots.scenario).toBe("builtin:scenario:relay");
+    expect(state.seed).toBe(12);
   });
 
-  it("restores a draft from before scenario scripts with its starter as a script", async () => {
-    const storage = memoryStorage();
-    await storage.saveDraft({
-      policy: { name: "draft.lua", source: "return {}" },
-      policyB: { name: "b.lua", source: "return {}" },
-      scenario: { starterId: "relay", text: formerRelayText } as never,
-      seed: 3,
+  it("removes deleted items from storage, keeping a slot's contents as an unsaved copy", async () => {
+    const storage = memoryLibraryStorage();
+    const first = setup(storage);
+    await first.start();
+    first.workbench.getState().setPolicySource("-- mine\nreturn {}");
+    const id = first.workbench.getState().slots.policy;
+    first.workbench.getState().deleteItem(id);
+    await settle();
+    expect(await storage.listItems()).toEqual([]);
+    const state = first.workbench.getState();
+    expect(state.slots.policy).not.toBe(id);
+    expect(state.policy.source).toBe("-- mine\nreturn {}");
+
+    const second = setup(storage);
+    await second.start();
+    expect(second.workbench.getState().policy.source).toBe("-- mine\nreturn {}");
+    expect(Object.values(second.workbench.getState().items).every((i) => i.listed === false)).toBe(
+      true,
+    );
+  });
+
+  it("falls back to the defaults when a saved slot's item is gone", async () => {
+    const storage = memoryLibraryStorage();
+    await storage.saveSession({
+      slots: { scenario: "mine:scenario:gone", policy: "mine:policy:gone", compare: null },
+      items: [],
+      seed: 5,
+      view: "run",
+      saveReloadTest: false,
+      batch: { seedCount: 100, baseSeed: 1, compare: false },
     });
     const { workbench, start } = setup(storage);
     await start();
-    expect(workbench.getState().scenario).toMatchObject({
-      kind: "script",
-      starterId: "relay",
-      status: "ready",
+    expect(workbench.getState().slots).toEqual({
+      scenario: "builtin:scenario:two-station",
+      policy: "builtin:policy:naive",
+      compare: "builtin:policy:supply-to-demand",
     });
-    expect(workbench.getState().scenario.scenario?.id).toBe("relay");
+    expect(workbench.getState().seed).toBe(5);
   });
 
-  it("tells the player when storage is unavailable", async () => {
-    const { workbench, library, start } = setup(unavailableStorage());
+  it("moves a draft from before scenario scripts into the library, with its starter shipped", async () => {
+    const former = memoryStorage();
+    await former.saveDraft({
+      policy: { name: "draft.lua", source: "return {}" },
+      policyB: { name: "b.lua", source: BUILT_IN_POLICIES.naive },
+      scenario: { starterId: "relay", text: formerRelayText } as never,
+      seed: 3,
+    });
+    const { workbench, start, storage } = setup(memoryLibraryStorage(), former);
+    await start();
+    const state = workbench.getState();
+    expect(state.slots.scenario).toBe("builtin:scenario:relay");
+    expect(state.slots.compare).toBe("builtin:policy:naive");
+    expect(state.policy).toEqual({ name: "Draft policy", source: "return {}" });
+    expect(state.scenario).toMatchObject({ kind: "script", status: "ready" });
+    expect(state.scenario.scenario?.id).toBe("relay");
+    expect(await former.loadDraft()).toBeUndefined();
+    expect((await storage.listItems()).map((i) => i.name)).toEqual(["Draft policy"]);
+  });
+
+  it("tells the player when storage is unavailable and keeps working in memory", async () => {
+    const { workbench, library, start } = setup(memoryLibraryStorage(false));
     await start();
     expect(library.getState().available).toBe(false);
     expect(workbench.getState().notices.map((n) => n.topic)).toEqual(["storage-unavailable"]);
     expect(workbench.getState().loaded).toBe(true);
-  });
-
-  it("saves, renames and deletes named work", async () => {
-    const { library, start } = setup();
-    await start();
-    const { save, rename, remove } = library.getState();
-    await save({ kind: "policy", name: "b", source: "return {}", savedAt: 1 });
-    await save({ kind: "policy", name: "a", source: "return {}", savedAt: 2 });
-    await save({ kind: "scenario", name: "a", text: "{}", savedAt: 3 });
-    expect(library.getState().items.map((i) => `${i.kind}:${i.name}`)).toEqual([
-      "policy:a",
-      "policy:b",
-      "scenario:a",
-    ]);
-    await rename("policy", "b", "c");
-    await remove("scenario", "a");
-    expect(library.getState().items.map((i) => `${i.kind}:${i.name}`)).toEqual([
-      "policy:a",
-      "policy:c",
-    ]);
+    workbench.getState().setPolicySource("-- kept for now\nreturn {}");
+    expect(workbench.getState().policy.name).toBe("naive (copy)");
   });
 });

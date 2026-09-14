@@ -17,7 +17,7 @@ test.describe("batch comparison", () => {
     await openWorkbench(page);
     await openBatch(page);
     await expect(page.getByTestId("batch-seeds")).toHaveValue("100");
-    await expect(page.getByTestId("batch-config")).toContainText("naive.lua");
+    await expect(page.getByTestId("batch-config")).toContainText("policy A naive");
     await expect(page.getByTestId("batch-config")).toContainText("Two stations");
   });
 
