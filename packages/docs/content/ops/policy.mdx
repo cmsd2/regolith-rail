@@ -64,8 +64,12 @@ leave the site alone. An error inside a custom function names the stage it happe
 ```lua runnable scenario=relay
 return ops.policy {
   classify = function(site, ctx)
-    if site.station == "Mine" then return "supply" end
-    if site.station == "Dome" then return "demand" end
+    if site.station == "Mine" then
+      return "supply"
+    end
+    if site.station == "Dome" then
+      return "demand"
+    end
     return "relay"
   end,
   target = {

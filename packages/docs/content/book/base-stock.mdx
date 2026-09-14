@@ -134,7 +134,9 @@ Now order up to the same level from stock on hand, in plain Lua:
 return {
   on_review = function(ctx)
     local short = 13000 - ctx.here.stock.Goods
-    if short > 0 then ctx.order("Goods", short) end
+    if short > 0 then
+      ctx.order("Goods", short)
+    end
   end,
 }
 ```

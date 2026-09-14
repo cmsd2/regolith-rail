@@ -44,30 +44,40 @@ return {
     local target = 0
     for _, id in ipairs(ctx.station_order) do
       local station = ctx.stations[id]
-      if station ~= ctx.here then target = target + station.capacity.Fuel end
+      if station ~= ctx.here then
+        target = target + station.capacity.Fuel
+      end
     end
     local position = ctx.here.stock.Fuel
     for _, order in ipairs(ctx.here.on_order or {}) do
       position = position + order.amount
     end
-    if target > position then ctx.order("Fuel", target - position) end
+    if target > position then
+      ctx.order("Fuel", target - position)
+    end
   end,
   on_stop = function(ctx)
     local here, truck = ctx.here, ctx.vehicle
     if #here.suppliers > 0 then
       local short, passed = 0, { [here.id] = true }
       for _, stop in ipairs(truck.route.ahead) do
-        if passed[stop.station.id] then break end
+        if passed[stop.station.id] then
+          break
+        end
         passed[stop.station.id] = true
         short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel
       end
       local wanted = short - truck.cargo.Fuel
       local amount = math.min(wanted, here.stock.Fuel, truck.space.Fuel)
-      if amount > 0 then ctx.load("Fuel", amount) end
+      if amount > 0 then
+        ctx.load("Fuel", amount)
+      end
     else
       local room = here.capacity.Fuel - here.stock.Fuel
       local amount = math.min(truck.cargo.Fuel, room)
-      if amount > 0 then ctx.unload("Fuel", amount) end
+      if amount > 0 then
+        ctx.unload("Fuel", amount)
+      end
     end
   end,
 }

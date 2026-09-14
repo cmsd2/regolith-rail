@@ -24,7 +24,7 @@
     "script": false,
     "scenario": "classic.reorder",
     "seed": 1,
-    "source": "return {\n  on_review = function(ctx)\n    local short = 13000 - ctx.here.stock.Goods\n    if short > 0 then ctx.order(\"Goods\", short) end\n  end,\n}"
+    "source": "return {\n  on_review = function(ctx)\n    local short = 13000 - ctx.here.stock.Goods\n    if short > 0 then\n      ctx.order(\"Goods\", short)\n    end\n  end,\n}"
   },
   {
     "id": "book/base-stock#4",
@@ -161,7 +161,7 @@
     "script": false,
     "scenario": "classic.fixed_route_delivery",
     "seed": 1,
-    "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then target = target + station.capacity.Fuel end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do\n      position = position + order.amount\n    end\n    if target > position then ctx.order(\"Fuel\", target - position) end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then break end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local wanted = short - truck.cargo.Fuel\n      local amount = math.min(wanted, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then ctx.load(\"Fuel\", amount) end\n    else\n      local room = here.capacity.Fuel - here.stock.Fuel\n      local amount = math.min(truck.cargo.Fuel, room)\n      if amount > 0 then ctx.unload(\"Fuel\", amount) end\n    end\n  end,\n}"
+    "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then\n        target = target + station.capacity.Fuel\n      end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do\n      position = position + order.amount\n    end\n    if target > position then\n      ctx.order(\"Fuel\", target - position)\n    end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then\n          break\n        end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local wanted = short - truck.cargo.Fuel\n      local amount = math.min(wanted, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then\n        ctx.load(\"Fuel\", amount)\n      end\n    else\n      local room = here.capacity.Fuel - here.stock.Fuel\n      local amount = math.min(truck.cargo.Fuel, room)\n      if amount > 0 then\n        ctx.unload(\"Fuel\", amount)\n      end\n    end\n  end,\n}"
   },
   {
     "id": "classic/serial-chain#1",
@@ -281,7 +281,7 @@
     "script": false,
     "scenario": "relay",
     "seed": 1,
-    "source": "return ops.policy {\n  classify = function(site, ctx)\n    if site.station == \"Mine\" then return \"supply\" end\n    if site.station == \"Dome\" then return \"demand\" end\n    return \"relay\"\n  end,\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = function(site, ctx)\n      -- Keep the dome two thirds full.\n      return math.floor(site.capacity * 2 / 3)\n    end,\n  },\n}"
+    "source": "return ops.policy {\n  classify = function(site, ctx)\n    if site.station == \"Mine\" then\n      return \"supply\"\n    end\n    if site.station == \"Dome\" then\n      return \"demand\"\n    end\n    return \"relay\"\n  end,\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = function(site, ctx)\n      -- Keep the dome two thirds full.\n      return math.floor(site.capacity * 2 / 3)\n    end,\n  },\n}"
   },
   {
     "id": "scenarios/writing#1",

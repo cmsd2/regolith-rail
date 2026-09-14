@@ -15,15 +15,31 @@ local SMALL = 30
 local LARGE = 60
 
 --- Resource priorities when a script does not state them: what colonists need first.
-mars.PRIORITIES = { Food = 3, Water = 3, Oxygen = 3, Polymers = 2, MachineParts = 2, Electronics = 2 }
+mars.PRIORITIES = {
+  Food = 3,
+  Water = 3,
+  Oxygen = 3,
+  Polymers = 2,
+  MachineParts = 2,
+  Electronics = 2,
+}
 
 --- Building and train values when a script does not state them.
 mars.DEFAULTS = {
   extractor = 40,
   farm = 30,
   dome = { Food = 20 },
-  factory = { inputs = { Metals = 3 }, outputs = { MachineParts = 1 }, rate = 10 },
-  train = { speed = 5, capacity = 30, dwell_minutes = 10, dwell_per_unit_minutes = 1 },
+  factory = {
+    inputs = { Metals = 3 },
+    outputs = { MachineParts = 1 },
+    rate = 10,
+  },
+  train = {
+    speed = 5,
+    capacity = 30,
+    dwell_minutes = 10,
+    dwell_per_unit_minutes = 1,
+  },
   variability_hours = 2,
 }
 
@@ -41,12 +57,22 @@ local function variability(name, value)
     return value
   end
   if type(value) ~= "number" then
-    fail(name, "variability must be a percentage, uniform { ... } or bursts { ... }")
+    fail(
+      name,
+      "variability must be a percentage, uniform { ... } or bursts { ... }"
+    )
   end
-  return uniform({ range = value, period = hours(mars.DEFAULTS.variability_hours) })
+  return uniform({
+    range = value,
+    period = hours(mars.DEFAULTS.variability_hours),
+  })
 end
 
-local FLOW_PARAMS = { resource = "string", rate = "number", variability = "number|uniform|bursts" }
+local FLOW_PARAMS = {
+  resource = "string",
+  rate = "number",
+  variability = "number|uniform|bursts",
+}
 
 local function flow_building(kind, make, default_rate, required)
   return construct("mars." .. kind, FLOW_PARAMS, required, function(p, name)
@@ -56,13 +82,18 @@ local function flow_building(kind, make, default_rate, required)
       variability = variability(name, p.variability),
     })
     if kind == "consumer" then
-      return { building = kind, consumers = { flow }, resources = { p.resource } }
+      return {
+        building = kind,
+        consumers = { flow },
+        resources = { p.resource },
+      }
     end
     return { building = kind, producers = { flow }, resources = { p.resource } }
   end)
 end
 
-mars.extractor = flow_building("extractor", producer, mars.DEFAULTS.extractor, { "resource" })
+mars.extractor =
+  flow_building("extractor", producer, mars.DEFAULTS.extractor, { "resource" })
 mars.producer = flow_building("producer", producer, nil, { "resource", "rate" })
 mars.consumer = flow_building("consumer", consumer, nil, { "resource", "rate" })
 
@@ -83,15 +114,25 @@ mars.dome = construct("mars.dome", {
 }, {}, function(p, name)
   local needs = p.consumes or mars.DEFAULTS.dome
   if type(needs) ~= "table" then
-    fail(name, "consumes must be units per sol keyed by resource id, or a list of needs")
+    fail(
+      name,
+      "consumes must be units per sol keyed by resource id, or a list of needs"
+    )
   end
   local entries = {}
   if is_list(needs) then
     for i, need in ipairs(needs) do
       if type(need) ~= "table" then
-        fail(name, "consumes entry " .. i .. ' must be a table such as { "Food", 20 }')
+        fail(
+          name,
+          "consumes entry " .. i .. ' must be a table such as { "Food", 20 }'
+        )
       end
-      entries[i] = { resource = need.resource or need[1], rate = need.rate or need[2], variability = need.variability }
+      entries[i] = {
+        resource = need.resource or need[1],
+        rate = need.rate or need[2],
+        variability = need.variability,
+      }
     end
   else
     for resource, rate in pairs(needs) do
@@ -157,7 +198,12 @@ local function station_of(size)
     local producers, consumers, converters = {}, {}, {}
     for i, b in ipairs(p.buildings or {}) do
       if type(b) ~= "table" or b.building == nil then
-        fail(name, "buildings[" .. i .. "] must be a building, such as mars.extractor { ... }")
+        fail(
+          name,
+          "buildings["
+            .. i
+            .. "] must be a building, such as mars.extractor { ... }"
+        )
       end
       for _, resource in ipairs(b.resources) do
         add(resource)
@@ -177,7 +223,9 @@ local function station_of(size)
     if type(stock) ~= "table" or is_list(stock) and next(stock) ~= nil then
       fail(name, "stock must be units keyed by resource id")
     end
-    if type(capacity) ~= "table" or is_list(capacity) and next(capacity) ~= nil then
+    if
+      type(capacity) ~= "table" or is_list(capacity) and next(capacity) ~= nil
+    then
       fail(name, "capacity must be units keyed by resource id")
     end
     for resource in pairs(stock) do
@@ -185,12 +233,21 @@ local function station_of(size)
     end
     for resource in pairs(capacity) do
       if not seen[resource] then
-        fail(name, "capacity names " .. tostring(resource) .. ", which the station does not store")
+        fail(
+          name,
+          "capacity names "
+            .. tostring(resource)
+            .. ", which the station does not store"
+        )
       end
     end
     local stores = {}
     for i, resource in ipairs(order) do
-      stores[i] = store({ resource = resource, capacity = capacity[resource] or size, initial = stock[resource] })
+      stores[i] = store({
+        resource = resource,
+        capacity = capacity[resource] or size,
+        initial = stock[resource],
+      })
     end
     return station({
       id = p.id,
@@ -210,8 +267,10 @@ local STATION_PARAMS = {
   buildings = "building[]",
 }
 
-mars.small_station = construct("mars.small_station", STATION_PARAMS, { "id" }, station_of(SMALL))
-mars.large_station = construct("mars.large_station", STATION_PARAMS, { "id" }, station_of(LARGE))
+mars.small_station =
+  construct("mars.small_station", STATION_PARAMS, { "id" }, station_of(SMALL))
+mars.large_station =
+  construct("mars.large_station", STATION_PARAMS, { "id" }, station_of(LARGE))
 
 mars.train = construct("mars.train", {
   id = "string",
@@ -230,7 +289,8 @@ mars.train = construct("mars.train", {
     speed = p.speed or defaults.speed,
     capacity = p.capacity or defaults.capacity,
     dwell = p.dwell or minutes(defaults.dwell_minutes),
-    dwell_per_unit = p.dwell_per_unit or minutes(defaults.dwell_per_unit_minutes),
+    dwell_per_unit = p.dwell_per_unit
+      or minutes(defaults.dwell_per_unit_minutes),
   }
 end)
 
@@ -244,15 +304,29 @@ mars.dust_storm = construct("mars.dust_storm", {
   surge = "{ station, resource, multiplier, after, duration }",
 }, { "duration" }, function(p, name)
   local effects = {
-    effect({ type = "supply", stations = p.stations, resources = "all", multiplier = 0 }),
+    effect({
+      type = "supply",
+      stations = p.stations,
+      resources = "all",
+      multiplier = 0,
+    }),
   }
   if p.surge ~= nil then
     local surge = p.surge
     if type(surge) ~= "table" then
-      fail(name, 'surge must be a table such as { station = "Dome", resource = "Metals", multiplier = 2.5 }')
+      fail(
+        name,
+        'surge must be a table such as { station = "Dome", resource = "Metals", multiplier = 2.5 }'
+      )
     end
     for key in pairs(surge) do
-      if key ~= "station" and key ~= "resource" and key ~= "multiplier" and key ~= "after" and key ~= "duration" then
+      if
+        key ~= "station"
+        and key ~= "resource"
+        and key ~= "multiplier"
+        and key ~= "after"
+        and key ~= "duration"
+      then
         fail(name, "surge has no field named " .. tostring(key))
       end
     end
@@ -306,7 +380,11 @@ mars.line = construct("mars.line", {
     end
     vehicles[i] = vehicle({
       id = t.id,
-      route = shuttle({ stops = stops, start = t.start or stops[1], direction = t.direction }),
+      route = shuttle({
+        stops = stops,
+        start = t.start or stops[1],
+        direction = t.direction,
+      }),
       speed = t.speed,
       capacity = t.capacity,
       dwell = t.dwell,
