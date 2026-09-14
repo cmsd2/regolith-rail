@@ -58,9 +58,20 @@ interface ItemBase {
   example?: { scenario: ItemId; seed: number };
 }
 
+/** What a shipped scenario teaches, and the policy that goes with it. */
+export interface ScenarioLesson {
+  /** The documentation page that explains the scenario, such as `failure-modes/half-capacity`. */
+  docs: string;
+  /** The suggested fix: the runnable example on a starter's failure-mode page. */
+  fix?: ItemId;
+  /** The classic template whose reference policy goes with the scenario. */
+  reference?: string;
+}
+
 export interface ScenarioItem extends ItemBase {
   kind: "scenario";
   content: ScenarioSource;
+  lesson?: ScenarioLesson;
 }
 
 export interface PolicyItem extends ItemBase {

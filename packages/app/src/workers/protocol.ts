@@ -1,5 +1,5 @@
 import type { Metrics, PolicyError, RunOutput, Scenario } from "@regolith-rail/engine";
-import type { Diagnostic, ScriptScenario } from "@regolith-rail/lua-runtime";
+import type { Diagnostic, PolicyHooks, ScriptScenario } from "@regolith-rail/lua-runtime";
 import type { ModReadiness } from "../lib/mod-ready.ts";
 
 export interface RunRequest {
@@ -33,6 +33,7 @@ export interface SimulationWorkerApi {
   check(source: string): Promise<Diagnostic[]>;
   loadScript(source: string): Promise<ScriptScenario>;
   modReady(policy: string, scenario: Scenario): Promise<ModReadiness>;
+  hooks(policy: string): Promise<PolicyHooks>;
 }
 
 /** Most sample points a batch keeps per run. */

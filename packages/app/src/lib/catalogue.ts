@@ -11,7 +11,6 @@ import {
 } from "@regolith-rail/scenario-kit";
 import { canonical, stableHash } from "./content-hash.ts";
 import {
-  type ExperimentContent,
   type ExperimentItem,
   type ItemId,
   itemId,
@@ -19,18 +18,12 @@ import {
   type PolicyItem,
   partId,
   type ScenarioItem,
+  type ScenarioLesson,
 } from "./library.ts";
 import { type ScenarioSource, starterSource, templateSource } from "./scenario-source.ts";
 
 /** The first sentence of a longer text, for one-line descriptions. */
 const firstSentence = (text: string) => /^.*?[.!?](?=\s|$)/.exec(text)?.[0] ?? text;
-
-const DEFAULT_RUN = {
-  seed: 1,
-  view: "run",
-  saveReloadTest: false,
-  batch: { seedCount: 100, baseSeed: 1, compare: false },
-} as const satisfies Omit<ExperimentContent, "scenario" | "policy">;
 
 const readOnly = { createdAt: 0, updatedAt: 0 };
 
@@ -39,9 +32,20 @@ function scenarioItemId(id: string): ItemId {
   return id.includes(".") ? itemId("classic", "scenario", id) : itemId("builtin", "scenario", id);
 }
 
+const docsExampleId = (kind: "policy" | "scenario", id: string) =>
+  itemId("example", kind, `docs/${id}`);
+
+/** Each starter's lesson: its failure-mode page, and the policy example that page suggests. */
 function starterItems(): ScenarioItem[] {
   return starterScenarios.map(({ id, document }) => {
-    const { title, description } = document as { title: string; description: string };
+    const { title, description, docs } = document as {
+      title: string;
+      description: string;
+      docs?: string;
+    };
+    const fix = examples.find(
+      (e) => docs !== undefined && e.page === docs && !e.script && e.scenario === id,
+    );
     return {
       ...readOnly,
       id: itemId("builtin", "scenario", id),
@@ -50,6 +54,9 @@ function starterItems(): ScenarioItem[] {
       name: title,
       description: firstSentence(description),
       content: starterSource(id),
+      ...(docs
+        ? { lesson: { docs, ...(fix ? { fix: docsExampleId("policy", fix.id) } : {}) } }
+        : {}),
     };
   });
 }
@@ -78,9 +85,6 @@ function examplePolicyItems(): PolicyItem[] {
   }));
 }
 
-const docsExampleId = (kind: "policy" | "scenario", id: string) =>
-  itemId("example", kind, `docs/${id}`);
-
 function docsExampleItems(): LibraryItem[] {
   return examples.map((example): LibraryItem => {
     const base = {
@@ -107,8 +111,8 @@ function docsExampleItems(): LibraryItem[] {
   });
 }
 
-const templateSummary = (template: ClassicTemplate) =>
-  classicConstructs.find((c) => c.name === template.name)?.summary ?? template.title;
+const templateConstruct = (template: ClassicTemplate) =>
+  classicConstructs.find((c) => c.name === template.name);
 
 function classicItems(): LibraryItem[] {
   return classicTemplates.flatMap((template): LibraryItem[] => {
@@ -118,8 +122,12 @@ function classicItems(): LibraryItem[] {
       kind: "scenario",
       source: "classic",
       name: template.title,
-      description: templateSummary(template),
+      description: templateConstruct(template)?.summary ?? template.title,
       content: templateSource(template.name, template.defaults),
+      lesson: {
+        docs: templateConstruct(template)?.docs ?? "",
+        reference: template.name,
+      },
     };
     const reference = template.reference(template.defaults);
     const policy: PolicyItem = {
@@ -131,54 +139,8 @@ function classicItems(): LibraryItem[] {
       description: reference.summary,
       content: reference.policy,
     };
-    const experiment: ExperimentItem = {
-      ...readOnly,
-      id: itemId("classic", "experiment", template.name),
-      kind: "experiment",
-      source: "classic",
-      name: template.title,
-      description: `${template.title} at its default parameters with its reference policy.`,
-      content: {
-        ...DEFAULT_RUN,
-        batch: { ...DEFAULT_RUN.batch },
-        scenario: { content: scenario.content, name: scenario.name, origin: scenario.id },
-        policy: { content: policy.content, name: policy.name, origin: policy.id },
-      },
-    };
-    return [scenario, policy, experiment];
+    return [scenario, policy];
   });
-}
-
-/** Each failure-mode page's suggested fix, paired with the starter scenario it fixes. */
-function failureModeExperiments(starters: ScenarioItem[]): ExperimentItem[] {
-  return examples
-    .filter((example) => example.page.startsWith("failure-modes/") && !example.script)
-    .flatMap((example): ExperimentItem[] => {
-      const scenario = starters.find((s) => s.id === scenarioItemId(example.scenario));
-      if (!scenario) return [];
-      const slug = example.page.slice("failure-modes/".length);
-      return [
-        {
-          ...readOnly,
-          id: itemId("builtin", "experiment", slug),
-          kind: "experiment",
-          source: "builtin",
-          name: `${example.name}: suggested fix`,
-          description: `${scenario.name} with the policy the ${example.name} page suggests.`,
-          content: {
-            ...DEFAULT_RUN,
-            batch: { ...DEFAULT_RUN.batch },
-            seed: example.seed,
-            scenario: { content: scenario.content, name: scenario.name, origin: scenario.id },
-            policy: {
-              content: example.source,
-              name: example.name,
-              origin: docsExampleId("policy", example.id),
-            },
-          },
-        },
-      ];
-    });
 }
 
 function buildCatalogue(): LibraryItem[] {
@@ -186,7 +148,6 @@ function buildCatalogue(): LibraryItem[] {
   return [
     ...starters,
     ...builtInPolicyItems(),
-    ...failureModeExperiments(starters),
     ...examplePolicyItems(),
     ...docsExampleItems(),
     ...classicItems(),
@@ -295,4 +256,22 @@ export function shippedScenarioFor(record: ScenarioSource): ScenarioItem | undef
       item.content.source === record.source,
   );
   return shipped.length > 0 ? preferred(shipped) : undefined;
+}
+
+/**
+ * The lesson for a scenario item: its own when it was shipped with one, otherwise that of the shipped
+ * scenario it was copied from. A copy of a classic template keeps the template's reference policy.
+ */
+export function lessonOf(
+  item: LibraryItem | undefined,
+  lookup: (id: ItemId) => LibraryItem | undefined,
+): ScenarioLesson | undefined {
+  let current = item;
+  for (let depth = 0; current && depth < 10; depth++) {
+    if (current.kind === "scenario" && current.lesson) return current.lesson;
+    current = current.origin ? lookup(current.origin) : undefined;
+  }
+  if (item?.kind !== "scenario" || !item.content.template) return undefined;
+  const template = catalogueItem(itemId("classic", "scenario", item.content.template.name));
+  return template?.kind === "scenario" ? template.lesson : undefined;
 }

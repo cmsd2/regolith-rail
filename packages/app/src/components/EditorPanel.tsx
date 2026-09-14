@@ -7,7 +7,6 @@ import { documentText } from "../lib/scenario-source.ts";
 import { checker, useWorkbench, workbench } from "../state/instance.ts";
 import { CodeEditor } from "./CodeEditor.tsx";
 import styles from "./EditorPanel.module.css";
-import { SavedWork } from "./SavedWork.tsx";
 
 function PolicyEditor() {
   const source = useWorkbench((s) => s.policy.source);
@@ -181,13 +180,11 @@ export default function EditorPanel() {
       </div>
       <div className={styles.body} hidden={tab !== "policy"}>
         <PolicyEditor />
-        <SavedWork kind="policy" />
       </div>
       <div className={styles.body} hidden={tab !== "scenario"}>
         <ScenarioToolbar evaluated={evaluated} setEvaluated={setEvaluated} />
         {showEvaluated ? <EvaluatedDocument /> : <ScenarioEditor />}
         <ScenarioErrors />
-        <SavedWork kind="scenario" />
       </div>
     </section>
   );

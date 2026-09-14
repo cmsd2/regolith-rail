@@ -4,6 +4,7 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import {
   catalogueItem,
   experimentParts,
+  lessonOf,
   referenceOf,
   referencePolicyItem,
 } from "../lib/catalogue.ts";
@@ -96,6 +97,10 @@ export interface WorkbenchState {
   view: "run" | "batch";
   /** Which library items fill the run. */
   slots: Slots;
+  /** The experiment last opened or saved, which the run can update. */
+  openedExperiment: ItemId | null;
+  /** The slot the player is choosing an item for; the explorer shows only that kind meanwhile. */
+  choosing: SlotName | null;
   /** Mine and shared items, and unlisted items a slot uses; shipped items come from the catalogue. */
   items: Record<ItemId, LibraryItem>;
   /** The Policy slot's item, as the editor and runs use it. */
@@ -130,6 +135,12 @@ export interface WorkbenchState {
   loadLibrary(items: readonly LibraryItem[], session?: SessionRecord): void;
   /** Fills a slot with a library item of the matching kind. Nothing runs. */
   fillSlot(slot: SlotName, id: ItemId): void;
+  /** Starts or cancels choosing an item for a slot. */
+  chooseFor(slot: SlotName | null): void;
+  /** Fills the Policy slot with the fix the Scenario slot's lesson suggests. */
+  applySuggestedFix(): void;
+  /** Fills the Policy slot with the reference policy for the Scenario slot's template parameters. */
+  applyReferencePolicy(): void;
   /**
    * Opens a documentation example: its policy with the scenario it runs on, or its scenario
    * script, with its seed. Nothing runs.
@@ -355,6 +366,8 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       notices: [],
       view: "run",
       slots: DEFAULT_SLOTS,
+      openedExperiment: null,
+      choosing: null,
       items: initialItems,
       policy: policyDraft(catalogueItem(DEFAULT_SLOTS.policy)),
       policyB: policyDraft(catalogueItem(DEFAULT_SLOTS.compare)),
@@ -415,6 +428,23 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
         });
       },
 
+      chooseFor: (choosing) => set({ choosing }),
+
+      applySuggestedFix() {
+        const s = get();
+        const fix = lessonOf(lookup(s.items, s.slots.scenario), (id) => lookup(s.items, id))?.fix;
+        if (fix) s.fillSlot("policy", fix);
+      },
+
+      applyReferencePolicy() {
+        set((s) => {
+          const template = s.scenario.template;
+          if (!template || !findTemplate(template.name)) return {};
+          const reference = referencePolicyItem(template.name, template.params);
+          return withSlots(s, { ...s.slots, policy: reference.id }, using(s.items, reference));
+        });
+      },
+
       fillSlot(slot, id) {
         set((s) => {
           const item = lookup(s.items, id);
@@ -452,6 +482,7 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
           const { content } = experiment;
           return {
             ...withSlots(s, slots, items),
+            openedExperiment: id,
             seed: content.seed,
             view: content.view,
             saveReloadTest: content.saveReloadTest,
@@ -486,7 +517,7 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
           createdAt: time,
           updatedAt: time,
         };
-        set({ items: { ...s.items, [item.id]: item } });
+        set({ items: { ...s.items, [item.id]: item }, openedExperiment: item.id });
         return item.id;
       },
 
@@ -575,7 +606,10 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
             items[copy.id] = copy;
             slots[slot] = copy.id;
           }
-          return withSlots(s, slots, items);
+          return {
+            ...withSlots(s, slots, items),
+            openedExperiment: s.openedExperiment === id ? null : s.openedExperiment,
+          };
         });
       },
 

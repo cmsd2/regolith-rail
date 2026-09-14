@@ -4,6 +4,7 @@ import { classicTemplates, STARTER_SCRIPTS, templateCall } from "@regolith-rail/
 import { beforeAll, describe, expect, it } from "vitest";
 import { catalogueItem } from "../lib/catalogue.ts";
 import { importFile } from "../lib/files.ts";
+import { classicExperiment } from "../lib/test-fixtures.ts";
 import {
   BatchPool,
   CancelledError,
@@ -39,6 +40,7 @@ function inProcess(options: { hang?: boolean } = {}): WorkerHandle {
       check: async (source) => tasks.check(source),
       loadScript: async (source) => tasks.loadScript(source),
       modReady: async (policy, scenario) => tasks.modReady(policy, scenario),
+      hooks: async (policy) => tasks.hooks(policy),
     },
     terminate: () => {
       terminated = true;
@@ -274,18 +276,35 @@ describe("workbench store", () => {
     );
   });
 
-  it("opens a classic experiment with shipped items whose reference policy follows the template", () => {
+  it("opens an experiment of a classic problem with the shipped items it still matches", () => {
     const store = workbench();
-    const newsvendor = classicTemplates.find((t) => t.name === "classic.newsvendor");
-    if (!newsvendor) throw new Error("newsvendor missing");
-    store.getState().openExperiment("classic:experiment:classic.newsvendor");
+    const experiment = classicExperiment("classic.newsvendor");
+    store.getState().addItem(experiment);
+    store.getState().openExperiment(experiment.id);
     expect(store.getState().slots).toMatchObject({
       scenario: "classic:scenario:classic.newsvendor",
       policy: "classic:policy:classic.newsvendor",
     });
+  });
+
+  it("applies a scenario's suggested fix or its reference policy for the current parameters", () => {
+    const store = workbench();
+    store.getState().selectStarter("storm-shock");
+    store.getState().applySuggestedFix();
+    expect(store.getState().slots.policy).toBe(
+      "example:policy:docs/failure-modes/disruption-recovery#1",
+    );
+
+    const newsvendor = classicTemplates.find((t) => t.name === "classic.newsvendor");
+    if (!newsvendor) throw new Error("newsvendor missing");
+    store.getState().fillSlot("scenario", "classic:scenario:classic.newsvendor");
     store.getState().setTemplateParams({ lost_cost: 9 });
+    store.getState().applyReferencePolicy();
+    const params = { ...newsvendor.defaults, lost_cost: 9 };
+    expect(store.getState().policy.source).toBe(newsvendor.reference(params).policy);
+    store.getState().setTemplateParams({ lost_cost: 11 });
     expect(store.getState().policy.source).toBe(
-      newsvendor.reference({ ...newsvendor.defaults, lost_cost: 9 }).policy,
+      newsvendor.reference({ ...params, lost_cost: 11 }).policy,
     );
   });
 

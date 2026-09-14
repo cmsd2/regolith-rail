@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import { openWorkbench, setEditorText } from "./helpers.ts";
+import { chooseForSlot, openWorkbench, setEditorText } from "./helpers.ts";
 
 async function openBatch(page: Page) {
   await page.getByTestId("view-batch").click();
@@ -78,7 +78,7 @@ test.describe("batch comparison", () => {
     await openWorkbench(page);
     await openBatch(page);
     await page.getByTestId("batch-compare").check();
-    await page.getByTestId("batch-policy-b").selectOption("supply-to-demand");
+    await chooseForSlot(page, "compare", "builtin:policy:supply-to-demand");
     await runBatch(page, 20);
     await expect(page.getByTestId("difference-unmetDemandWeighted")).toHaveAttribute(
       "data-verdict",

@@ -1,6 +1,6 @@
 .layout {
   display: grid;
-  grid-template-columns: minmax(320px, 40%) 1fr;
+  grid-template-columns: minmax(240px, 20%) minmax(300px, 32%) minmax(0, 1fr);
   grid-template-rows: auto 1fr;
   height: calc(100vh - 90px);
   min-height: 560px;
@@ -25,9 +25,9 @@
   overflow: auto;
 }
 
-/* Documentation opens as a third column, so the editor, the run and the docs are all in view. */
+/* Documentation opens as a last column, so the library, the editor, the run and the docs are all in view. */
 .layout.withDocs {
-  grid-template-columns: minmax(300px, 32%) minmax(0, 1fr) minmax(300px, 30%);
+  grid-template-columns: minmax(220px, 17%) minmax(280px, 27%) minmax(0, 1fr) minmax(300px, 26%);
 }
 
 .docs {
@@ -366,7 +366,7 @@
   .layout,
   .layout.withDocs {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 420px auto;
+    grid-template-rows: auto auto 420px auto;
     height: auto;
   }
 

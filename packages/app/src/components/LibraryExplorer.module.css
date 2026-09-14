@@ -1,0 +1,269 @@
+.explorer {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.explorer h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.thisRun {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 55%;
+  overflow: auto;
+  padding: 0.5rem 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.heading,
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.toolbar {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.slotRow {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.slotLabel {
+  color: var(--muted);
+}
+
+.slotName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.origin {
+  margin-left: 5.9em;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.params,
+.lesson {
+  margin-left: 5.9em;
+}
+
+.params summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.lesson {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.inline input {
+  min-width: 0;
+  flex: 1;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.choosing {
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  background: color-mix(in srgb, var(--focus) 12%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.25rem 0;
+}
+
+.row {
+  /* Double-clicking uses an item, so it should not select the row's text. */
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.row[data-type="kind"] {
+  font-weight: 600;
+}
+
+.row[data-type="source"] {
+  color: var(--muted);
+}
+
+.row[aria-selected="true"] {
+  background: var(--surface-2);
+}
+
+.row[aria-current="true"] .label {
+  font-weight: 600;
+}
+
+.row[data-unfit="true"] .label {
+  color: var(--muted);
+  text-decoration: line-through dotted;
+}
+
+.secondary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.15rem;
+}
+
+.tabs button {
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text);
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+}
+
+.tabs button[aria-selected="true"] {
+  border-color: var(--border);
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+.empty {
+  margin: 0.5rem 0.75rem;
+  color: var(--muted);
+}
+
+.unfit {
+  margin: 0;
+  color: var(--warn);
+}
+
+.twisty {
+  width: 1em;
+  color: var(--muted);
+}
+
+.mark {
+  margin-left: auto;
+  padding: 0 0.35em;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  font-size: 11px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  height: 8.5rem;
+  overflow: auto;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.description {
+  margin: 0;
+  color: var(--muted);
+}
+
+.danger {
+  color: var(--bad);
+}
+
+.menu {
+  position: relative;
+}
+
+.menu summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.menuItems {
+  position: absolute;
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.25rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}

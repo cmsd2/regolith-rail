@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { parseScenarioText } from "../state/workbench.ts";
 import { catalogueItem } from "./catalogue.ts";
 import { exportFile, importFile, MAX_IMPORT_BYTES } from "./files.ts";
-import type { ExperimentItem, LibraryItem } from "./library.ts";
+import type { LibraryItem } from "./library.ts";
+import { classicExperiment } from "./test-fixtures.ts";
 
 const file = (name: string, text: string) => ({ name, bytes: new TextEncoder().encode(text) });
 
@@ -88,7 +89,7 @@ describe("exporting files", () => {
   });
 
   it("round-trips an experiment through an exported file", () => {
-    const shipped = catalogueItem("classic:experiment:classic.reorder") as ExperimentItem;
+    const shipped = classicExperiment();
     const exported = exportFile(shipped);
     expect(exported.fileName).toBe("Reorder.json");
     const imported = importFile("experiment", file(exported.fileName, exported.text), [], 9);

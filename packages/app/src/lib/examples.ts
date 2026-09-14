@@ -20,13 +20,18 @@ export function exampleFragment(hash: string): ItemId | null {
   );
 }
 
-/** The documentation example item with this source and kind, as a page renders it. */
-export function findExampleItem(source: string, script: boolean): ItemId | null {
+/**
+ * The documentation example item with this source and kind, as a page renders it. When several
+ * pages show the same example, the item from the given page is preferred.
+ */
+export function findExampleItem(source: string, script: boolean, page?: string): ItemId | null {
   const kind = script ? "scenario" : "policy";
-  const found = catalogue.find((item) => {
+  const found = catalogue.filter((item) => {
     if (item.source !== "example" || item.kind !== kind || !item.example) return false;
     const content = item.kind === "scenario" ? item.content.source : item.content;
     return content === source;
   });
-  return found?.id ?? null;
+  const onPage = page === undefined ? null : `:docs/${page || "index"}#`;
+  const preferred = onPage === null ? undefined : found.find((item) => item.id.includes(onPage));
+  return (preferred ?? found[0])?.id ?? null;
 }

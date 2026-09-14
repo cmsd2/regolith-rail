@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserSupport } from "../components/BrowserSupport.tsx";
 import { ErrorList, useRunErrors } from "../components/ErrorList.tsx";
+import { LibraryExplorer } from "../components/LibraryExplorer.tsx";
 import { LineMap } from "../components/LineMap.tsx";
 import { MetricsSummary } from "../components/MetricsSummary.tsx";
 import { Notices } from "../components/Notices.tsx";
@@ -139,6 +140,7 @@ export default function Workbench() {
             <ShareControls />
             <Notices />
           </div>
+          {mounted ? <LibraryExplorer /> : <div />}
           {mounted ? (
             <Suspense fallback={<div />}>
               <EditorPanel />

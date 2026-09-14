@@ -8,6 +8,8 @@ export interface ExampleToOpen {
   kind: "policy" | "script";
   scenario: string;
   seed: number;
+  /** The page showing the example, whose own item is preferred when pages share an example. */
+  page?: string;
 }
 
 /**
@@ -19,7 +21,7 @@ export async function openExample(
   mode: "page" | "panel",
   navigate: NavigateFunction,
 ): Promise<void> {
-  const id = findExampleItem(example.source, example.kind === "script");
+  const id = findExampleItem(example.source, example.kind === "script", example.page);
   const state = workbench.getState();
   if (state.loaded) {
     // The workbench is already open in this tab, so change it directly.

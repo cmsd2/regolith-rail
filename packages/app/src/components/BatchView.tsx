@@ -1,5 +1,4 @@
 import { batchSeeds } from "@regolith-rail/engine";
-import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatAmount, PALETTE } from "../lib/format.ts";
 import { type MetricDefinition, metricsFor } from "../lib/metrics.ts";
@@ -17,9 +16,8 @@ function BatchConfig() {
   const policyB = useWorkbench((s) => s.policyB);
   const scenarioTitle = useWorkbench((s) => s.scenario.scenario?.title ?? "Invalid scenario");
   const valid = useWorkbench((s) => s.scenario.scenario !== null);
-  const { setBatchOptions, fillSlot, startBatch, cancelBatch } = workbench.getState();
+  const { setBatchOptions, startBatch, cancelBatch } = workbench.getState();
   const running = batch.status === "running";
-  const builtIns = Object.keys(BUILT_IN_POLICIES) as (keyof typeof BUILT_IN_POLICIES)[];
   return (
     <form
       className={styles.config}
@@ -70,26 +68,16 @@ function BatchConfig() {
         Compare with policy B
       </label>
       {batch.compare && (
-        <label>
-          Policy B{" "}
-          <select
-            value={builtIns.find((name) => BUILT_IN_POLICIES[name] === policyB.source) ?? ""}
-            onChange={(e) => {
-              const name = e.target.value as keyof typeof BUILT_IN_POLICIES;
-              if (name) fillSlot("compare", `builtin:policy:${name}`);
-            }}
-            data-testid="batch-policy-b"
+        <p data-testid="batch-policy-b">
+          Policy B <code>{policyB.name}</code> from the Compare slot.{" "}
+          <button
+            type="button"
+            onClick={() => workbench.getState().chooseFor("compare")}
+            data-testid="batch-choose-policy-b"
           >
-            {!builtIns.some((name) => BUILT_IN_POLICIES[name] === policyB.source) && (
-              <option value="">{policyB.name}</option>
-            )}
-            {builtIns.map((name) => (
-              <option key={name} value={name}>
-                {name}.lua
-              </option>
-            ))}
-          </select>
-        </label>
+            Choose policy B…
+          </button>
+        </p>
       )}
       {running ? (
         <button type="button" onClick={cancelBatch} data-testid="batch-cancel">

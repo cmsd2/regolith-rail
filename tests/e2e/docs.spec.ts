@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { docPaths } from "../../packages/docs/src/content.ts";
-import { hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
+import { expectSlot, hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
 
 const NOTICE = "not affiliated with or endorsed by Paradox Interactive or Haemimont Games";
 
@@ -55,7 +55,7 @@ test.describe("documentation pages", () => {
     await expect(page.getByTestId("policy-editor")).toContainText("ops.roles.manual", {
       timeout: 30_000,
     });
-    await expect(page.getByTestId("scenario-picker")).toHaveValue("two-station");
+    await expectSlot(page, "scenario", "builtin:scenario:two-station");
     await expect(page.getByTestId("run-tab-metrics")).toHaveCount(0);
   });
 
@@ -131,7 +131,7 @@ test.describe("documentation panel", () => {
     await setEditorText(
       page,
       "policy-editor",
-      "return ops.policy { target = ops.balance {}, plan = ops.lookahead {} }\n",
+      "return ops.policy {\n  target = ops.balance {},\n  plan = ops.lookahead {},\n}\n",
     );
     const tooltip = page.locator(".api-hover");
     await hoverText(page, "policy-editor", "lookahead", tooltip);

@@ -4,11 +4,13 @@ import {
   catalogue,
   catalogueItem,
   experimentParts,
+  lessonOf,
   referenceOf,
   referencePolicyItem,
 } from "./catalogue.ts";
 import { contentHash, stableHash } from "./content-hash.ts";
-import { type ExperimentItem, itemId, parseItemId, parsePartId } from "./library.ts";
+import { itemId, type LibraryItem, parseItemId, parsePartId } from "./library.ts";
+import { classicExperiment } from "./test-fixtures.ts";
 
 const ids = (source: string, kind: string) =>
   catalogue.filter((i) => i.source === source && i.kind === kind).map((i) => i.id);
@@ -27,7 +29,7 @@ describe("catalogue", () => {
       "builtin:policy:supply-to-demand",
     ]);
     for (const template of classicTemplates) {
-      for (const kind of ["scenario", "policy", "experiment"] as const) {
+      for (const kind of ["scenario", "policy"] as const) {
         expect(catalogueItem(itemId("classic", kind, template.name)), template.name).toBeDefined();
       }
     }
@@ -38,7 +40,7 @@ describe("catalogue", () => {
       ]),
     );
     expect(ids("example", "scenario")).toContain("example:scenario:docs/scenarios/writing#1");
-    expect(ids("builtin", "experiment")).toContain("builtin:experiment:disruption-recovery");
+    expect(catalogue.filter((i) => i.kind === "experiment")).toEqual([]);
   });
 
   it("gives every item a valid, unique id, a name and a one-line description", () => {
@@ -56,22 +58,56 @@ describe("catalogue", () => {
     const example = catalogueItem("example:policy:docs/failure-modes/disruption-recovery#1");
     expect(example?.example).toEqual({ scenario: "builtin:scenario:storm-shock", seed: 1 });
     expect(catalogueItem(example?.example?.scenario ?? "")).toBeDefined();
-    const fix = catalogueItem("builtin:experiment:disruption-recovery") as ExperimentItem;
-    expect(fix.content.scenario.origin).toBe("builtin:scenario:storm-shock");
-    expect(fix.content.policy.content).toBe(example?.content);
   });
 
-  it("pairs each classic experiment with its template's reference policy at the defaults", () => {
+  it("gives every starter a lesson with its failure-mode page and suggested fix", () => {
+    for (const id of ["two-station", "relay", "two-trains", "mixed-line", "storm-shock"]) {
+      const starter = catalogueItem(itemId("builtin", "scenario", id));
+      const lesson = starter?.kind === "scenario" ? starter.lesson : undefined;
+      expect(lesson?.docs, id).toMatch(/^failure-modes\//);
+      const fix = catalogueItem(lesson?.fix ?? "");
+      expect(fix, id).toMatchObject({ kind: "policy", source: "example" });
+      expect(fix?.example?.scenario, id).toBe(starter?.id);
+    }
+    const storm = catalogueItem("builtin:scenario:storm-shock");
+    expect(storm?.kind === "scenario" && storm.lesson?.fix).toBe(
+      "example:policy:docs/failure-modes/disruption-recovery#1",
+    );
+  });
+
+  it("gives every classic template a lesson with its page and reference policy", () => {
     for (const template of classicTemplates) {
-      const experiment = catalogueItem(
-        itemId("classic", "experiment", template.name),
-      ) as ExperimentItem;
-      expect(experiment.content.policy.content).toBe(template.reference(template.defaults).policy);
-      expect(experiment.content.scenario.content.template).toEqual({
-        name: template.name,
-        params: template.defaults,
+      const scenario = catalogueItem(itemId("classic", "scenario", template.name));
+      expect(scenario?.kind === "scenario" && scenario.lesson, template.name).toEqual({
+        docs: expect.stringMatching(/^classic\//),
+        reference: template.name,
       });
     }
+  });
+
+  it("finds the lesson of a copy through the item it was copied from, or its template", () => {
+    const copy: LibraryItem = {
+      id: "mine:scenario:c",
+      kind: "scenario",
+      source: "mine",
+      name: "Storm shock (copy)",
+      origin: "builtin:scenario:storm-shock",
+      content: { kind: "script", source: "-- edited", starterId: null },
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    expect(lessonOf(copy, catalogueItem)?.docs).toBe("failure-modes/disruption-recovery");
+    const { origin: _origin, ...unlinked } = copy;
+    const orphan: LibraryItem = {
+      ...unlinked,
+      content: {
+        kind: "script",
+        source: "return classic.reorder {}",
+        starterId: null,
+        template: { name: "classic.reorder", params: {} },
+      },
+    };
+    expect(lessonOf(orphan, catalogueItem)?.reference).toBe("classic.reorder");
   });
 });
 
@@ -103,11 +139,10 @@ describe("transient items", () => {
   });
 
   it("stand for an experiment's parts under its source", () => {
-    const experiment = catalogueItem("classic:experiment:classic.reorder") as ExperimentItem;
-    const parts = experimentParts(experiment);
+    const parts = experimentParts(classicExperiment());
     expect(parts.map((p) => [parsePartId(p.id)?.part, p.kind, p.source, p.listed])).toEqual([
-      ["scenario", "scenario", "classic", false],
-      ["policy", "policy", "classic", false],
+      ["scenario", "scenario", "mine", false],
+      ["policy", "policy", "mine", false],
     ]);
     expect(parts[1]?.origin).toBe("classic:policy:classic.reorder");
   });

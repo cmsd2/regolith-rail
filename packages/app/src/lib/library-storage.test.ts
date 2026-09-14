@@ -3,6 +3,7 @@ import { catalogueItem } from "./catalogue.ts";
 import type { ExperimentItem, LibraryItem, PolicyItem } from "./library.ts";
 import { duplicated, renamed } from "./library-ops.ts";
 import { memoryLibraryStorage, type SessionRecord } from "./library-storage.ts";
+import { classicExperiment } from "./test-fixtures.ts";
 
 const policy = (id: string, name: string, updatedAt = 1): PolicyItem => ({
   id,
@@ -15,7 +16,7 @@ const policy = (id: string, name: string, updatedAt = 1): PolicyItem => ({
 });
 
 const experiment = (): ExperimentItem => {
-  const shipped = catalogueItem("classic:experiment:classic.reorder") as ExperimentItem;
+  const shipped = classicExperiment();
   return {
     ...shipped,
     id: "mine:experiment:e1",

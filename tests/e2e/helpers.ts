@@ -56,6 +56,60 @@ export async function hoverText(page: Page, testId: string, text: string, toolti
   );
 }
 
+/** A library item's row in the explorer. */
+export const libraryRow = (page: Page, id: string) =>
+  page.getByTestId("library-tree").locator(`[data-item-id="${id}"]`);
+
+/**
+ * Shows a library item's row: switches to the list for its kind, and opens collapsed groups until the
+ * row appears.
+ */
+export async function showItem(page: Page, id: string) {
+  const row = libraryRow(page, id);
+  const kind = id.startsWith("experiment:") ? "experiment" : id.split(":")[1];
+  if ((await row.count()) === 0) await page.getByTestId(`library-tab-${kind}`).click();
+  const collapsed = page.locator('[data-testid^="library-group-"][aria-expanded="false"]');
+  for (let i = 0; (await row.count()) === 0 && i < 10 && (await collapsed.count()) > 0; i++) {
+    await collapsed.first().click();
+  }
+  await expect(row.first()).toBeVisible();
+  return row.first();
+}
+
+/** Uses a library item: scenarios and policies fill their slot, and saved runs fill every slot. */
+export async function openItem(page: Page, id: string) {
+  await (await showItem(page, id)).dblclick();
+}
+
+/** Waits until a slot holds an item. */
+export async function expectSlot(page: Page, slot: string, id: string | RegExp) {
+  await expect(page.getByTestId(`slot-${slot}`)).toHaveAttribute("data-item-id", id);
+}
+
+/** Chooses a library item for a slot, such as a policy for the Compare slot. */
+export async function chooseForSlot(page: Page, slot: string, id: string) {
+  await page.getByTestId(`slot-choose-${slot}`).click();
+  await openItem(page, id);
+  await expectSlot(page, slot, id);
+}
+
+/** Opens the Scenario slot's template parameters, when they are folded away. */
+export async function showParameters(page: Page) {
+  const details = page.getByTestId("template-params-toggle").locator("..");
+  if ((await details.getAttribute("open")) === null) {
+    await page.getByTestId("template-params-toggle").click();
+  }
+}
+
+/** Uses a classic template with its reference policy and waits until it is ready to run. */
+export async function openTemplate(page: Page, name: string) {
+  await openItem(page, `classic:scenario:${name}`);
+  await page.getByTestId("slot-reference").click();
+  await expectSlot(page, "policy", new RegExp(`^classic:policy:${name.replace(".", "\\.")}`));
+  await expect(page.getByTestId("run")).toBeEnabled({ timeout: 30_000 });
+  await showParameters(page);
+}
+
 /** Presses Run and waits for the run to finish. */
 export async function run(page: Page) {
   await page.getByTestId("run").click();
