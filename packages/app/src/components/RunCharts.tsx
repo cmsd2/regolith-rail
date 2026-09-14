@@ -1,65 +1,47 @@
-import type { RunOutput } from "@regolith-rail/engine";
 import { useEffect, useMemo, useRef } from "react";
 import type uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
+import { type ChartSpec, chartSpecs } from "../lib/chart-specs.ts";
 import { HOUR_MS, PALETTE } from "../lib/format.ts";
 import { playhead, useWorkbench } from "../state/instance.ts";
 import styles from "./Workbench.module.css";
 
-interface ChartSpec {
-  id: string;
-  title: string;
-  x: number[];
-  series: { label: string; values: number[] }[];
-}
+/** Size of the playhead's chevrons, in CSS pixels. */
+const CHEVRON = 5;
 
-/** Stock by site, cargo by train and every recorded series, in hours and units. */
-export function chartSpecs(output: RunOutput): ChartSpec[] {
-  const rows = output.stock ? output.stock.length / Math.max(1, output.sites.length) : 0;
-  const step = Math.max(1, Math.floor(rows / 2000));
-  const indices: number[] = [];
-  for (let r = 0; r < rows; r += step) indices.push(r);
-  const x = indices.map((r) => (r * output.tickMs) / HOUR_MS);
-  const specs: ChartSpec[] = [];
-  if (output.stock) {
-    const stock = output.stock;
-    specs.push({
-      id: "stock",
-      title: "Station stock (units)",
-      x,
-      series: output.sites.map((site, s) => ({
-        label: `${site.station} ${site.resource}`,
-        values: indices.map((r) => (stock[r * output.sites.length + s] as number) / 1000),
-      })),
-    });
-  }
-  if (output.cargo) {
-    const cargo = output.cargo;
-    const perTrain = output.resources.length;
-    specs.push({
-      id: "cargo",
-      title: "Train cargo (units)",
-      x,
-      series: output.trains.map((train, k) => ({
-        label: train,
-        values: indices.map((r) => {
-          let total = 0;
-          for (let q = 0; q < perTrain; q++)
-            total += cargo[(r * output.trains.length + k) * perTrain + q] as number;
-          return total / 1000;
-        }),
-      })),
-    });
-  }
-  for (const [name, series] of Object.entries(output.records)) {
-    specs.push({
-      id: `record-${name}`,
-      title: `Recorded: ${name}`,
-      x: series.t.map((t) => t / HOUR_MS),
-      series: [{ label: name, values: series.v }],
-    });
-  }
-  return specs;
+/**
+ * Draws the playhead as a thin line in the text colour with a chevron at each end pointing inwards,
+ * so it can't be mistaken for a data series or for the dashed hover cursor.
+ */
+function drawPlayhead(u: uPlot, hours: number) {
+  const left = u.valToPos(hours, "x", true);
+  const { top, height } = u.bbox;
+  if (left < u.bbox.left || left > u.bbox.left + u.bbox.width) return;
+  const ratio = devicePixelRatio || 1;
+  const size = CHEVRON * ratio;
+  const bottom = top + height;
+  const colour = getComputedStyle(u.root).getPropertyValue("--text").trim() || "#000";
+  const ctx = u.ctx;
+  ctx.save();
+  ctx.strokeStyle = colour;
+  ctx.fillStyle = colour;
+  ctx.lineWidth = ratio;
+  ctx.beginPath();
+  ctx.moveTo(left, top + size);
+  ctx.lineTo(left, bottom);
+  ctx.stroke();
+  ctx.beginPath();
+  // The top chevron hangs inside the plot; the bottom one sits below it, tip on the x axis.
+  ctx.moveTo(left - size, top);
+  ctx.lineTo(left + size, top);
+  ctx.lineTo(left, top + size);
+  ctx.closePath();
+  ctx.moveTo(left - size, bottom + size);
+  ctx.lineTo(left + size, bottom + size);
+  ctx.lineTo(left, bottom);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 }
 
 function Chart({ spec }: { spec: ChartSpec }) {
@@ -75,21 +57,7 @@ function Chart({ spec }: { spec: ChartSpec }) {
       if (disposed) return;
       const playheadLine: uPlot.Plugin = {
         hooks: {
-          draw: (u) => {
-            const hours = playhead.getState().t / HOUR_MS;
-            const left = u.valToPos(hours, "x", true);
-            const ctx = u.ctx;
-            ctx.save();
-            ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue(
-              "--accent",
-            );
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(left, u.bbox.top);
-            ctx.lineTo(left, u.bbox.top + u.bbox.height);
-            ctx.stroke();
-            ctx.restore();
-          },
+          draw: (u) => drawPlayhead(u, playhead.getState().t / HOUR_MS),
           ready: (u) => {
             u.over.addEventListener("click", () => {
               const left = u.cursor.left ?? -1;
