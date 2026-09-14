@@ -208,7 +208,7 @@ function spread(values: number[]) {
 }
 
 describe("chapter 3, randomness and simulation", () => {
-  const OBVIOUS = `return ops.policy {
+  const DRAIN_FILL = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
 }`;
@@ -220,7 +220,7 @@ describe("chapter 3, randomness and simulation", () => {
     return cov / (x.length - 1) / (a.sd * b.sd);
   };
 
-  it("on two-station over 100 replications the sample mean of unmet demand under balancing is 28 units with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication", () => {
+  it("on two-station over 100 replications the sample mean of unmet demand under balancing is 28 units with a standard error of 0.3, single runs range over more than 10 units, and the drain-and-fill rule meets all demand in every replication", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100).map(
       (m) => m.unmetDemand / 1000,
     );
@@ -230,15 +230,15 @@ describe("chapter 3, randomness and simulation", () => {
     expect(sd / 10).toBeGreaterThan(0.28);
     expect(sd / 10).toBeLessThan(0.34);
     expect(Math.max(...balance) - Math.min(...balance)).toBeGreaterThan(10);
-    for (const m of metricsOver("two-station", OBVIOUS, 100)) expect(m.unmetDemand).toBe(0);
+    for (const m of metricsOver("two-station", DRAIN_FILL, 100)) expect(m.unmetDemand).toBe(0);
   }, 300_000);
 
   it("on two-station over 100 replications the two policies' stalled production rises and falls together with a correlation of about 0.8, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100);
-    const obvious = metricsOver("two-station", OBVIOUS, 100);
+    const drainFill = metricsOver("two-station", DRAIN_FILL, 100);
     const compare = (pick: (m: (typeof balance)[number]) => number) => {
       const a = balance.map(pick);
-      const b = obvious.map(pick);
+      const b = drainFill.map(pick);
       const paired = spread(b.map((v, i) => v - (a[i] as number))).sd;
       const independent = Math.sqrt(spread(a).sd * spread(a).sd + spread(b).sd * spread(b).sd);
       return { correlation: correlation(a, b), ratio: paired / independent };
@@ -521,7 +521,7 @@ describe("chapter 8, forecasting", () => {
 });
 
 describe("simulator exercises", () => {
-  const OBVIOUS = `return ops.policy {
+  const DRAIN_FILL = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
 }`;
@@ -591,11 +591,11 @@ describe("simulator exercises", () => {
     expect(small).toBeLessThan(30);
   }, 300_000);
 
-  it("on two-station over 10 replications the paired difference in unmet demand between the obvious rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero", () => {
+  it("on two-station over 10 replications the paired difference in unmet demand between the drain-and-fill rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 10);
-    const obvious = metricsOver("two-station", OBVIOUS, 10);
+    const drainFill = metricsOver("two-station", DRAIN_FILL, 10);
     const difference = spread(
-      obvious.map(
+      drainFill.map(
         (m, i) => (m.unmetDemand - (balance[i] as (typeof balance)[number]).unmetDemand) / 1000,
       ),
     );
