@@ -31,7 +31,7 @@ export const BOOK: readonly BookPart[] = [
     part: 2,
     title: "Inventory",
     chapters: [
-      { chapter: 3, title: "Reviews, lead times and base-stock" },
+      { chapter: 3, title: "Reviews, lead times and base-stock", slug: "book/base-stock" },
       {
         chapter: 4,
         title: "One period under uncertainty: the newsvendor",

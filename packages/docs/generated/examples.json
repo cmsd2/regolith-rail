@@ -1,5 +1,32 @@
 [
   {
+    "id": "book/base-stock#1",
+    "page": "book/base-stock",
+    "name": "Reviews, lead times and base-stock (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.reorder {\n  random = true,\n  demand = 4,\n  lead_time = days(2),\n  review_period = hours(6),\n  order_cost = 0,\n  duration = days(30),\n}"
+  },
+  {
+    "id": "book/base-stock#2",
+    "page": "book/base-stock",
+    "name": "Reviews, lead times and base-stock (example 2)",
+    "script": false,
+    "scenario": "classic.reorder",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }"
+  },
+  {
+    "id": "book/base-stock#3",
+    "page": "book/base-stock",
+    "name": "Reviews, lead times and base-stock (example 3)",
+    "script": false,
+    "scenario": "classic.reorder",
+    "seed": 1,
+    "source": "return {\n  on_review = function(ctx)\n    local short = 13000 - ctx.here.stock.Goods\n    if short > 0 then ctx.order(\"Goods\", short) end\n  end,\n}"
+  },
+  {
     "id": "book/modelling#1",
     "page": "book/modelling",
     "name": "Modelling operations",

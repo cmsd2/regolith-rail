@@ -1,6 +1,6 @@
 import { runSimulation, starterScenarios, validateScenario } from "@regolith-rail/engine";
 import { BUILT_IN_POLICIES } from "@regolith-rail/policy-api";
-import { templateCall } from "@regolith-rail/scenario-kit";
+import { classicTemplates, templateCall } from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
 import { LuaRuntime } from "./policy.ts";
 
@@ -89,5 +89,47 @@ describe("chapter 2, randomness and simulation", () => {
     // t for 99 degrees of freedom at 97.5%.
     const half = (1.984 * difference.sd) / 10;
     expect(difference.mean - half).toBeGreaterThan(0);
+  }, 300_000);
+});
+
+describe("chapter 3, reviews, lead times and base-stock", () => {
+  const params = {
+    random: true,
+    demand: 4,
+    lead_time: 2 * DAY,
+    review_period: 6 * 3_600_000,
+    order_cost: 0,
+    duration: 30 * DAY,
+  };
+
+  it("the reorder template's base-stock reference for 4 a day, a 2-day lead time and 6-hour reviews orders up to 13 and expects 7.97 a day", () => {
+    const reference = classicTemplates.find((t) => t.name === "classic.reorder")?.reference(params);
+    expect(reference?.values.level).toBe(13);
+    expect(Math.round((reference?.expectedCostPerDay as number) * 100) / 100).toBe(7.97);
+  });
+
+  it("on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, on seeds 1 to 100", () => {
+    const loaded = runtime.loadScript(templateCall("classic.reorder", params));
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const costPerDay = (source: string) => {
+      const policy = runtime.createPolicy(source);
+      try {
+        const total = Array.from({ length: 100 }, (_, i) => {
+          const out = runSimulation(loaded.scenario, policy, { seed: i + 1, detail: "summary" });
+          return out.metrics.costs.total / 1000 / 30;
+        }).reduce((a, b) => a + b, 0);
+        return total / 100;
+      } finally {
+        policy.close();
+      }
+    };
+    const position = costPerDay(
+      "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }",
+    );
+    const onHand = costPerDay(`return { on_review = function(ctx)
+  local short = 13000 - ctx.here.stock.Goods
+  if short > 0 then ctx.order("Goods", short) end
+end }`);
+    expect(onHand).toBeGreaterThan(5 * position);
   }, 300_000);
 });

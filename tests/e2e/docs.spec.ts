@@ -159,6 +159,16 @@ test.describe("the book", () => {
     await expect(page.getByRole("navigation", { name: "Documentation" })).toContainText("Contents");
   });
 
+  test("moves from one chapter to the next and back", async ({ page }) => {
+    await page.goto("/docs/book/base-stock");
+    await expect(page.getByTestId("doc-article")).toContainText("Part II: Inventory · Chapter 3");
+    await page.getByTestId("chapter-next").click();
+    await expect(page).toHaveURL(/\/docs\/book\/newsvendor$/);
+    await expect(page.getByTestId("doc-article")).toContainText("Chapter 4");
+    await page.getByTestId("chapter-previous").click();
+    await expect(page).toHaveURL(/\/docs\/book\/base-stock$/);
+  });
+
   test("a chapter shows its checks' working in the page before scripts load", async ({
     browser,
   }) => {
