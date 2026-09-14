@@ -4,7 +4,7 @@ return mars.line {
   id = "storm-shock",
   title = "Storm shock",
   description = "A dust storm stops the mine's extractors for a sol, and the damage it leaves behind sends metal demand at the dome up for a sol and a half. Balancing runs the dome close to empty in normal operation, so it has no buffer for either shock and recovers slowly.",
-  docs = "failure-modes/storm-recovery",
+  docs = "failure-modes/disruption-recovery",
   duration = sols(10),
   stations = {
     mars.small_station {
