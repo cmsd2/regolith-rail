@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { encodeShare, lengthWarning, toShareState } from "../lib/share.ts";
+import { encodeShare, lengthWarning, sameShare, toShareState } from "../lib/share.ts";
 import { workbench } from "../state/instance.ts";
 import styles from "./Workbench.module.css";
 
@@ -8,24 +8,13 @@ export function ShareControls() {
   const [copied, setCopied] = useState(false);
   const input = useRef<HTMLInputElement>(null);
 
-  // The link describes the work when it was made, so it closes when the work changes.
+  // The link describes the work when it was made, so it closes when the work changes. A
+  // scenario finishing evaluation is not a change: the link carries its source, not the result.
   useEffect(() => {
     if (link === null) return;
     const initial = workbench.getState();
     return workbench.subscribe((s) => {
-      if (
-        s.policy !== initial.policy ||
-        s.policyB !== initial.policyB ||
-        s.scenario !== initial.scenario ||
-        s.seed !== initial.seed ||
-        s.view !== initial.view ||
-        s.batch.compare !== initial.batch.compare ||
-        s.batch.seedCount !== initial.batch.seedCount ||
-        s.batch.baseSeed !== initial.batch.baseSeed ||
-        s.saveReloadTest !== initial.saveReloadTest
-      ) {
-        setLink(null);
-      }
+      if (!sameShare(s, initial)) setLink(null);
     });
   }, [link]);
 

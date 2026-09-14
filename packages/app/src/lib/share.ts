@@ -41,6 +41,14 @@ export function toShareState(state: WorkbenchState, appVersion: string): ShareSt
   };
 }
 
+/**
+ * Whether two workbench states would make the same share link. Evaluation results, run
+ * progress and anything else a link does not carry are ignored.
+ */
+export function sameShare(a: WorkbenchState, b: WorkbenchState): boolean {
+  return JSON.stringify(toShareState(a, "")) === JSON.stringify(toShareState(b, ""));
+}
+
 async function transform(
   bytes: Uint8Array,
   stream: CompressionStream | DecompressionStream,

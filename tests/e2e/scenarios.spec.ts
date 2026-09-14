@@ -1,31 +1,10 @@
 import { deflateRawSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
 import relay from "../../packages/engine/src/testing/format1/relay.json" with { type: "json" };
-import { openWorkbench, run, setEditorText } from "./helpers.ts";
+import { hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
 
 const editorText = (page: Page, testId: string) =>
   page.getByTestId(testId).locator(".cm-content").innerText();
-
-/** Moves the mouse over the first occurrence of some text in an editor. */
-async function hoverText(page: Page, testId: string, text: string) {
-  const content = page.getByTestId(testId).locator(".cm-content");
-  await expect(content).toContainText(text);
-  const point = await content.evaluate((element, wanted) => {
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      const at = node.textContent?.indexOf(wanted) ?? -1;
-      if (at < 0) continue;
-      const range = document.createRange();
-      range.setStart(node, at + 1);
-      range.setEnd(node, at + 2);
-      const box = range.getBoundingClientRect();
-      return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
-    }
-    return null;
-  }, text);
-  if (!point) throw new Error(`no text ${text}`);
-  await page.mouse.move(point.x, point.y);
-}
 
 async function pickTemplate(page: Page, name: string) {
   await page.getByTestId("scenario-picker").selectOption(name);
@@ -36,8 +15,8 @@ test.describe("scenario scripts", () => {
   test("show hover help for a construct with a documentation link", async ({ page }) => {
     await openWorkbench(page);
     await page.getByTestId("tab-scenario").click();
-    await hoverText(page, "scenario-editor", "small_station");
     const tooltip = page.locator(".construct-hover");
+    await hoverText(page, "scenario-editor", "small_station", tooltip);
     await expect(tooltip).toContainText("mars.small_station");
     await expect(tooltip).toContainText("stock");
     await expect(tooltip.getByRole("link", { name: "Documentation" })).toHaveAttribute(

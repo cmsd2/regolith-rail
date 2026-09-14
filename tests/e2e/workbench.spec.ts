@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openWorkbench, run, setEditorText } from "./helpers.ts";
+import { hoverText, hoverUntil, openWorkbench, run, setEditorText } from "./helpers.ts";
 
 test.describe("first visit", () => {
   test("shows two-station with the naive baseline, ready to run", async ({ page }) => {
@@ -22,7 +22,7 @@ test.describe("policy editor", () => {
     );
     const error = page.getByTestId("policy-editor").locator(".cm-lintRange-error").first();
     await expect(error).toBeVisible({ timeout: 10_000 });
-    await error.hover();
+    await hoverUntil(page, () => error.hover(), page.locator(".cm-tooltip-lint"));
     await expect(page.locator(".cm-tooltip-lint")).toContainText(
       "goto and labels are not available",
     );
@@ -35,12 +35,8 @@ test.describe("policy editor", () => {
       "policy-editor",
       "return ops.policy { target = ops.min_max { min = 5000, max = 25000 } }\n",
     );
-    await page
-      .getByTestId("policy-editor")
-      .locator(".cm-line", { hasText: "min_max" })
-      .getByText("min_max")
-      .hover();
     const tooltip = page.locator(".api-hover");
+    await hoverText(page, "policy-editor", "min_max", tooltip);
     await expect(tooltip).toContainText("ops.min_max");
     await expect(tooltip).toContainText("min");
     await expect(tooltip.getByRole("link", { name: "Documentation" })).toHaveAttribute(
