@@ -27,7 +27,7 @@ shortages. [ops.lookahead](/docs/ops/lookahead) records reservations in memory, 
 every target block works from the inventory position, so a shortage another train has
 covered no longer looks like a shortage.
 
-```lua runnable scenario=two-trains
+```lua runnable scenario=two-trains fix
 return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },

@@ -5,7 +5,13 @@ import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
 import { constructs } from "@regolith-rail/scenario-kit";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { checkExampleIndex, exampleIndex, extractExamples, runExample } from "./examples.ts";
+import {
+  checkExampleIndex,
+  checkStarterFixes,
+  exampleIndex,
+  extractExamples,
+  runExample,
+} from "./examples.ts";
 import { checkLinks } from "./links.ts";
 import { assignHeadingIds, parseMdx } from "./markdown.ts";
 import { parseCodeMeta } from "./meta.ts";
@@ -96,6 +102,7 @@ describe("code meta", () => {
       runnable: true,
       output: false,
       script: false,
+      fix: false,
       scenario: "relay",
       seed: 4,
     });
@@ -297,6 +304,30 @@ describe("link check", () => {
         href: "/rr/docs/classic/newsvendor",
         reason: "moved to /docs/book/newsvendor",
       },
+    ]);
+  });
+});
+
+describe("starter fixes", () => {
+  const pageWith = (slug: string, body: string) => ({ slug, tree: parseMdx(body) });
+  const fence = (meta: string) => `\`\`\`lua ${meta}\nreturn {}\n\`\`\`\n`;
+
+  it("pass when a starter's page marks one fix on it, following a section anchor", () => {
+    const page = pageWith(
+      "book/base-stock",
+      `${fence("runnable scenario=two-trains")}\n${fence("runnable scenario=two-trains fix")}`,
+    );
+    const starters = [{ id: "two-trains", docs: "book/base-stock#case-study-double-dispatch" }];
+    expect(checkStarterFixes(starters, [page])).toEqual([]);
+    expect(extractExamples(page.slug, page.tree).map((e) => e.fix)).toEqual([false, true]);
+  });
+
+  it("name a starter whose page marks no fix", () => {
+    const page = pageWith("failure-modes/half-capacity", fence("runnable"));
+    expect(
+      checkStarterFixes([{ id: "two-station", docs: "failure-modes/half-capacity" }], [page]),
+    ).toEqual([
+      "two-station: failure-modes/half-capacity marks 0 fix examples on it; mark exactly one `lua runnable scenario=two-station fix`",
     ]);
   });
 });

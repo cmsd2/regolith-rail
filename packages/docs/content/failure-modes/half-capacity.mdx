@@ -32,7 +32,7 @@ Two metrics show it: [unmet demand](/docs/metrics#unmet-demand) at the dome and
 Treat the stations by role instead of by average: take everything from the supply
 end and leave everything at the demand end.
 
-```lua runnable
+```lua runnable fix
 return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },

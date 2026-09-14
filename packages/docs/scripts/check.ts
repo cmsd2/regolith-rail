@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { starterScenarios } from "@regolith-rail/engine";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
 import { constructs } from "@regolith-rail/scenario-kit";
@@ -10,6 +11,7 @@ import {
   checkExampleIndex,
   checkFrontmatter,
   checkReference,
+  checkStarterFixes,
   checkTemplatePages,
   exampleIndex,
   extractExamples,
@@ -35,6 +37,13 @@ const problems = [
   ...checkChapterStandard(pages),
   ...checkClaims(pages),
   ...checkExampleIndex(committedExamples, exampleIndex(pages)),
+  ...checkStarterFixes(
+    starterScenarios.map(({ id, document }) => ({
+      id,
+      docs: (document as { docs?: string }).docs,
+    })),
+    pages,
+  ),
 ];
 
 const examples = pages.flatMap((page) => extractExamples(page.slug, page.tree));

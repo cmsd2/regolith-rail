@@ -31,7 +31,7 @@ Safety stock is the simplest way to make a line resilient: a buffer at the deman
 kept topped up in normal operation, absorbs the first part of a shock and shortens the
 recovery. [ops.min_max](/docs/ops/min-max) refills a site when it falls below a minimum:
 
-```lua runnable scenario=storm-shock
+```lua runnable scenario=storm-shock fix
 return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = {

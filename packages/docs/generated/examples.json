@@ -76,6 +76,7 @@
     "page": "failure-modes/dead-stock",
     "name": "Dead stock",
     "script": false,
+    "fix": true,
     "scenario": "relay",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Junction = \"relay\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n  plan = ops.lookahead {},\n}"
@@ -85,6 +86,7 @@
     "page": "failure-modes/disruption-recovery",
     "name": "Disruption recovery",
     "script": false,
+    "fix": true,
     "scenario": "storm-shock",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    demand = ops.min_max { min = 20000, max = 30000 },\n  },\n}"
@@ -94,6 +96,7 @@
     "page": "failure-modes/double-dispatch",
     "name": "Double dispatch",
     "script": false,
+    "fix": true,
     "scenario": "two-trains",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
@@ -103,6 +106,7 @@
     "page": "failure-modes/half-capacity",
     "name": "Half capacity",
     "script": false,
+    "fix": true,
     "scenario": "two-station",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
@@ -112,6 +116,7 @@
     "page": "failure-modes/ping-pong",
     "name": "Ping-pong",
     "script": false,
+    "fix": true,
     "scenario": "mixed-line",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Farm = { Food = \"supply\", Metals = \"demand\" },\n    Mine = { Metals = \"supply\", Food = \"demand\" },\n    Depot = \"relay\",\n    Plant = { Polymers = \"supply\", Metals = \"demand\" },\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {}, relay = ops.pass_through {} },\n  plan = ops.lookahead {},\n  allocate = ops.priority {},\n}"

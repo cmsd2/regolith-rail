@@ -42,8 +42,10 @@ function starterItems(): ScenarioItem[] {
       description: string;
       docs?: string;
     };
+    // The docs field may name a section, such as a chapter's case study.
+    const page = docs?.split("#")[0];
     const fix = examples.find(
-      (e) => docs !== undefined && e.page === docs && !e.script && e.scenario === id,
+      (e) => e.page === page && "fix" in e && e.fix && !e.script && e.scenario === id,
     );
     return {
       ...readOnly,
@@ -158,8 +160,15 @@ export const catalogue: readonly LibraryItem[] = buildCatalogue();
 
 const byId = new Map(catalogue.map((item) => [item.id, item]));
 
-/** A shipped item by id. */
-export const catalogueItem = (id: ItemId): LibraryItem | undefined => byId.get(id);
+/**
+ * Ids that shipped items had before their documentation page moved, with their ids now, so
+ * saved copies still know what they were copied from.
+ */
+export const MOVED_ITEMS: Readonly<Record<ItemId, ItemId>> = {};
+
+/** A shipped item by id, following ids of items whose page has moved. */
+export const catalogueItem = (id: ItemId): LibraryItem | undefined =>
+  byId.get(id) ?? byId.get(MOVED_ITEMS[id] ?? "");
 
 /**
  * A classic template's reference policy for some parameters. At the defaults this is the
