@@ -17,7 +17,7 @@ import { itemId } from "../lib/library.ts";
 import { DocLink, DocsMode } from "./DocLink.tsx";
 import styles from "./docs.module.css";
 import { openExample } from "./open-example.ts";
-import { openScenario } from "./open-scenario.ts";
+import { openPolicy, openScenario } from "./open-scenario.ts";
 
 const scenarioTitle = (id: string) =>
   classicTemplates.find((t) => t.name === id)?.title ??
@@ -191,9 +191,28 @@ export function ScenarioLink({
     <button
       type="button"
       className={styles.scenarioLink}
-      title={`Open ${name} in the workbench, ${template ? "with its reference policy" : "with the naive baseline"}`}
+      title={`Open ${name} in the workbench, ${template ? "with its reference policy" : "with the balancing baseline"}`}
       onClick={() => void openScenario(id, mode, navigate)}
       data-testid="scenario-link"
+      data-item-id={id}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** A built-in policy named in a chapter's text, which goes into the workbench's Policy slot when clicked. */
+export function PolicyLink({ policy, children }: { policy: string; children: ReactNode }) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const id = itemId("builtin", "policy", policy);
+  return (
+    <button
+      type="button"
+      className={styles.scenarioLink}
+      title={`Put the built-in ${policy} policy in the workbench's run`}
+      onClick={() => void openPolicy(id, mode, navigate)}
+      data-testid="policy-link"
       data-item-id={id}
     >
       {children}
@@ -215,7 +234,7 @@ export function Scenario({ starter, template }: { starter?: string; template?: s
       <figcaption>
         <span>
           Scenario: <strong>{item?.name ?? id}</strong>
-          {template ? ", with its reference policy" : ", with the naive baseline"}
+          {template ? ", with its reference policy" : ", with the balancing baseline"}
         </span>
         <button
           type="button"
@@ -274,6 +293,7 @@ export const mdxComponents: MDXComponents = {
   Check,
   Example,
   GameNote,
+  PolicyLink,
   Scenario,
   ScenarioLink,
   Evidence,

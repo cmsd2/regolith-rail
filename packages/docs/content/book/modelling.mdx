@@ -124,7 +124,7 @@ through.
 ## In the simulator
 
 The `two-station` starter is this line, run for 10 days. It opens with the balancing
-baseline.
+baseline, the built-in `balance-stock` policy.
 
 <Scenario starter="two-station" />
 
@@ -143,10 +143,11 @@ is full, the mine can still stall, as the surplus says it must.
 
 <Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds" />
 
-Now run the balancing baseline and open **Metrics**. On every one of seeds 1 to 20, the
-dome goes short while the mine stalls, at the same time.
+Now put the balancing baseline back in the run: click `balance-stock`, or use it from the
+**Policies** list in the library. Run it and open **Metrics**. On every one of seeds 1 to
+20, the dome goes short while the mine stalls, at the same time.
 
-<Check ref="test:on two-station the naive baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
+<Check ref="test:on two-station the balancing baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
 
 Compare the two in **Batch** to see the difference over many seeds, and what taking
 everything costs in [empty distance](/docs/metrics#empty-distance-share): the train

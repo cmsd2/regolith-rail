@@ -7,7 +7,7 @@ const state: ShareState = {
   apiVersion: 2,
   appVersion: "0.0.0",
   view: "batch",
-  policy: { name: "naive.lua", source: "return { on_stop = function(ctx) end } -- é ✓" },
+  policy: { name: "balance-stock.lua", source: "return { on_stop = function(ctx) end } -- é ✓" },
   policyB: { name: "b.lua", source: "return ops.policy { target = ops.balance {} }" },
   scenario: {
     kind: "script",

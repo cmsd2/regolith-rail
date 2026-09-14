@@ -1,5 +1,5 @@
 import type { StoreApi } from "zustand/vanilla";
-import { exampleFragment, scenarioFragment } from "../lib/examples.ts";
+import { exampleFragment, policyFragment, scenarioFragment } from "../lib/examples.ts";
 import {
   experimentFromShareState,
   experimentName,
@@ -46,6 +46,7 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     openExperiment,
     openExample,
     openLessonScenario,
+    fillSlot,
   } = workbench.getState();
 
   if (options.formerStorage) {
@@ -105,6 +106,12 @@ export async function startSession(options: SessionOptions): Promise<() => void>
     options.clearHash();
     if (workbench.getState().itemById(lesson)?.kind === "scenario") openLessonScenario(lesson);
     else notify("warning", "scenario-unknown", "That scenario no longer exists.");
+  }
+  const policy = policyFragment(options.hash);
+  if (policy !== null) {
+    options.clearHash();
+    if (workbench.getState().itemById(policy)?.kind === "policy") fillSlot("policy", policy);
+    else notify("warning", "policy-unknown", "That policy no longer exists.");
   }
   if (!storage.available) {
     notify(

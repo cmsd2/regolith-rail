@@ -250,7 +250,7 @@ test.describe("the book", () => {
       timeout: 30_000,
     });
     await expectSlot(page, "scenario", "builtin:scenario:two-station");
-    await expectSlot(page, "policy", "builtin:policy:naive");
+    await expectSlot(page, "policy", "builtin:policy:balance-stock");
 
     await openItem(page, "builtin:scenario:relay");
     await page.getByTestId("nav-docs").click();
@@ -263,6 +263,20 @@ test.describe("the book", () => {
       .click();
     await expectSlot(page, "scenario", "classic:scenario:classic.reorder");
     await expectSlot(page, "policy", "classic:policy:classic.reorder");
+  });
+
+  test("a built-in policy named in a chapter puts that policy in the run", async ({ page }) => {
+    await openWorkbench(page);
+    await page.getByTestId("scenario-docs").click();
+    const panel = page.getByTestId("docs-panel");
+    await expect(panel.locator("h1")).toHaveText("Modelling operations");
+    await panel.getByTestId("open-example").first().click();
+    await expectSlot(page, "policy", "example:policy:docs/book/modelling#1");
+    const link = panel.locator('[data-testid="policy-link"]').first();
+    await expect(link).toHaveAttribute("data-item-id", "builtin:policy:balance-stock");
+    await link.click();
+    await expectSlot(page, "policy", "builtin:policy:balance-stock");
+    await expectSlot(page, "scenario", "builtin:scenario:two-station");
   });
 
   test("a chapter opens its scenario in the workbench with the reference policy", async ({

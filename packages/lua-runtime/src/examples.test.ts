@@ -28,12 +28,12 @@ function means(source: string, scenarioId: string) {
 
 describe("supply-to-demand example", () => {
   for (const scenario of ["two-trains", "mixed-line"]) {
-    it(`beats the naive baseline on ${scenario} over ${SEEDS} seeds`, () => {
-      const naive = means(BUILT_IN_POLICIES.naive, scenario);
+    it(`beats the balancing baseline on ${scenario} over ${SEEDS} seeds`, () => {
+      const baseline = means(BUILT_IN_POLICIES["balance-stock"], scenario);
       const example = means(BUILT_IN_POLICIES["supply-to-demand"], scenario);
       expect(example.errors).toBe(0);
-      expect(example.unmet).toBeLessThan(naive.unmet);
-      expect(example.oscillations).toBeLessThan(naive.oscillations);
+      expect(example.unmet).toBeLessThan(baseline.unmet);
+      expect(example.oscillations).toBeLessThan(baseline.oscillations);
     }, 600_000);
   }
 });

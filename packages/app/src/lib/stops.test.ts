@@ -1,5 +1,5 @@
 import {
-  naiveReferencePolicy,
+  balanceStockReferencePolicy,
   runSimulation,
   starterScenarios,
   validateScenario,
@@ -10,7 +10,7 @@ import { arrivals, latestStopAt, stopDetail } from "./stops.ts";
 function output() {
   const result = validateScenario(starterScenarios[0]?.document);
   if (!result.ok) throw new Error("invalid starter");
-  return runSimulation(result.scenario, naiveReferencePolicy(), { seed: 3 });
+  return runSimulation(result.scenario, balanceStockReferencePolicy(), { seed: 3 });
 }
 
 describe("stop helpers", () => {

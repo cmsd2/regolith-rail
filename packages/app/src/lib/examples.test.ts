@@ -4,6 +4,8 @@ import {
   exampleFragment,
   exampleFragmentFor,
   findExampleItem,
+  policyFragment,
+  policyFragmentFor,
   scenarioFragment,
   scenarioFragmentFor,
 } from "./examples.ts";
@@ -32,5 +34,9 @@ describe("chapter scenarios", () => {
     const id = "classic:scenario:classic.newsvendor";
     expect(scenarioFragment(scenarioFragmentFor(id))).toBe(id);
     expect(scenarioFragment("#example.ops/min-max.1")).toBeNull();
+    expect(policyFragment(policyFragmentFor("builtin:policy:balance-stock"))).toBe(
+      "builtin:policy:balance-stock",
+    );
+    expect(policyFragment(scenarioFragmentFor("builtin:scenario:relay"))).toBeNull();
   });
 });

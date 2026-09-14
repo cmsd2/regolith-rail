@@ -10,10 +10,10 @@ import {
 } from "./helpers.ts";
 
 test.describe("first visit", () => {
-  test("shows two-station with the naive baseline, ready to run", async ({ page }) => {
+  test("shows two-station with the balancing baseline, ready to run", async ({ page }) => {
     await openWorkbench(page);
     await expectSlot(page, "scenario", "builtin:scenario:two-station");
-    await expect(page.getByTestId("policy-editor")).toContainText("Naive baseline");
+    await expect(page.getByTestId("policy-editor")).toContainText("Balance stock");
     await expect(page.getByTestId("run")).toBeEnabled();
     await run(page);
     await expect(page.getByTestId("stop-inspector")).toContainText("Stop");

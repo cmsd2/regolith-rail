@@ -20,8 +20,10 @@ describe("golden result hashes", () => {
 
   it("give the Lua baseline the same results as the reference", () => {
     for (const [key, hash] of Object.entries(goldens.current)) {
-      if (!key.startsWith("lua:naive/")) continue;
-      expect(hash, key).toBe(goldens.current[key.replace("lua:naive/", "reference:naive/")]);
+      if (!key.startsWith("lua:balance-stock/")) continue;
+      expect(hash, key).toBe(
+        goldens.current[key.replace("lua:balance-stock/", "reference:balance-stock/")],
+      );
     }
   });
 });

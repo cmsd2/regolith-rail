@@ -17,7 +17,7 @@ metrics in Node and in current Chromium, Firefox and WebKit.
 - **THEN** the event logs are byte-for-byte identical
 
 #### Scenario: Cross-environment run
-- **WHEN** the starter scenarios are run with the naive baseline on seeds 1 to
+- **WHEN** the starter scenarios are run with the balancing baseline on seeds 1 to
   20 in Node, Chromium, Firefox and WebKit
 - **THEN** every environment produces the same result hash for every run
 
@@ -143,7 +143,7 @@ A command-line runner SHALL run a scenario given as a JSON document, a scenario 
 with parameters, with a policy and a seed or range of seeds, and write the run output and metrics as JSON.
 
 #### Scenario: Headless run
-- **WHEN** the runner is given `two-station`, `naive.lua` and seed 7
+- **WHEN** the runner is given `two-station`, `balance-stock.lua` and seed 7
 - **THEN** it writes the metrics and event log for that run and exits successfully
 
 #### Scenario: Template run

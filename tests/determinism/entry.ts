@@ -1,5 +1,5 @@
 import {
-  naiveReferencePolicy,
+  balanceStockReferencePolicy,
   runGoldenMatrix,
   runSimulation,
   type Scenario,
@@ -25,19 +25,20 @@ async function runDeterminismMatrix(fromScripts = false): Promise<Record<string,
     return result.scenario;
   };
   return runGoldenMatrix((name) => {
-    if (name === "reference:naive") return naiveReferencePolicy();
-    if (name === "lua:naive") return runtime.createPolicy(BUILT_IN_POLICIES.naive);
+    if (name === "reference:balance-stock") return balanceStockReferencePolicy();
+    if (name === "lua:balance-stock")
+      return runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]);
     throw new Error(`unknown policy ${name}`);
   }, scenarioFor);
 }
 
-/** Times a batch of `naive.lua` runs on one starter scenario, for performance checks. */
-async function benchmarkNaiveBatch(scenarioId: string, seeds: number): Promise<number> {
+/** Times a batch of `balance-stock.lua` runs on one starter scenario, for performance checks. */
+async function benchmarkBalanceStockBatch(scenarioId: string, seeds: number): Promise<number> {
   const runtime = await LuaRuntime.load(wasmUrl);
   const starter = starterScenarios.find((s) => s.id === scenarioId);
   const result = validateScenario(starter?.document);
   if (!result.ok) throw new Error(`unknown starter ${scenarioId}`);
-  const policy = runtime.createPolicy(BUILT_IN_POLICIES.naive);
+  const policy = runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]);
   const started = performance.now();
   for (let seed = 1; seed <= seeds; seed++) {
     runSimulation(result.scenario, policy, { seed, detail: "summary" });
@@ -45,4 +46,4 @@ async function benchmarkNaiveBatch(scenarioId: string, seeds: number): Promise<n
   return performance.now() - started;
 }
 
-Object.assign(globalThis, { runDeterminismMatrix, benchmarkNaiveBatch });
+Object.assign(globalThis, { runDeterminismMatrix, benchmarkBalanceStockBatch });

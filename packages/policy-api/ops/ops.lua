@@ -540,7 +540,7 @@ function ops.policy(spec)
 
     -- Turn wants into unloads and load requests. Without a plan or allocation
     -- block the amounts are left as wanted and the engine clamps them, exactly
-    -- as the naive baseline does.
+    -- as the balancing baseline does.
     local shaping = lookahead or spec.allocate ~= nil
     local unloads, loads = {}, {}
     local order = {}

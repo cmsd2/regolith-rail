@@ -19,7 +19,7 @@ const mine: LibraryItem = {
   source: "mine",
   name: "buffer",
   content: "-- buffer\nreturn {}",
-  origin: "builtin:policy:naive",
+  origin: "builtin:policy:balance-stock",
   createdAt: 1,
   updatedAt: 1,
 };
@@ -28,7 +28,7 @@ const setup = (overrides: Partial<RunSetup> = {}): RunSetup => ({
   slots: {
     scenario: "builtin:scenario:storm-shock",
     policy: mine.id,
-    compare: "builtin:policy:naive",
+    compare: "builtin:policy:balance-stock",
   },
   seed: 7,
   view: "batch",
@@ -47,7 +47,10 @@ describe("experiments", () => {
       content: { kind: "script", source: STARTER_SCRIPTS["storm-shock"], starterId: "storm-shock" },
     });
     expect(content.policy).toEqual({ content: mine.content, name: "buffer", origin: mine.id });
-    expect(content.compare).toMatchObject({ name: "naive", origin: "builtin:policy:naive" });
+    expect(content.compare).toMatchObject({
+      name: "balance-stock",
+      origin: "builtin:policy:balance-stock",
+    });
     expect(content).toMatchObject({ seed: 7, view: "batch", batch: { seedCount: 30 } });
     expect(experimentName(content)).toBe("Storm shock · buffer");
   });
@@ -92,7 +95,7 @@ describe("experiments", () => {
       apiVersion: 2,
       appVersion: "one",
       view: "run",
-      policy: { name: "naive.lua", source: BUILT_IN_POLICIES.naive },
+      policy: { name: "balance-stock.lua", source: BUILT_IN_POLICIES["balance-stock"] },
       scenario: { kind: "script", source: STARTER_SCRIPTS.relay as string, starterId: "relay" },
       seed: 3,
       saveReloadTest: false,

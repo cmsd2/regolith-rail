@@ -72,8 +72,11 @@ describe("importing files", () => {
 
 describe("exporting files", () => {
   it("exports policies and scripts as Lua and JSON scenarios as JSON", () => {
-    const naive = catalogueItem("builtin:policy:naive") as LibraryItem;
-    expect(exportFile(naive)).toMatchObject({ fileName: "naive.lua", text: naive.content });
+    const baseline = catalogueItem("builtin:policy:balance-stock") as LibraryItem;
+    expect(exportFile(baseline)).toMatchObject({
+      fileName: "balance-stock.lua",
+      text: baseline.content,
+    });
     const relay = catalogueItem("builtin:scenario:relay") as LibraryItem;
     expect(exportFile(relay).fileName).toBe("Relay station.lua");
     const json: LibraryItem = {

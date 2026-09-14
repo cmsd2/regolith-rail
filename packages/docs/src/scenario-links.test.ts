@@ -6,6 +6,7 @@ import { remarkScenarioLinks } from "./scenario-links.ts";
 const names = {
   starters: new Set(["two-station", "relay"]),
   templates: new Set(["classic.reorder"]),
+  policies: new Set(["balance-stock"]),
 };
 
 const linked = (section: string, body: string) => {
@@ -13,9 +14,9 @@ const linked = (section: string, body: string) => {
   remarkScenarioLinks(names)(tree);
   const found: { name: string; attribute: string; value: string }[] = [];
   const walk = (node: Root | Root["children"][number]) => {
-    if (node.type === "mdxJsxTextElement" && node.name === "ScenarioLink") {
+    if (node.type === "mdxJsxTextElement" && node.name?.endsWith("Link")) {
       const attribute = node.attributes[0] as { name: string; value: string };
-      found.push({ name: node.name, attribute: attribute.name, value: attribute.value });
+      found.push({ name: node.name ?? "", attribute: attribute.name, value: attribute.value });
     }
     if ("children" in node) for (const child of node.children) walk(child);
   };
@@ -24,10 +25,13 @@ const linked = (section: string, body: string) => {
 };
 
 describe("scenario links", () => {
-  it("link starters and classic templates named in inline code on Book pages", () => {
-    expect(linked("Book", "The `two-station` starter, and `classic.reorder`.")).toEqual([
+  it("link starters, classic templates and built-in policies named in inline code on Book pages", () => {
+    expect(
+      linked("Book", "The `two-station` starter, `classic.reorder` and `balance-stock`."),
+    ).toEqual([
       { name: "ScenarioLink", attribute: "starter", value: "two-station" },
       { name: "ScenarioLink", attribute: "template", value: "classic.reorder" },
+      { name: "PolicyLink", attribute: "policy", value: "balance-stock" },
     ]);
   });
 

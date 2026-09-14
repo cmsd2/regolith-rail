@@ -1,6 +1,6 @@
 import {
+  balanceStockReferencePolicy,
   hashRun,
-  naiveReferencePolicy,
   runSimulation,
   starterScenarios,
   validateScenario,
@@ -16,15 +16,15 @@ beforeAll(async () => {
 
 const SEEDS = Array.from({ length: 50 }, (_, i) => i + 1);
 
-describe("naive.lua", () => {
+describe("balance-stock.lua", () => {
   for (const starter of starterScenarios) {
     it(`matches the reference implementation on ${starter.id} for seeds 1 to 50`, () => {
       const result = validateScenario(starter.document);
       if (!result.ok) throw new Error("invalid starter");
-      const lua = runtime.createPolicy(BUILT_IN_POLICIES.naive);
+      const lua = runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]);
       expect(lua.error).toBeUndefined();
       for (const seed of SEEDS) {
-        const expected = runSimulation(result.scenario, naiveReferencePolicy(), { seed });
+        const expected = runSimulation(result.scenario, balanceStockReferencePolicy(), { seed });
         const actual = runSimulation(result.scenario, lua, { seed });
         if (hashRun(actual) !== hashRun(expected)) {
           expect(actual.events, `${starter.id} seed ${seed}`).toEqual(expected.events);

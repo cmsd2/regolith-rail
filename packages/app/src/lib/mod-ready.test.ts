@@ -24,7 +24,7 @@ function parse(input: unknown): Scenario {
 const starter = (id: string) =>
   parse(starterScenarios.find((s) => s.id === id)?.document as unknown);
 
-const naive = BUILT_IN_POLICIES.naive;
+const baseline = BUILT_IN_POLICIES["balance-stock"];
 
 /** Mine, Junction and Dome in a line, with one shuttle, changed by `change`. */
 function line(change: (s: ScenarioV2Input) => void = () => {}): Scenario {
@@ -60,15 +60,15 @@ function line(change: (s: ScenarioV2Input) => void = () => {}): Scenario {
 }
 
 describe("mod-ready pairings", () => {
-  it("marks every starter line with the naive baseline as mod-ready", () => {
+  it("marks every starter line with the balancing baseline as mod-ready", () => {
     for (const { id } of starterScenarios) {
-      expect(tasks.modReady(naive, starter(id)), id).toEqual({ ready: true, reasons: [] });
+      expect(tasks.modReady(baseline, starter(id)), id).toEqual({ ready: true, reasons: [] });
     }
   });
 
   it("marks a line whose shuttle runs end to end in either direction", () => {
     expect(lineOrder(line())).toEqual(["Mine", "Junction", "Dome"]);
-    expect(tasks.modReady(naive, line()).ready).toBe(true);
+    expect(tasks.modReady(baseline, line()).ready).toBe(true);
   });
 
   it("is blocked by a review hook and says which hook", () => {
@@ -92,7 +92,7 @@ describe("mod-ready pairings", () => {
         ];
       }
     });
-    expect(tasks.modReady(naive, scenario).reasons).toEqual(["the scenario has converters"]);
+    expect(tasks.modReady(baseline, scenario).reasons).toEqual(["the scenario has converters"]);
   });
 
   it("is blocked by suppliers and by reviews", () => {

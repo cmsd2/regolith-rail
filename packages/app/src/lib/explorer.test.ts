@@ -61,7 +61,7 @@ describe("policy list", () => {
       "example:policy:docs/failure-modes/disruption-recovery#1",
     ]);
     expect(groupIds(tree, "Built in")).toEqual([
-      "builtin:policy:naive",
+      "builtin:policy:balance-stock",
       "builtin:policy:supply-to-demand",
     ]);
     expect(defaultExpanded(tree).has("group:policy:other")).toBe(false);
@@ -134,27 +134,33 @@ describe("list navigation", () => {
   it("opens every group except the collapsed examples at first", () => {
     expect(start.has("group:policy:builtin")).toBe(true);
     expect(start.has("group:policy:other")).toBe(false);
-    expect(rows(start).some((r) => r.node.key === "item:builtin:policy:naive")).toBe(true);
+    expect(rows(start).some((r) => r.node.key === "item:builtin:policy:balance-stock")).toBe(true);
     expect(rows(start).some((r) => r.node.key.startsWith("item:example:"))).toBe(false);
   });
 
   it("moves through rows, into and out of groups, and to the ends", () => {
     const visible = rows(start);
     const move = (from: string, key: string) => treeKey(visible, from, key, start);
-    expect(move("group:policy:builtin", "ArrowDown")?.focus).toBe("item:builtin:policy:naive");
-    expect(move("item:builtin:policy:naive", "ArrowLeft")?.focus).toBe("group:policy:builtin");
+    expect(move("group:policy:builtin", "ArrowDown")?.focus).toBe(
+      "item:builtin:policy:balance-stock",
+    );
+    expect(move("item:builtin:policy:balance-stock", "ArrowLeft")?.focus).toBe(
+      "group:policy:builtin",
+    );
     expect(move("group:policy:builtin", "ArrowLeft")?.expanded.has("group:policy:builtin")).toBe(
       false,
     );
     expect(move("group:policy:other", "ArrowRight")?.expanded.has("group:policy:other")).toBe(true);
-    expect(move("item:builtin:policy:naive", "Home")?.focus).toBe(visible[0]?.node.key);
+    expect(move("item:builtin:policy:balance-stock", "Home")?.focus).toBe(visible[0]?.node.key);
     expect(move("group:policy:builtin", "End")?.focus).toBe(visible.at(-1)?.node.key);
   });
 
   it("uses an item with Enter, and toggles a group with Enter or Space", () => {
     const move = (from: string, key: string) => treeKey(rows(start), from, key, start);
-    expect(move("item:builtin:policy:naive", "Enter")?.use).toBe("item:builtin:policy:naive");
-    expect(move("item:builtin:policy:naive", " ")?.use).toBeUndefined();
+    expect(move("item:builtin:policy:balance-stock", "Enter")?.use).toBe(
+      "item:builtin:policy:balance-stock",
+    );
+    expect(move("item:builtin:policy:balance-stock", " ")?.use).toBeUndefined();
     expect(move("group:policy:mine", " ")?.expanded.has("group:policy:mine")).toBe(false);
     expect(move("group:policy:mine", "x")).toBeNull();
   });

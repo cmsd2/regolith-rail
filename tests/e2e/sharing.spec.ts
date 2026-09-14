@@ -128,7 +128,7 @@ test.describe("local saving", () => {
     // Editing the built-in baseline made a copy of it under Mine.
     await expectSlot(page, "policy", /^mine:policy:/);
     const id = (await page.getByTestId("slot-policy").getAttribute("data-item-id")) as string;
-    await expect(await showItem(page, id)).toContainText("naive (copy)");
+    await expect(await showItem(page, id)).toContainText("balance-stock (copy)");
 
     await libraryRow(page, id).click();
     await page.getByTestId("item-rename").click();

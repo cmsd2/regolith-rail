@@ -7,7 +7,7 @@ order: 1
 
 ## The workbench
 
-The [workbench](/) opens with the *Two stations* scenario and `naive`, a policy that
+The [workbench](/) opens with the *Two stations* scenario and `balance-stock`, a policy that
 imitates how trains in the game appear to balance stock. The library is on the left,
 with **This run** showing the scenario and policy in use. The editor is in the middle,
 and the line map, timeline and results are on the right.
@@ -25,7 +25,7 @@ wanted to consume but could not, because its station was empty.
 ## Write a policy
 
 Replace the editor contents with a policy built from [ops blocks](/docs/ops). The
-built-in `naive` policy never changes: your edits go to a copy under **Mine** in the
+built-in `balance-stock` policy never changes: your edits go to a copy under **Mine** in the
 library, which saves itself as you type.
 
 ```lua runnable
@@ -75,7 +75,7 @@ cannot satisfy are clamped and counted as [warnings](/docs/metrics#warnings).
 
 One run is one roll of the dice. Switch to **Batch** and tick **Compare**. This run
 gains a **Compare** slot: press **Choose…** beside it and double-click a second policy,
-such as `naive`, then press **Run**. Each metric shows its distribution for both policies
+such as `balance-stock`, then press **Run**. Each metric shows its distribution for both policies
 and the paired difference with a 95% confidence interval. A difference is only called
 better or worse when the interval leaves out zero.
 

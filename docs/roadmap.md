@@ -124,7 +124,7 @@ The exact vanilla rules are not yet confirmed; see §10.
 | Information level | How much a policy may see: `local`, `line`, `line+history`, `colony`. |
 | Category | Vanilla (`local`, `line`: what a mod could plausibly read) or Extended (more). Scores are compared within a category. |
 | Inventory position | Stock on hand plus cargo on its way, minus stock already promised elsewhere. |
-| Baseline | The naive policy reproducing the game's behaviour for a stated game version. |
+| Baseline | The balance-stock policy reproducing the game's behaviour for a stated game version. |
 | Bound | The best result any policy could achieve on a scenario, computed with full knowledge of the future. |
 
 ## 7. Stages
@@ -165,7 +165,7 @@ install, its mod tools documentation and in-game observation.
 - Game mechanics documentation pages tagged with game version and evidence.
 
 **Done when** each question above has an answer or is recorded as unanswerable
-with the consequences stated, and the naive baseline's rules are written down.
+with the consequences stated, and the balancing baseline's rules are written down.
 
 **Notes** No game code is copied into the repository. Findings are described
 in our own words.
@@ -183,7 +183,7 @@ events are states that scale supply or demand for a time window.
   randomised production and consumption, scheduled and random events.
 - Separate random streams per source so changing one part of a scenario does
   not disturb the others.
-- Naive baseline implemented directly in TypeScript as a reference.
+- Balancing baseline implemented directly in TypeScript as a reference.
 - Event log and time series output for a run.
 - Core metrics: unmet demand (priority-weighted), stalled production,
   delivered throughput, empty distance, dwell time, oscillation count,
@@ -216,10 +216,10 @@ hashes in Node, Chromium, Firefox and WebKit.
 - Save/load test mode that reloads the policy mid-run and restores memory.
 - Policy API v1 spec with generated TypeScript types, Lua editor annotations
   and shared test cases.
-- `naive.lua` baseline.
+- `balance-stock.lua` baseline.
 - Language and Policy API reference documentation.
 
-**Done when** `naive.lua` produces results identical to the TypeScript reference
+**Done when** `balance-stock.lua` produces results identical to the TypeScript reference
 on every starter scenario and seed, and runaway, sandbox-escaping and
 order-dependent test policies are all caught and reported.
 
@@ -250,10 +250,10 @@ demonstrating scenario for every block.
 - Each block declares the information it reads, so a policy's category is
   known before it runs.
 - Decision traces explaining each block's output.
-- The naive baseline expressed as a one-line `ops` policy, matching `naive.lua`.
+- The balancing baseline expressed as a one-line `ops` policy, matching `balance-stock.lua`.
 - A documentation page, live example and demonstrating scenario for each block.
 
-**Done when** the one-line baseline matches `naive.lua`, a policy combining
+**Done when** the one-line baseline matches `balance-stock.lua`, a policy combining
 inventory position, roles and lookahead measurably fixes double dispatch and
 ping-pong on the relevant scenarios, and every block is documented.
 
@@ -445,7 +445,7 @@ this stage is reduced to what is possible, and the reasons are documented.
 - Adapter mod for Relaunched that builds the Policy API snapshot from game
   objects and runs a policy without affecting the game.
 - Logging of vanilla decisions, policy decisions and station stock over time.
-- Comparison of `naive.lua` against actual vanilla decisions.
+- Comparison of `balance-stock.lua` against actual vanilla decisions.
 - Import of game logs into the simulator as calibrated scenarios.
 - Fitting of an interpretable model to logged vanilla decisions to confirm or
   correct the baseline.
@@ -453,7 +453,7 @@ this stage is reduced to what is possible, and the reasons are documented.
   cases.
 - Modding guide in the docs.
 
-**Done when** `naive.lua` in shadow mode matches vanilla decisions on the test
+**Done when** `balance-stock.lua` in shadow mode matches vanilla decisions on the test
 lines, or every difference is explained and the baseline updated under a new
 version label.
 

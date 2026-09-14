@@ -10,7 +10,7 @@ import { runSimulation } from "./simulate.ts";
 export const GOLDEN_SEEDS = Array.from({ length: 20 }, (_, i) => i + 1);
 
 /** Policies in the determinism matrix: the TypeScript reference and the shipped Lua baseline. */
-export const GOLDEN_POLICIES = ["reference:naive", "lua:naive"] as const;
+export const GOLDEN_POLICIES = ["reference:balance-stock", "lua:balance-stock"] as const;
 
 export interface GoldenEntry {
   key: string;

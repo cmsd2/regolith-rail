@@ -161,10 +161,12 @@ export const catalogue: readonly LibraryItem[] = buildCatalogue();
 const byId = new Map(catalogue.map((item) => [item.id, item]));
 
 /**
- * Ids that shipped items had before their documentation page moved, with their ids now, so
- * saved copies still know what they were copied from.
+ * Ids that shipped items had before they were renamed or their documentation page moved, with their
+ * ids now, so saved slots, runs and copies still find them.
  */
 export const MOVED_ITEMS: Readonly<Record<ItemId, ItemId>> = {
+  // The balancing baseline was called naive before.
+  "builtin:policy:naive": "builtin:policy:balance-stock",
   "example:policy:docs/failure-modes/double-dispatch#1": "example:policy:docs/book/base-stock#4",
   "example:policy:docs/failure-modes/half-capacity#1": "example:policy:docs/book/modelling#1",
 };

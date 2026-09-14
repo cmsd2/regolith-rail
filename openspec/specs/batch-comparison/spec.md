@@ -20,8 +20,8 @@ The player SHALL be able to set up a batch from the run's slots and a few settin
 - **THEN** the current scenario and policy are selected as A with 100 seeds
 
 #### Scenario: Compare with a library policy
-- **WHEN** the player turns on comparison, chooses policy B and uses the built-in naive policy
-- **THEN** the batch compares the Policy slot's policy as A with naive as B on the same seeds
+- **WHEN** the player turns on comparison, chooses policy B and uses the built-in balance-stock policy
+- **THEN** the batch compares the Policy slot's policy as A with balance-stock as B on the same seeds
 
 ### Requirement: Paired seeds
 The seed list SHALL be derived deterministically from the base seed and count,
@@ -69,7 +69,7 @@ label a difference as within noise when the interval includes zero.
 - **THEN** every metric's difference is zero or labelled within noise
 
 #### Scenario: Clear improvement
-- **WHEN** a supply-to-demand policy is compared with the naive baseline on
+- **WHEN** a supply-to-demand policy is compared with the balancing baseline on
   `two-station` at a consumption rate the baseline cannot sustain
 - **THEN** the reduction in unmet demand is shown with an interval that excludes
   zero

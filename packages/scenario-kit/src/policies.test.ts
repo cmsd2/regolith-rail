@@ -14,9 +14,9 @@ describe("example policies", () => {
 
   it("read a header that continues on the next line and stops at a blank comment", () => {
     const source =
-      "-- Naive baseline: how trains appear to decide what to\n-- carry.\n--\n-- More.\n";
+      "-- Balance stock: how trains appear to decide what to\n-- carry.\n--\n-- More.\n";
     expect(policyHeader(source)).toEqual({
-      name: "Naive baseline",
+      name: "Balance stock",
       description: "How trains appear to decide what to carry.",
     });
   });

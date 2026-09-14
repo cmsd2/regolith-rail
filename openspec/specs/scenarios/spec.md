@@ -147,7 +147,7 @@ SHALL be chosen to show each failure clearly and SHALL NOT be required to match 
 - **THEN** every capacity is 30000 or 60000 milli-units
 
 #### Scenario: Starter scenario shows its failure
-- **WHEN** `two-station` is run with the naive baseline while consumption is raised above half of what the
+- **WHEN** `two-station` is run with the balancing baseline while consumption is raised above half of what the
   train can carry per round trip
 - **THEN** unmet demand is greater than zero while the supply station's production stalls
 

@@ -50,7 +50,7 @@ const SAVING_LABELS = {
 const sourceLabel = (item: LibraryItem) =>
   SOURCES.find((s) => s.source === item.source)?.label ?? "";
 
-/** Where a slot's item comes from, such as "Built in" or "Mine, copied from naive". */
+/** Where a slot's item comes from, such as "Built in" or "Mine, copied from balance-stock". */
 function useOrigin(item: LibraryItem | undefined): string {
   const origin = useWorkbench((s) => (item?.origin ? s.itemById(item.origin) : undefined));
   const experiment = useWorkbench((s) => {

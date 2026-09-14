@@ -98,18 +98,18 @@ describe("declarative policies", () => {
     expect(loadError(out)?.message).toBe("ops.order_up_to has no parameter named levle");
   });
 
-  it("reproduce naive.lua with one line, ignoring traces", () => {
+  it("reproduce balance-stock.lua with one line, ignoring traces", () => {
     const withoutTraces = (out: RunOutput) => ({
       ...out,
       events: out.events.filter((e) => e.kind !== "trace"),
     });
     const onePolicy = runtime.createPolicy("return ops.policy { target = ops.balance {} }");
-    const naive = runtime.createPolicy(BUILT_IN_POLICIES.naive);
+    const baseline = runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]);
     for (const starter of starterScenarios) {
       const result = validateScenario(starter.document);
       if (!result.ok) throw new Error("invalid starter");
       for (let seed = 1; seed <= 50; seed++) {
-        const expected = runSimulation(result.scenario, naive, { seed, detail: "summary" });
+        const expected = runSimulation(result.scenario, baseline, { seed, detail: "summary" });
         const actual = withoutTraces(
           runSimulation(result.scenario, onePolicy, { seed, detail: "summary" }),
         );

@@ -8,11 +8,11 @@ what happened and why through a map, charts, a timeline and a stop inspector.
 
 ### Requirement: Ready on first visit
 Opening the application with no saved work and no share link SHALL fill the Scenario slot with `two-station`
-and the Policy slot with the naive baseline, show the baseline in the editor, and be ready to run.
+and the Policy slot with the balancing baseline, show the baseline in the editor, and be ready to run.
 
 #### Scenario: First visit
 - **WHEN** a new visitor opens the application
-- **THEN** the Scenario slot shows `two-station`, the Policy slot shows the naive baseline, the editor contains
+- **THEN** the Scenario slot shows `two-station`, the Policy slot shows the balancing baseline, the editor contains
   it, and pressing Run starts a run without further setup
 
 ### Requirement: Policy editor

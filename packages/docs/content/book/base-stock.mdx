@@ -146,7 +146,7 @@ after another.
 ## Case study: double dispatch
 
 The `two-trains` starter has two trains sharing a line from a mine to a factory and a
-dome. It was built to show double dispatch: under the naive baseline, both trains react
+dome. It was built to show double dispatch: under the balancing baseline, both trains react
 to the same low stock, so one station can be oversupplied while the other waits. It looks like the stock-on-hand mistake: each train
 judges a shortage without counting what the other is already bringing.
 
@@ -177,7 +177,7 @@ The measurements do not flatter the second remedy. On seeds 1 to 100, roles alon
 less than a tenth of the baseline's unmet demand. Adding lookahead leaves more unmet
 demand than roles alone, and more than three times the empty running.
 
-<Check ref="test:on two-trains over seeds 1 to 100, roles leave less than a tenth of the naive baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running" />
+<Check ref="test:on two-trains over seeds 1 to 100, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running" />
 
 A likely reason shows in how lookahead decides. At the mine, a train loads only what the
 stations ahead are short of *now*. The dome is four hours' travel away and uses 7 units in

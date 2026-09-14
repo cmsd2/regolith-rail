@@ -1,4 +1,4 @@
--- Naive baseline: how Surviving Mars: Relaunched trains appear to decide what to
+-- Balance stock: how Surviving Mars: Relaunched trains appear to decide what to
 -- carry, based on observed behaviour and not yet verified against the game.
 --
 -- At every stop, each resource the station stores is moved towards the average

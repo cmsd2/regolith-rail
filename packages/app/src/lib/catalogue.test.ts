@@ -25,7 +25,7 @@ describe("catalogue", () => {
       "builtin:scenario:storm-shock",
     ]);
     expect(ids("builtin", "policy")).toEqual([
-      "builtin:policy:naive",
+      "builtin:policy:balance-stock",
       "builtin:policy:supply-to-demand",
     ]);
     for (const template of classicTemplates) {
@@ -68,6 +68,7 @@ describe("catalogue", () => {
     expect(catalogueItem("example:policy:docs/failure-modes/double-dispatch#1")?.name).toBe(
       "Two trains fix",
     );
+    expect(catalogueItem("builtin:policy:naive")?.id).toBe("builtin:policy:balance-stock");
   });
 
   it("pairs documentation examples with the scenario they run on", () => {

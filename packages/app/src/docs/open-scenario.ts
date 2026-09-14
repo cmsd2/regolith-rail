@@ -1,5 +1,5 @@
 import type { NavigateFunction } from "react-router";
-import { scenarioFragmentFor } from "../lib/examples.ts";
+import { policyFragmentFor, scenarioFragmentFor } from "../lib/examples.ts";
 import type { ItemId } from "../lib/library.ts";
 import { workbench } from "../state/instance.ts";
 
@@ -20,4 +20,19 @@ export async function openScenario(
     return;
   }
   await navigate({ pathname: "/", hash: scenarioFragmentFor(id) });
+}
+
+/** Puts a policy in the workbench's Policy slot without running it, as `openScenario` does. */
+export async function openPolicy(
+  id: ItemId,
+  mode: "page" | "panel",
+  navigate: NavigateFunction,
+): Promise<void> {
+  const state = workbench.getState();
+  if (state.loaded) {
+    state.fillSlot("policy", id);
+    if (mode === "page") await navigate("/");
+    return;
+  }
+  await navigate({ pathname: "/", hash: policyFragmentFor(id) });
 }

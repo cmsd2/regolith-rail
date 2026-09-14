@@ -26,8 +26,8 @@ function metricsOver(scenarioId: string, source: string, seeds: number) {
 }
 
 describe("chapter 1, modelling operations", () => {
-  it("on two-station the naive baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds", () => {
-    for (const metrics of metricsOver("two-station", BUILT_IN_POLICIES.naive, 20)) {
+  it("on two-station the balancing baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds", () => {
+    for (const metrics of metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 20)) {
       expect(metrics.unmetDemand).toBeGreaterThan(0);
       expect(metrics.stalledProduction).toBeGreaterThan(0);
     }
@@ -155,14 +155,14 @@ describe("chapter 3, the double dispatch case study", () => {
     };
   };
 
-  it("on two-trains over seeds 1 to 100, roles leave less than a tenth of the naive baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running", () => {
-    const naive = means(BUILT_IN_POLICIES.naive);
+  it("on two-trains over seeds 1 to 100, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running", () => {
+    const baseline = means(BUILT_IN_POLICIES["balance-stock"]);
     const roles = means(ROLES);
     const lookahead = means(LOOKAHEAD);
-    expect(roles.unmet).toBeLessThan(naive.unmet / 10);
+    expect(roles.unmet).toBeLessThan(baseline.unmet / 10);
     expect(lookahead.unmet).toBeGreaterThan(roles.unmet);
     expect(lookahead.empty).toBeGreaterThan(3 * roles.empty);
-    expect(roles.clear).toBeGreaterThan(naive.clear);
+    expect(roles.clear).toBeGreaterThan(baseline.clear);
   }, 600_000);
 });
 
