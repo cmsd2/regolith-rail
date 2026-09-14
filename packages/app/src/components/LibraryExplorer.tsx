@@ -190,11 +190,16 @@ function ThisRun() {
     <section className={styles.thisRun} aria-label="This run" data-testid="this-run">
       <header className={styles.heading}>
         <h2>This run</h2>
-        {available && (
-          <span className={styles.muted} data-testid="saving-status">
-            {SAVING_LABELS[saving]}
-          </span>
-        )}
+        <span className={styles.headingEnd}>
+          {available && (
+            <span className={styles.muted} data-testid="saving-status">
+              {SAVING_LABELS[saving]}
+            </span>
+          )}
+          <a href={docsHref("library")} data-docs="library" data-testid="library-docs">
+            Help
+          </a>
+        </span>
       </header>
       <Slot slot="scenario" />
       <Slot slot="policy" />

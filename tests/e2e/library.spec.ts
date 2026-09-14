@@ -36,6 +36,12 @@ test.describe("library explorer", () => {
     await expect(libraryRow(page, "builtin:policy:naive")).toHaveAttribute("aria-current", "true");
   });
 
+  test("links to its guide in the documentation panel", async ({ page }) => {
+    await openWorkbench(page);
+    await page.getByTestId("library-docs").click();
+    await expect(page.getByTestId("docs-panel")).toContainText("Library and saved runs");
+  });
+
   test("selects an item with one click without changing the run", async ({ page }) => {
     await openWorkbench(page);
     const row = await showItem(page, "builtin:policy:supply-to-demand");

@@ -1,0 +1,96 @@
+---
+title: Library and saved runs
+description: Choosing what to run, keeping your own copies, and saving, sharing and moving runs.
+section: Getting started
+order: 2
+---
+
+The library is the column on the left of the [workbench](/). At the top, **This run**
+shows what the next run uses. Below it are three lists: **Scenarios**, **Policies** and
+**Saved runs**.
+
+## This run
+
+A run needs a scenario and a policy, so This run has a slot for each. In the **Batch**
+view with **Compare** ticked, a third slot holds the policy to compare against.
+
+To fill a slot, double-click an item in a list, or select it and press **Use**. Pressing
+**Choose…** beside a slot shows the list for that slot. One click only selects an item
+and shows what it is, so looking around never changes your run.
+
+A starter scenario comes with a lesson, measured against the naive baseline policy:
+
+- **Why the baseline fails** opens the scenario's page in the documentation panel.
+- **Use the baseline** puts the naive policy in the run.
+- **Use the suggested fix** puts the policy from that page in the run.
+- **Compare fix with baseline** opens the batch view with the fix compared against the
+  baseline.
+
+A [classic problem](/docs/classic/newsvendor) has **About this problem**, its parameters,
+and **Use the reference policy** instead.
+
+## The lists
+
+**Scenarios** are grouped by where they come from: **Built in** for the starter lines,
+**Classic problems** for the operations research templates, **Mine** for your own, and
+**Shared with me** for scenarios from links you opened.
+
+**Policies** are grouped by how they fit the scenario in the run:
+
+- **For this scenario** comes first: the scenario's suggested fix or reference policy.
+- **Built in**, **Mine** and **Shared with me** follow.
+- **Other examples**, folded away, holds the fixes and reference policies for other
+  scenarios.
+
+A policy is dimmed when none of its hooks can run on the scenario, such as an `on_stop`
+policy on a scenario without trains. Select it to see why. You can still use it.
+
+The lists work from the keyboard. Arrow keys move through the rows and open and close
+groups, and **Enter** uses the selected item.
+
+## Your own copies
+
+Built-in, example, classic and shared items never change. When you edit one in the
+editor, the workbench makes a copy under **Mine**, named after the original with
+"(copy)", and puts the copy in the slot. Your edits go to the copy.
+
+Items under Mine save themselves as you type. The label beside This run shows when
+saving is under way. Select an item to **Rename**, **Duplicate**, **Export** or
+**Delete** it. A slot that uses a deleted item keeps its contents, so the run you are
+looking at is not lost.
+
+Your library lives in this browser's storage, and nothing is uploaded. Clearing the
+site's data removes it, so export anything you want to keep.
+
+## Saved runs
+
+**Save run…** keeps the scenario, the policies, the seed and the view together under a
+name, listed under **Saved runs**. Opening a saved run fills every slot. After changing
+an opened run, **Update** saves the changes to it.
+
+**Share link** makes a link to the run. The link carries its contents after the `#`,
+so nothing is uploaded. Whoever opens it sees the run under **Shared with me**, and
+opening the same link again does not add it twice. Read the policy before you press
+**Run**.
+
+## Import and export
+
+**Export** saves an item as a file: a policy as `.lua`, a scenario as `.lua` or `.json`,
+and a saved run as `.json`. **Import…** reads a file of each kind into **Mine**. Files
+must be text and at most 1 MB.
+
+A saved run's file holds everything the run needs, so it moves work between browsers or
+computers without a link.
+
+## Documentation examples
+
+Runnable examples in the documentation open in the workbench as read-only items. They
+fill their slots without touching your own policies, and editing one makes a copy under
+Mine, as for any built-in item.
+
+## Arranging the columns
+
+Drag the edge of the library or the documentation panel to resize it, or focus the edge
+and use the arrow keys. **Library** in the toolbar folds the library away to give the
+editor more room. The workbench remembers the arrangement in this browser. On a narrow
+screen the library opens over the page, and closes once you choose an item.

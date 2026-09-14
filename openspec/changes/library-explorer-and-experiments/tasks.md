@@ -49,8 +49,8 @@
 
 ## 9. Documentation
 
-- [ ] 9.1 Write a "Library and experiments" guide covering sources, slots, copy on edit, experiments, share links, and import and export, and link it from the explorer. Verify the docs check and link check pass.
-- [ ] 9.2 Update Getting started and the sharing guide to use the explorer and slots instead of the drop-down and drawer. Verify their runnable examples still open and the docs check passes.
+- [x] 9.1 Write a "Library and experiments" guide covering sources, slots, copy on edit, experiments, share links, and import and export, and link it from the explorer. Verify the docs check and link check pass.
+- [x] 9.2 Update Getting started and the sharing guide to use the explorer and slots instead of the drop-down and drawer. Verify their runnable examples still open and the docs check passes.
 
 ## 10. End-to-end tests and verification
 
