@@ -131,8 +131,8 @@ stalls. That is a fact about the line, not a failure of the rule.
 The obvious rule depends on knowing which station supplies and which demands. A rule
 meant for every line, whatever its stations do, cannot assume that. A natural catch-all
 is to balance: at each stop, move stock so that the stations hold similar amounts. It
-needs no roles and copes with any number of stations. The starter uses it as its
-baseline, and in `ops` it is a single line:
+needs no roles and copes with any number of stations. It is the built-in `balance-stock`
+policy, the baseline the workbench opens with, and in `ops` it is a single line:
 
 ```lua
 return ops.policy { target = ops.balance {} }
@@ -152,7 +152,8 @@ through.
 
 ## In the simulator
 
-The `two-station` starter is this line, run for 10 days. It opens with the balancing
+The workbench's built-in scenarios are its starters, and the `two-station` starter is
+this line, run for 10 days. It opens with the balancing
 baseline, the built-in `balance-stock` policy.
 
 <Scenario starter="two-station" />
