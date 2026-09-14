@@ -69,9 +69,9 @@ a few named parts. Every chapter uses them, so they are worth naming now. At eac
 policy looks at each *site*, one station and one resource it stores, and decides in
 stages:
 
-- **Classify** gives the site a role: `supply`, where the resource is made; `demand`,
-  where it is used; `relay`, where it only passes through; or `any`, when the policy does
-  not say. `ops.roles.manual` lists the roles by station.
+- **Classify** gives the site a role: `"supply"`, where the resource is made; `"demand"`,
+  where it is used; `"relay"`, where it only passes through; or `"any"`, when the policy
+  does not say. `ops.roles.manual` lists the roles by station.
 - **Target** says how much stock the site should hold when the train leaves. It is one
   block for every site, or a block for each role. `ops.drain {}` targets nothing, so the
   train takes all it can; `ops.fill {}` targets the site's capacity, so the train leaves
