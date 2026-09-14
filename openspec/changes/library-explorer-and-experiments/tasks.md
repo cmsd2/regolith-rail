@@ -1,7 +1,7 @@
 ## 1. Planning documents
 
-- [ ] 1.1 Confirm `general-scenarios-and-packs` is archived and its specs synced. Verify `openspec validate library-explorer-and-experiments --strict` passes against the synced specs.
-- [ ] 1.2 Add the library explorer and experiments to the M9 deliverables in `docs/roadmap.md`, and note that local saving delivered in M5 is replaced. Verify every stage reference in the document still resolves.
+- [x] 1.1 Confirm `general-scenarios-and-packs` is archived and its specs synced. Verify `openspec validate library-explorer-and-experiments --strict` passes against the synced specs.
+- [x] 1.2 Add the library explorer and experiments to the M9 deliverables in `docs/roadmap.md`, and note that local saving delivered in M5 is replaced. Verify every stage reference in the document still resolves.
 
 ## 2. Library model and catalogue
 

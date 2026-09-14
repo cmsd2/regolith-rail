@@ -270,7 +270,8 @@ ping-pong on the relevant scenarios, and every block is documented.
 - Timeline scrubber replaying the run from its event log.
 - Stop inspector showing actions, decision traces and log output for any stop.
 - Error display pointing at the failing line, train, station and time.
-- Local saving of policies and scenarios.
+- Local saving of policies and scenarios (replaced in M9 by the library
+  explorer).
 - Share links that encode a policy and scenario in the URL.
 
 **Done when** a player can open the app, load a starter scenario, edit a policy,
@@ -397,6 +398,11 @@ still to come.
   - Raw results as JSON.
 - Custom-scenario reports clearly marked and unscored.
 - Paste repair for policies copied from forums.
+- Library explorer: scenarios, policies and experiments grouped by kind and
+  source (built in, examples, classic problems, mine, shared with me), slots
+  for the run's scenario, policy and comparison policy, experiments as saved
+  runs that share links open as, copy on edit with automatic saving, and
+  import and export of files.
 - Guides: getting started, first policy, reading results, sharing.
 - Non-affiliation notice in the app and on shared outputs.
 - Public deployment.
