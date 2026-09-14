@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { docPaths } from "../../packages/docs/src/content.ts";
-import { openWorkbench, run, setEditorText } from "./helpers.ts";
+import { hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
 
 const NOTICE = "not affiliated with or endorsed by Paradox Interactive or Haemimont Games";
 
@@ -133,25 +133,8 @@ test.describe("documentation panel", () => {
       "policy-editor",
       "return ops.policy { target = ops.balance {}, plan = ops.lookahead {} }\n",
     );
-    // Identifiers share text nodes, so hover the word itself rather than its element.
-    const word = await page
-      .getByTestId("policy-editor")
-      .locator(".cm-content")
-      .evaluate((root) => {
-        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-          const at = node.textContent?.indexOf("lookahead") ?? -1;
-          if (at < 0) continue;
-          const range = document.createRange();
-          range.setStart(node, at + 2);
-          range.setEnd(node, at + 3);
-          const rect = range.getBoundingClientRect();
-          return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-        }
-        throw new Error("lookahead is not in the editor");
-      });
-    await page.mouse.move(word.x, word.y);
     const tooltip = page.locator(".api-hover");
+    await hoverText(page, "policy-editor", "lookahead", tooltip);
     await expect(tooltip).toContainText("ops.lookahead");
     await tooltip.getByRole("link", { name: "Documentation" }).click();
     await expect(page.getByTestId("docs-panel").locator("h1")).toHaveText("ops.lookahead");
