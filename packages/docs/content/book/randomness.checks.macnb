@@ -67,7 +67,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: binomial-substeps */\n/* A binomial count over n sub-steps with chance p each has mean n p and variance n p (1 - p). */\nexpect_equal(\"binomial-variance-ratio\", (n * p * (1 - p)) / (n * p), 1 - p);\n/* Four arrivals a sol, 1440 minutes, eight sub-steps a minute. */\np_four: 4 / (1440 * 8)$\nexpect_equal(\"substep-chance\", p_four, 1/2880);\nexpect_equal(\"variance-shortfall-small\", is(p_four < 1/1000), true);",
+   "source": "/* check: binomial-substeps */\n/* A binomial count over n sub-steps with chance p each has mean n p and variance n p (1 - p). */\nexpect_equal(\"binomial-variance-ratio\", (n * p * (1 - p)) / (n * p), 1 - p);\n/* Four arrivals a day, 1440 minutes, eight sub-steps a minute. */\np_four: 4 / (1440 * 8)$\nexpect_equal(\"substep-chance\", p_four, 1/2880);\nexpect_equal(\"variance-shortfall-small\", is(p_four < 1/1000), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

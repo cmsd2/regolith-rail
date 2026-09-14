@@ -236,6 +236,35 @@ test.describe("the book", () => {
     );
   });
 
+  test("a scenario named in a chapter's text opens in the workbench when clicked", async ({
+    page,
+  }) => {
+    await page.goto("/docs/book/modelling");
+    const link = page.getByTestId("scenario-link").first();
+    await expect(link).toHaveAttribute("data-item-id", "builtin:scenario:two-station");
+    await expect(
+      page.getByTestId("doc-article").locator("h2 [data-testid='scenario-link']"),
+    ).toHaveCount(0);
+    await link.click();
+    await expect(page.getByTestId("policy-editor").locator(".cm-content")).toBeVisible({
+      timeout: 30_000,
+    });
+    await expectSlot(page, "scenario", "builtin:scenario:two-station");
+    await expectSlot(page, "policy", "builtin:policy:naive");
+
+    await openItem(page, "builtin:scenario:relay");
+    await page.getByTestId("nav-docs").click();
+    const panel = page.getByTestId("docs-panel");
+    await panel.getByTestId("docs-search").fill("order quantities");
+    await panel.getByTestId("docs-search-results").getByRole("link").first().click();
+    await panel
+      .locator('[data-testid="scenario-link"][data-item-id="classic:scenario:classic.reorder"]')
+      .first()
+      .click();
+    await expectSlot(page, "scenario", "classic:scenario:classic.reorder");
+    await expectSlot(page, "policy", "classic:policy:classic.reorder");
+  });
+
   test("a chapter opens its scenario in the workbench with the reference policy", async ({
     page,
   }) => {

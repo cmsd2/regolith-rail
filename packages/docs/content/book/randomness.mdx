@@ -135,7 +135,7 @@ policy and seed give exactly the same run.
 Poisson arrivals are drawn from the seed, whole units at a time, at their stated mean
 rate.
 
-<Check ref="test:gives Poisson arrivals their mean rate over many sols" />
+<Check ref="test:gives Poisson arrivals their mean rate over many days" />
 
 <Check ref="test:keeps Poisson arrivals whole and repeatable for the same seed" />
 
@@ -191,7 +191,7 @@ more.
   functions that differ between browsers, so the simulator splits each minute into at
   least eight sub-steps and gives each a small chance of an arrival. The mean is exact.
   The variance is lower than a Poisson count's by a factor of one minus the chance per
-  sub-step, which at 4 arrivals a sol is $1/2880$.
+  sub-step, which at 4 arrivals a day is $1/2880$.
 
   <Check ref="maxima:binomial-substeps" />
 

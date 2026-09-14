@@ -71,15 +71,15 @@ vehicle travels at 5 units a second, so each leg takes 14,400 seconds, four hour
 
 A stop takes 600 seconds plus 60 seconds for each unit moved. The slowest round trip,
 moving a full load of 30 units at both ends, takes $28/3$ hours. Even then the vehicle
-makes $18/7$ trips a sol (a day of 24 hours), and could carry
+makes $18/7$ trips a day, and could carry
 
 $$
-30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a sol},
+30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a day},
 $$
 
 <Check ref="maxima:capacity-bound" />
 
-more than twice the 36 units a sol the demand station consumes. Capacity is not the
+more than twice the 36 units a day the demand station consumes. Capacity is not the
 problem.
 
 ### Balancing
@@ -98,7 +98,7 @@ half the difference, however much room the vehicle has.
 
 Suppose the line settles into a steady cycle, where each trip delivers what the demand
 station uses during one round trip. Call the load $L$ and the round trip $T$. The dome
-uses $36\,T$ units in a trip lasting $T$ sols, and the trip lasts the travel time plus two
+uses $36\,T$ units in a trip lasting $T$ days, and the trip lasts the travel time plus two
 stops moving $L$ units each. Solving the two together gives
 
 $$
@@ -123,9 +123,9 @@ goes unmet.
 
 ## In the simulator
 
-The `two-station` starter is this line. The supply station produces 45 units a sol, the
-demand station consumes 36 units a sol, varying by up to 20% either way, and the run
-lasts 10 sols. The baseline policy balances stock.
+The `two-station` starter is this line. The supply station produces 45 units a day, the
+demand station consumes 36 units a day, varying by up to 20% either way, and the run
+lasts 10 days. The baseline policy balances stock.
 
 <Scenario starter="two-station" />
 
@@ -152,7 +152,7 @@ This policy meets all demand on every one of seeds 1 to 20.
 
 <Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds" />
 
-Production still stalls under it. The supply station makes 9 units a sol more than the
+Production still stalls under it. The supply station makes 9 units a day more than the
 demand station uses, so once the demand station is full the surplus has nowhere to go.
 That is a fact about the line, not a failure of the policy.
 
@@ -175,7 +175,7 @@ now always returns empty.
 
 ## Exercises
 
-1. At the top of its variability the demand station uses 20% more, 43.2 units a sol.
+1. At the top of its variability the demand station uses 20% more, 43.2 units a day.
    Under balancing, what gap between the stations does a steady cycle need, and can a
    30-unit station provide it?
 

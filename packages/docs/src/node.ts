@@ -9,4 +9,5 @@ export * from "./examples.ts";
 export * from "./links.ts";
 export * from "./markdown.ts";
 export * from "./reference.ts";
+export * from "./scenario-links.ts";
 export * from "./search-index.ts";

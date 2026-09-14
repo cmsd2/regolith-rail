@@ -168,6 +168,39 @@ export function Answer({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * A scenario or template named in a chapter's text, which opens in the workbench with the policy the
+ * book starts it from when clicked.
+ */
+export function ScenarioLink({
+  starter,
+  template,
+  children,
+}: {
+  starter?: string;
+  template?: string;
+  children: ReactNode;
+}) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const id = starter
+    ? itemId("builtin", "scenario", starter)
+    : itemId("classic", "scenario", template ?? "");
+  const name = catalogueItem(id)?.name ?? id;
+  return (
+    <button
+      type="button"
+      className={styles.scenarioLink}
+      title={`Open ${name} in the workbench, ${template ? "with its reference policy" : "with the naive baseline"}`}
+      onClick={() => void openScenario(id, mode, navigate)}
+      data-testid="scenario-link"
+      data-item-id={id}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** A chapter's scenario, with an action that opens it in the workbench ready to run. */
 export function Scenario({ starter, template }: { starter?: string; template?: string }) {
   const mode = useContext(DocsMode);
@@ -242,6 +275,7 @@ export const mdxComponents: MDXComponents = {
   Example,
   GameNote,
   Scenario,
+  ScenarioLink,
   Evidence,
   Callout,
 };

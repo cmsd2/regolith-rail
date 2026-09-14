@@ -137,7 +137,7 @@ describe("demand processes", () => {
   const demand = (out: ReturnType<typeof runSimulation>) =>
     out.flowTotals["consumer:B:Metals:0"] as number;
 
-  it("gives Poisson arrivals their mean rate over many sols", () => {
+  it("gives Poisson arrivals their mean rate over many days", () => {
     const sols = 50;
     const s = consuming(
       { poisson: { arrivalsPerSol: 24_000, size: { kind: "fixed", value: 1000 } } },
