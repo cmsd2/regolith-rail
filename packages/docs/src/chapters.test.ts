@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkChapterStandard } from "./chapters.ts";
+import { checkChapterScenarios, checkChapterStandard } from "./chapters.ts";
 import { frontmatterOf, parseMdx } from "./markdown.ts";
 
 const chapter = (body: string, slug = "book/newsvendor") => {
@@ -65,6 +65,34 @@ describe("chapter standard", () => {
     const early = ["Case study: early", ...STANDARD.filter((s) => !s.startsWith("Case"))];
     expect(checkChapterStandard([chapter(sections(early))])).toEqual([
       'book/newsvendor: "Case study: early" belongs between "In the simulator" and "Where the simulator differs"',
+    ]);
+  });
+});
+
+describe("chapter scenarios", () => {
+  const known = {
+    starters: new Set(["two-station"]),
+    templates: new Set(["classic.newsvendor"]),
+  };
+
+  it("pass a chapter that opens an existing starter or template", () => {
+    const pages = [
+      chapter('<Scenario template="classic.newsvendor" />'),
+      chapter('<Scenario starter="two-station" />', "book/modelling"),
+    ];
+    expect(checkChapterScenarios(pages, known)).toEqual([]);
+  });
+
+  it("names a chapter without a scenario and scenarios that don't resolve", () => {
+    expect(checkChapterScenarios([chapter("Text.")], known)).toEqual([
+      'book/newsvendor: names no scenario; add <Scenario starter="…" /> or <Scenario template="…" />',
+    ]);
+    const wrong = chapter(
+      '<Scenario template="classic.nothing" />\n\n<Scenario starter="relay" template="classic.newsvendor" />',
+    );
+    expect(checkChapterScenarios([wrong], known)).toEqual([
+      "book/newsvendor line 8: no classic template classic.nothing",
+      "book/newsvendor line 10: <Scenario> needs exactly one of starter or template",
     ]);
   });
 });

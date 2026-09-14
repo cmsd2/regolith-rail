@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { starterScenarios } from "@regolith-rail/engine";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { apiTypes, opsBlocks } from "@regolith-rail/policy-api";
-import { constructs } from "@regolith-rail/scenario-kit";
+import { classicTemplates, constructs } from "@regolith-rail/scenario-kit";
 import {
   checkBook,
+  checkChapterScenarios,
   checkChapterStandard,
   checkClaims,
   checkConstructs,
@@ -35,6 +36,10 @@ const problems = [
   ...checkFrontmatter(pages),
   ...checkBook(pages),
   ...checkChapterStandard(pages),
+  ...checkChapterScenarios(pages, {
+    starters: new Set(starterScenarios.map((s) => s.id)),
+    templates: new Set(classicTemplates.map((t) => t.name)),
+  }),
   ...checkClaims(pages),
   ...checkExampleIndex(committedExamples, exampleIndex(pages)),
   ...checkStarterFixes(

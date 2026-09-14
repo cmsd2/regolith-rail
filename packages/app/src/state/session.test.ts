@@ -117,6 +117,20 @@ describe("session", () => {
     expect(missing.workbench.getState().slots.policy).toBe("builtin:policy:naive");
   });
 
+  it("opens a chapter's scenario from its fragment, or says it no longer exists", async () => {
+    const found = setup();
+    await found.start("#scenario.builtin:scenario:relay");
+    expect(found.workbench.getState().slots).toMatchObject({
+      scenario: "builtin:scenario:relay",
+      policy: "builtin:policy:naive",
+    });
+    expect(found.hashCleared()).toBe(true);
+
+    const missing = setup();
+    await missing.start("#scenario.classic:scenario:classic.nothing");
+    expect(missing.workbench.getState().notices.map((n) => n.topic)).toEqual(["scenario-unknown"]);
+  });
+
   it("reports a damaged link and restores the saved slots", async () => {
     const first = setup();
     await first.start();

@@ -139,6 +139,11 @@ export interface WorkbenchState {
   chooseFor(slot: SlotName | null): void;
   /** Fills the Policy slot with the naive baseline that a starter's lesson is about. */
   applyBaseline(): void;
+  /**
+   * Opens a scenario the way a chapter teaches it: a classic template with its reference policy, or
+   * a starter with the naive baseline. Nothing runs.
+   */
+  openLessonScenario(id: ItemId): void;
   /** Fills the Policy slot with the fix the Scenario slot's lesson suggests. */
   applySuggestedFix(): void;
   /** Sets up a batch comparing the suggested fix, as policy A, with the naive baseline. Nothing runs. */
@@ -435,6 +440,27 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       chooseFor: (choosing) => set({ choosing }),
 
       applyBaseline: () => get().fillSlot("policy", DEFAULT_SLOTS.policy),
+
+      openLessonScenario(id) {
+        const item = get().itemById(id);
+        if (item?.kind !== "scenario") return;
+        dependencies.client.cancel();
+        dependencies.pool.cancel();
+        const { fillSlot } = get();
+        fillSlot("scenario", id);
+        const reference = item.lesson?.reference;
+        fillSlot(
+          "policy",
+          reference ? itemId("classic", "policy", reference) : DEFAULT_SLOTS.policy,
+        );
+        set({
+          view: "run",
+          run: { status: "idle", progress: 0, output: null, error: null },
+          selectedStop: null,
+          selectedReview: null,
+          reveal: null,
+        });
+      },
 
       compareFixWithBaseline() {
         const s = get();

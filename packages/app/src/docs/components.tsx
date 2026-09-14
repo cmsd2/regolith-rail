@@ -12,9 +12,12 @@ import { classicTemplates } from "@regolith-rail/scenario-kit";
 import type { MDXComponents } from "mdx/types";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { useNavigate } from "react-router";
+import { catalogueItem } from "../lib/catalogue.ts";
+import { itemId } from "../lib/library.ts";
 import { DocLink, DocsMode } from "./DocLink.tsx";
 import styles from "./docs.module.css";
 import { openExample } from "./open-example.ts";
+import { openScenario } from "./open-scenario.ts";
 
 const scenarioTitle = (id: string) =>
   classicTemplates.find((t) => t.name === id)?.title ??
@@ -165,6 +168,34 @@ export function Answer({ children }: { children: ReactNode }) {
   );
 }
 
+/** A chapter's scenario, with an action that opens it in the workbench ready to run. */
+export function Scenario({ starter, template }: { starter?: string; template?: string }) {
+  const mode = useContext(DocsMode);
+  const navigate = useNavigate();
+  const [opened, setOpened] = useState(false);
+  const id = starter
+    ? itemId("builtin", "scenario", starter)
+    : itemId("classic", "scenario", template ?? "");
+  const item = catalogueItem(id);
+  return (
+    <figure className={styles.scenario} data-testid="chapter-scenario" data-item-id={id}>
+      <figcaption>
+        <span>
+          Scenario: <strong>{item?.name ?? id}</strong>
+          {template ? ", with its reference policy" : ", with the naive baseline"}
+        </span>
+        <button
+          type="button"
+          onClick={() => void openScenario(id, mode, navigate).then(() => setOpened(true))}
+          data-testid="open-scenario"
+        >
+          {opened && mode === "panel" ? "Opened in workbench" : "Open in workbench"}
+        </button>
+      </figcaption>
+    </figure>
+  );
+}
+
 /** A chapter's side note connecting its topic to rail lines in the game, set apart from the main text. */
 export function GameNote({ children }: { children: ReactNode }) {
   return (
@@ -210,6 +241,7 @@ export const mdxComponents: MDXComponents = {
   Check,
   Example,
   GameNote,
+  Scenario,
   Evidence,
   Callout,
 };

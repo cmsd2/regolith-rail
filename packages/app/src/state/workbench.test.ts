@@ -320,6 +320,21 @@ describe("workbench store", () => {
     );
   });
 
+  it("opens a chapter's scenario with the policy its lesson starts from", () => {
+    const store = workbench();
+    store.getState().openLessonScenario("classic:scenario:classic.newsvendor");
+    expect(store.getState().slots).toMatchObject({
+      scenario: "classic:scenario:classic.newsvendor",
+      policy: "classic:policy:classic.newsvendor",
+    });
+    store.getState().openLessonScenario("builtin:scenario:relay");
+    expect(store.getState().slots).toMatchObject({
+      scenario: "builtin:scenario:relay",
+      policy: "builtin:policy:naive",
+    });
+    expect(store.getState().view).toBe("run");
+  });
+
   it("opens a documentation example without changing the player's work", () => {
     const store = workbench();
     store.getState().setPolicySource("-- mine\nreturn {}");

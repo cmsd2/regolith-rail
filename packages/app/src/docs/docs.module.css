@@ -408,3 +408,20 @@
   color: var(--accent);
   cursor: pointer;
 }
+
+.scenario {
+  margin: 1rem 0;
+}
+
+.scenario figcaption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--focus);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  font-size: 14px;
+}
