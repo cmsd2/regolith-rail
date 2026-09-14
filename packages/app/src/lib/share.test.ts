@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { decodeShare, encodeShare, lengthWarning, type ShareState } from "./share.ts";
+import type { WorkbenchState } from "../state/workbench.ts";
+import { decodeShare, encodeShare, lengthWarning, type ShareState, sameShare } from "./share.ts";
 
 const state: ShareState = {
   apiVersion: 2,
@@ -51,5 +52,29 @@ describe("share links", () => {
   it("warn about very long links", () => {
     expect(lengthWarning("#v1.short")).toBeNull();
     expect(lengthWarning(`#v1.${"a".repeat(9000)}`)).toContain("9,004 characters");
+  });
+
+  it("stay the same when a scenario finishes evaluating, and change with an edit", () => {
+    const evaluating = {
+      view: "run",
+      policy: state.policy,
+      policyB: state.policyB,
+      scenario: { ...state.scenario, status: "evaluating", scenario: null, errors: [] },
+      seed: 1,
+      saveReloadTest: false,
+      batch: { seedCount: 100, baseSeed: 1, compare: false },
+    } as unknown as WorkbenchState;
+    const ready = {
+      ...evaluating,
+      scenario: { ...evaluating.scenario, status: "ready", scenario: { id: "x" } },
+    } as unknown as WorkbenchState;
+    expect(sameShare(evaluating, ready)).toBe(true);
+
+    const edited = {
+      ...ready,
+      scenario: { ...ready.scenario, source: "return classic.reorder { demand = 6 }" },
+    } as unknown as WorkbenchState;
+    expect(sameShare(ready, edited)).toBe(false);
+    expect(sameShare(ready, { ...ready, seed: 2 })).toBe(false);
   });
 });
