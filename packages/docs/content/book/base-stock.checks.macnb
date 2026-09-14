@@ -78,6 +78,13 @@
    "metadata": {},
    "execution_count": null,
    "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: two-trains-travel */\n/* Two trains: legs of 30000 and 42000 at speed 5; the factory uses 40 and the dome 42 units a sol. */\nfactory_leg: 30000 / 5$\ndome_trip: (30000 + 42000) / 5$\nexpect_equal(\"factory-leg-minutes\", factory_leg / 60, 100);\nexpect_equal(\"dome-trip-hours\", dome_trip / 3600, 4);\nexpect_close(\"factory-use-on-leg\", 40 * factory_leg / 86400, 2.78, 0.005);\nexpect_equal(\"dome-use-on-trip\", 42 * dome_trip / 86400, 7);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
   }
  ]
 }

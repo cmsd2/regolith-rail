@@ -27,6 +27,25 @@
     "source": "return {\n  on_review = function(ctx)\n    local short = 13000 - ctx.here.stock.Goods\n    if short > 0 then ctx.order(\"Goods\", short) end\n  end,\n}"
   },
   {
+    "id": "book/base-stock#4",
+    "page": "book/base-stock",
+    "name": "Reviews, lead times and base-stock (example 4)",
+    "script": false,
+    "fix": true,
+    "scenario": "two-trains",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
+  },
+  {
+    "id": "book/base-stock#5",
+    "page": "book/base-stock",
+    "name": "Reviews, lead times and base-stock (example 5)",
+    "script": false,
+    "scenario": "two-trains",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
+  },
+  {
     "id": "book/forecasting#1",
     "page": "book/forecasting",
     "name": "Forecasting (example 1)",
@@ -172,16 +191,6 @@
     "scenario": "storm-shock",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    demand = ops.min_max { min = 20000, max = 30000 },\n  },\n}"
-  },
-  {
-    "id": "failure-modes/double-dispatch#1",
-    "page": "failure-modes/double-dispatch",
-    "name": "Double dispatch",
-    "script": false,
-    "fix": true,
-    "scenario": "two-trains",
-    "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
   },
   {
     "id": "failure-modes/ping-pong#1",

@@ -143,6 +143,53 @@ after another.
 
 <Check ref="test:on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, on seeds 1 to 100" />
 
+## Case study: double dispatch
+
+The `two-trains` starter has two trains sharing a line from a mine to a factory and a
+dome. It was built to show double dispatch: under the naive baseline, both trains react
+to the same low stock, so one station can be oversupplied while the other waits. It looks like the stock-on-hand mistake: each train
+judges a shortage without counting what the other is already bringing.
+
+<Scenario starter="two-trains" />
+
+The first remedy is to stop balancing and treat stations by their role: take everything
+from the mine, and fill the factory and the dome.
+
+```lua runnable scenario=two-trains fix
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}
+```
+
+The second remedy adds [ops.lookahead](/docs/ops/lookahead), which reserves cargo for
+stations further along, so that the other train counts it in their inventory position:
+
+```lua runnable scenario=two-trains
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+  plan = ops.lookahead {},
+}
+```
+
+The measurements do not flatter the second remedy. On seeds 1 to 100, roles alone leave
+less than a tenth of the baseline's unmet demand. Adding lookahead leaves more unmet
+demand than roles alone, and more than three times the empty running.
+
+<Check ref="test:on two-trains over seeds 1 to 100, roles leave less than a tenth of the naive baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running" />
+
+A likely reason shows in how lookahead decides. At the mine, a train loads only what the
+stations ahead are short of *now*. The dome is four hours' travel away and uses 7 units in
+that time, and the factory, 100 minutes away, uses almost 3 units. Loading for today's
+shortfall at the far end of a trip is the same error as ordering without a protection
+interval: the cargo arrives too small for the demand it has to meet.
+
+<Check ref="maxima:two-trains-travel" />
+
+Counting what is on the way is necessary, but not enough. It has to be combined with
+enough stock, or cargo, to cover demand until the next delivery can arrive.
+
 ## Where the simulator differs
 
 - **Periodic, not continuous, review.** Many textbook models watch stock continuously.

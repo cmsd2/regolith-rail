@@ -3,7 +3,7 @@
   "id": "two-trains",
   "title": "Two trains",
   "description": "Two trains share a line from a mine to a factory and a dome. Without knowing what the other train is carrying, both respond to the same shortage, oversupplying one station while the other waits.",
-  "docs": "failure-modes/double-dispatch",
+  "docs": "book/base-stock#case-study-double-dispatch",
   "durationMs": 864000000,
   "seed": 1,
   "informationLevel": "line",

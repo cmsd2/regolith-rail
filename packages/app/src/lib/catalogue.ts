@@ -165,6 +165,7 @@ const byId = new Map(catalogue.map((item) => [item.id, item]));
  * saved copies still know what they were copied from.
  */
 export const MOVED_ITEMS: Readonly<Record<ItemId, ItemId>> = {
+  "example:policy:docs/failure-modes/double-dispatch#1": "example:policy:docs/book/base-stock#4",
   "example:policy:docs/failure-modes/half-capacity#1": "example:policy:docs/book/modelling#1",
 };
 

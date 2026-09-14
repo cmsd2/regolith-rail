@@ -190,6 +190,33 @@ test.describe("the book", () => {
     await expect(page.getByTestId("doc-article").locator("h1")).toHaveText("Modelling operations");
   });
 
+  test("double dispatch's old page sends readers to its case study, in a page or the panel", async ({
+    page,
+  }) => {
+    await page.goto("/docs/failure-modes/double-dispatch");
+    await expect(page).toHaveURL(/\/docs\/book\/base-stock#case-study-double-dispatch$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
+      "Reviews, lead times and base-stock",
+    );
+
+    await openWorkbench(page);
+    await page.evaluate(() => {
+      const link = document.createElement("a");
+      link.href = "/docs/failure-modes/double-dispatch";
+      link.dataset.docs = "failure-modes/double-dispatch";
+      link.textContent = "old link";
+      document.body.append(link);
+      link.click();
+    });
+    const panel = page.getByTestId("docs-panel");
+    await expect(panel.locator("h1")).toHaveText("Reviews, lead times and base-stock");
+    await expect(panel.locator("#case-study-double-dispatch")).toBeInViewport();
+
+    await openItem(page, "builtin:scenario:two-trains");
+    await page.getByTestId("scenario-docs").click();
+    await expect(panel.locator("#case-study-double-dispatch")).toBeInViewport();
+  });
+
   test("the old newsvendor page sends readers to its chapter", async ({ page }) => {
     await page.goto("/docs/classic/newsvendor");
     await expect(page).toHaveURL(/\/docs\/book\/newsvendor$/);

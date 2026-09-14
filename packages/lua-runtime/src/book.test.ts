@@ -134,6 +134,38 @@ end }`);
   }, 300_000);
 });
 
+describe("chapter 3, the double dispatch case study", () => {
+  const ROLES = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}`;
+  const LOOKAHEAD = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+  plan = ops.lookahead {},
+}`;
+  const means = (source: string) => {
+    const runs = metricsOver("two-trains", source, 100);
+    const mean = (pick: (m: (typeof runs)[number]) => number) =>
+      runs.reduce((sum, m) => sum + pick(m), 0) / runs.length;
+    return {
+      unmet: mean((m) => m.unmetDemand),
+      empty: mean((m) => m.emptyDistanceShare),
+      clear: runs.filter((m) => m.unmetDemand === 0).length,
+    };
+  };
+
+  it("on two-trains over seeds 1 to 100, roles leave less than a tenth of the naive baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running", () => {
+    const naive = means(BUILT_IN_POLICIES.naive);
+    const roles = means(ROLES);
+    const lookahead = means(LOOKAHEAD);
+    expect(roles.unmet).toBeLessThan(naive.unmet / 10);
+    expect(lookahead.unmet).toBeGreaterThan(roles.unmet);
+    expect(lookahead.empty).toBeGreaterThan(3 * roles.empty);
+    expect(roles.clear).toBeGreaterThan(naive.clear);
+  }, 600_000);
+});
+
 describe("chapter 5, order quantities", () => {
   it("on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit", () => {
     const loaded = runtime.loadScript(templateCall("classic.reorder", { review_period: 60_000 }));

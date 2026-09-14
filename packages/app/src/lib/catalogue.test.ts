@@ -41,10 +41,10 @@ describe("catalogue", () => {
   it("lists only working policies: documentation snippets are kept for their pages, unlisted", () => {
     const listed = catalogue.filter((i) => i.listed !== false && i.source === "example");
     expect(listed.map((i) => [i.id, i.name])).toEqual([
+      ["example:policy:docs/book/base-stock#4", "Two trains fix"],
       ["example:policy:docs/book/modelling#1", "Two stations fix"],
       ["example:policy:docs/failure-modes/dead-stock#1", "Relay station fix"],
       ["example:policy:docs/failure-modes/disruption-recovery#1", "Storm shock fix"],
-      ["example:policy:docs/failure-modes/double-dispatch#1", "Two trains fix"],
       ["example:policy:docs/failure-modes/ping-pong#1", "Mixed line fix"],
     ]);
     expect(catalogueItem("example:policy:docs/ops/min-max#1")?.listed).toBe(false);
@@ -65,6 +65,9 @@ describe("catalogue", () => {
     const moved = catalogueItem("example:policy:docs/failure-modes/half-capacity#1");
     expect(moved?.id).toBe("example:policy:docs/book/modelling#1");
     expect(moved?.name).toBe("Two stations fix");
+    expect(catalogueItem("example:policy:docs/failure-modes/double-dispatch#1")?.name).toBe(
+      "Two trains fix",
+    );
   });
 
   it("pairs documentation examples with the scenario they run on", () => {
