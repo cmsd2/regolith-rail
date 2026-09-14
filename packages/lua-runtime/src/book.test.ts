@@ -84,6 +84,86 @@ describe("chapter 2, flows, rates and Little's law", () => {
   target = { supply = ops.drain {}, relay = ops.pass_through {}, demand = ops.fill {} },
 }`;
 
+  /**
+   * Little's law measured at one station: L from the stock trace, lambda from what left,
+   * and W by following each unit first in, first out from its arrival to its departure.
+   * Units still there when the run ends have not left, so their waits are not counted.
+   */
+  function littleAt(source: string, seed: number, station: string) {
+    const result = validateScenario(starterScenarios.find((s) => s.id === "relay")?.document);
+    if (!result.ok) throw new Error("invalid starter relay");
+    const policy = runtime.createPolicy(source);
+    try {
+      const out = runSimulation(result.scenario, policy, { seed, detail: "full" });
+      const sites = out.sites.length;
+      const site = out.sites.findIndex((s) => s.station === station);
+      const stock = out.stock as Int32Array;
+      const rows = stock.length / sites;
+      const unloaded = new Map<number, number>();
+      const loaded = new Map<number, number>();
+      for (const e of out.events) {
+        if (e.kind !== "transfer" || e.station !== station) continue;
+        const r = Math.floor(e.t / out.tickMs);
+        if (e.amount < 0) unloaded.set(r, (unloaded.get(r) ?? 0) - e.amount);
+        else loaded.set(r, (loaded.get(r) ?? 0) + e.amount);
+      }
+      const queue: [number, number][] = [[0, stock[site] as number]];
+      let waited = 0;
+      let left = 0;
+      let sum = 0;
+      for (let r = 0; r < rows - 1; r++) {
+        const before = stock[r * sites + site] as number;
+        const after = stock[(r + 1) * sites + site] as number;
+        sum += before;
+        const u = unloaded.get(r) ?? 0;
+        const l = loaded.get(r) ?? 0;
+        // What is neither unloaded nor loaded was produced or consumed here.
+        const net = after - before - u + l;
+        const arrived = u + Math.max(0, net);
+        let leaving = l + Math.max(0, -net);
+        if (arrived > 0) queue.push([r * out.tickMs, arrived]);
+        const now = (r + 1) * out.tickMs;
+        while (leaving > 0 && queue.length > 0) {
+          const head = queue[0] as [number, number];
+          const take = Math.min(leaving, head[1]);
+          waited += take * (now - head[0]);
+          left += take;
+          leaving -= take;
+          head[1] -= take;
+          if (head[1] === 0) queue.shift();
+        }
+      }
+      const days = ((rows - 1) * out.tickMs) / DAY;
+      const L = sum / (rows - 1) / 1000;
+      const lambda = left / 1000 / days;
+      const hours = waited / left / 3_600_000;
+      return { L, lambda, hours, lambdaW: (lambda * hours) / 24 };
+    } finally {
+      policy.close();
+    }
+  }
+
+  it("on relay seed 1 under balancing, following each unit first in first out, the dome holds 6.4 units, uses 32.3 a day and a unit waits 4.7 hours there, so lambda W is within 3% of L, while at the junction a unit waits about 54 hours and lambda W comes to four fifths of L, and under roles a unit waits 15 hours at the dome", () => {
+    const dome = littleAt(BUILT_IN_POLICIES["balance-stock"], 1, "Dome");
+    expect(dome.L).toBeGreaterThan(6.2);
+    expect(dome.L).toBeLessThan(6.7);
+    expect(dome.lambda).toBeGreaterThan(32);
+    expect(dome.lambda).toBeLessThan(32.6);
+    expect(dome.hours).toBeGreaterThan(4.5);
+    expect(dome.hours).toBeLessThan(4.9);
+    expect(dome.lambdaW / dome.L).toBeGreaterThan(0.97);
+    expect(dome.lambdaW / dome.L).toBeLessThan(1);
+    const junction = littleAt(BUILT_IN_POLICIES["balance-stock"], 1, "Junction");
+    expect(junction.hours).toBeGreaterThan(50);
+    expect(junction.hours).toBeLessThan(58);
+    expect(junction.lambdaW / junction.L).toBeGreaterThan(0.77);
+    expect(junction.lambdaW / junction.L).toBeLessThan(0.84);
+    const roles = littleAt(ROLES, 1, "Dome");
+    expect(roles.hours).toBeGreaterThan(14.5);
+    expect(roles.hours).toBeLessThan(15.5);
+    expect(roles.lambdaW / roles.L).toBeGreaterThan(0.94);
+  }, 120_000);
+
   it("on relay over seeds 1 to 20 the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short on every seed", () => {
     const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
     const junction = mean(runs.map((r) => r.stations.Junction as number));
