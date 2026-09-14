@@ -51,17 +51,29 @@ The workbench SHALL show the current run as slots.
 - **THEN** the Compare slot shows naive and the Policy slot is unchanged
 
 ### Requirement: Scenario lessons
-The Scenario slot SHALL show what the scenario teaches and offer the policy that goes with it.
+The Scenario slot SHALL show what the scenario teaches and offer the policies that go with it. Lessons SHALL
+be phrased against the naive baseline, so they make sense whatever policy is in the Policy slot.
 
-- **Starter scenarios:** a link to the documentation page that explains why the baseline fails, and a Try the
-  suggested fix action that fills the Policy slot with the fix that page suggests.
+- **Starter scenarios:**
+  - a Why the baseline fails link to the documentation page;
+  - a Use the baseline action that fills the Policy slot with the naive baseline;
+  - a Use the suggested fix action that fills the Policy slot with the fix that page suggests;
+  - a Compare fix with baseline action that switches to the batch view with comparison on, the fix in the
+    Policy slot and the naive baseline in the Compare slot.
 - **Classic templates:** a link to the problem's page, the template's parameters, and a Use the reference
   policy action that fills the Policy slot with the reference policy for the current parameters.
 - **Other scenarios:** no lesson actions are shown.
+- **Running:** none of these actions SHALL run anything.
 
-#### Scenario: Try the suggested fix
-- **WHEN** the Scenario slot holds `storm-shock` and the player chooses Try the suggested fix
+#### Scenario: Use the suggested fix
+- **WHEN** the Scenario slot holds `storm-shock` and the player chooses Use the suggested fix
 - **THEN** the Policy slot holds the policy from the Disruption recovery page and no run starts
+
+#### Scenario: Compare the fix with the baseline
+- **WHEN** the Scenario slot holds `storm-shock`, the Policy slot holds a Mine policy, and the player chooses
+  Compare fix with baseline
+- **THEN** the batch view is shown with comparison on, the Policy slot holds the suggested fix and the Compare
+  slot holds the naive baseline, and no batch starts
 
 #### Scenario: Use the reference policy
 - **WHEN** the Scenario slot holds `classic.reorder` and the player chooses Use the reference policy

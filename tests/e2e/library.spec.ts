@@ -96,15 +96,27 @@ test.describe("library explorer", () => {
     await expect(page.getByTestId("batch-policy-b")).toContainText("supply-to-demand");
   });
 
-  test("offers a starter's suggested fix and a classic problem's reference policy", async ({
+  test("teaches a starter against the baseline, and offers a classic reference policy", async ({
     page,
   }) => {
     await openWorkbench(page);
     await openItem(page, "builtin:scenario:storm-shock");
-    await expect(page.getByTestId("scenario-docs")).toHaveText("Why it fails");
+    await expect(page.getByTestId("scenario-docs")).toHaveText("Why the baseline fails");
     await page.getByTestId("slot-fix").click();
     await expectSlot(page, "policy", "example:policy:docs/failure-modes/disruption-recovery#1");
+    await page.getByTestId("slot-baseline").click();
+    await expectSlot(page, "policy", "builtin:policy:naive");
     await expect(page.getByTestId("run-tab-metrics")).toHaveCount(0);
+
+    await page.getByTestId("tab-policy").click();
+    await setEditorText(page, "policy-editor", "-- something else\nreturn {}\n");
+    await page.getByTestId("slot-compare-fix").click();
+    await expect(page.getByTestId("batch-config")).toBeVisible();
+    await expect(page.getByTestId("batch-compare")).toBeChecked();
+    await expectSlot(page, "policy", "example:policy:docs/failure-modes/disruption-recovery#1");
+    await expectSlot(page, "compare", "builtin:policy:naive");
+    await expect(page.getByTestId("batch-metrics")).toHaveCount(0);
+    await page.getByTestId("view-run").click();
 
     await openItem(page, "classic:scenario:classic.reorder");
     await expect(page.getByTestId("slot-fix")).toHaveCount(0);

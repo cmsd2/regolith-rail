@@ -95,22 +95,31 @@ function ScenarioLesson() {
   const lesson = useWorkbench((s) => lessonOf(s.itemById(s.slots.scenario), s.itemById));
   const template = useWorkbench((s) => s.scenario.template?.name);
   if (!lesson) return null;
-  const starter = lesson.docs.startsWith("failure-modes/");
+  const starter = lesson.fix !== undefined;
+  const state = workbench.getState();
   return (
     <div className={styles.lesson}>
       {lesson.docs && (
         <a href={docsHref(lesson.docs)} data-docs={lesson.docs} data-testid="scenario-docs">
-          {starter ? "Why it fails" : "About this problem"}
+          {starter ? "Why the baseline fails" : "About this problem"}
         </a>
       )}
-      {lesson.fix && (
-        <button
-          type="button"
-          onClick={() => workbench.getState().applySuggestedFix()}
-          data-testid="slot-fix"
-        >
-          Try the suggested fix
-        </button>
+      {starter && (
+        <>
+          <button type="button" onClick={() => state.applyBaseline()} data-testid="slot-baseline">
+            Use the baseline
+          </button>
+          <button type="button" onClick={() => state.applySuggestedFix()} data-testid="slot-fix">
+            Use the suggested fix
+          </button>
+          <button
+            type="button"
+            onClick={() => state.compareFixWithBaseline()}
+            data-testid="slot-compare-fix"
+          >
+            Compare fix with baseline
+          </button>
+        </>
       )}
       {lesson.reference && template === lesson.reference && (
         <button
@@ -242,7 +251,9 @@ function Details({ item, unfit }: { item: LibraryItem; unfit: string | null }) {
   const editable = isEditable(item.id);
   const summary =
     item.kind === "experiment"
-      ? `${item.content.scenario.name} · ${item.content.policy.name}`
+      ? `${item.content.scenario.name} · ${item.content.policy.name}, saved ${new Date(
+          item.updatedAt,
+        ).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`
       : item.description || sourceLabel(item);
   return (
     <section className={styles.details} aria-label="Selected item" data-testid="item-details">

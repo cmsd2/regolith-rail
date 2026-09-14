@@ -294,6 +294,18 @@ describe("workbench store", () => {
     expect(store.getState().slots.policy).toBe(
       "example:policy:docs/failure-modes/disruption-recovery#1",
     );
+    store.getState().applyBaseline();
+    expect(store.getState().slots.policy).toBe("builtin:policy:naive");
+
+    store.getState().setPolicySource("-- mine\nreturn {}");
+    store.getState().compareFixWithBaseline();
+    const comparing = store.getState();
+    expect(comparing.slots).toMatchObject({
+      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+      compare: "builtin:policy:naive",
+    });
+    expect(comparing.view).toBe("batch");
+    expect(comparing.batch).toMatchObject({ compare: true, status: "idle" });
 
     const newsvendor = classicTemplates.find((t) => t.name === "classic.newsvendor");
     if (!newsvendor) throw new Error("newsvendor missing");

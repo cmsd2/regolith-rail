@@ -137,8 +137,12 @@ export interface WorkbenchState {
   fillSlot(slot: SlotName, id: ItemId): void;
   /** Starts or cancels choosing an item for a slot. */
   chooseFor(slot: SlotName | null): void;
+  /** Fills the Policy slot with the naive baseline that a starter's lesson is about. */
+  applyBaseline(): void;
   /** Fills the Policy slot with the fix the Scenario slot's lesson suggests. */
   applySuggestedFix(): void;
+  /** Sets up a batch comparing the suggested fix, as policy A, with the naive baseline. Nothing runs. */
+  compareFixWithBaseline(): void;
   /** Fills the Policy slot with the reference policy for the Scenario slot's template parameters. */
   applyReferencePolicy(): void;
   /**
@@ -429,6 +433,16 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
       },
 
       chooseFor: (choosing) => set({ choosing }),
+
+      applyBaseline: () => get().fillSlot("policy", DEFAULT_SLOTS.policy),
+
+      compareFixWithBaseline() {
+        const s = get();
+        const fix = lessonOf(lookup(s.items, s.slots.scenario), (id) => lookup(s.items, id))?.fix;
+        if (!fix) return;
+        set(withSlots(s, { ...s.slots, policy: fix, compare: DEFAULT_SLOTS.policy }, s.items));
+        set((next) => ({ view: "batch", batch: { ...next.batch, compare: true } }));
+      },
 
       applySuggestedFix() {
         const s = get();

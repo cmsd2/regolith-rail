@@ -1,9 +1,14 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-/** Opens the workbench and waits until the editors are ready. */
+/**
+ * Opens the workbench and waits until the editors are ready. The first load in a browser also compiles
+ * the editors and opens storage, which can take several seconds while many tests start at once.
+ */
 export async function openWorkbench(page: Page, path = "/") {
   await page.goto(path);
-  await expect(page.getByTestId("policy-editor").locator(".cm-content")).toBeVisible();
+  await expect(page.getByTestId("policy-editor").locator(".cm-content")).toBeVisible({
+    timeout: 30_000,
+  });
 }
 
 /** Replaces the contents of a CodeMirror editor. */
