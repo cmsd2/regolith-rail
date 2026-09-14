@@ -37,7 +37,7 @@ export const BOOK: readonly BookPart[] = [
         title: "One period under uncertainty: the newsvendor",
         slug: "book/newsvendor",
       },
-      { chapter: 5, title: "Order quantities: EOQ and (s, S)" },
+      { chapter: 5, title: "Order quantities: EOQ and (s, S)", slug: "book/order-quantities" },
       { chapter: 6, title: "Safety stock and service levels" },
       { chapter: 7, title: "Forecasting" },
     ],

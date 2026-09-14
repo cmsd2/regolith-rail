@@ -55,6 +55,24 @@
     "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
   },
   {
+    "id": "book/order-quantities#1",
+    "page": "book/order-quantities",
+    "name": "Order quantities: EOQ and (s, S) (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.reorder {}"
+  },
+  {
+    "id": "book/order-quantities#2",
+    "page": "book/order-quantities",
+    "name": "Order quantities: EOQ and (s, S) (example 2)",
+    "script": false,
+    "scenario": "classic.reorder",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.min_max { min = 417, max = 20417 } } }"
+  },
+  {
     "id": "book/randomness#1",
     "page": "book/randomness",
     "name": "Randomness and simulation (example 1)",
@@ -89,33 +107,6 @@
     "scenario": "classic.fixed_route_delivery",
     "seed": 1,
     "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then target = target + station.capacity.Fuel end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do position = position + order.amount end\n    if target > position then ctx.order(\"Fuel\", target - position) end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then break end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local amount = math.min(short - truck.cargo.Fuel, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then ctx.load(\"Fuel\", amount) end\n    else\n      local amount = math.min(truck.cargo.Fuel, here.capacity.Fuel - here.stock.Fuel)\n      if amount > 0 then ctx.unload(\"Fuel\", amount) end\n    end\n  end,\n}"
-  },
-  {
-    "id": "classic/reorder#1",
-    "page": "classic/reorder",
-    "name": "Reorder (example 1)",
-    "script": true,
-    "scenario": "two-station",
-    "seed": 1,
-    "source": "return classic.reorder { random = true, demand = 4, lead_time = days(2), review_period = hours(6) }"
-  },
-  {
-    "id": "classic/reorder#2",
-    "page": "classic/reorder",
-    "name": "Reorder (example 2)",
-    "script": false,
-    "scenario": "classic.reorder",
-    "seed": 1,
-    "source": "return ops.policy { review = { target = ops.min_max { min = 417, max = 20417 } } }"
-  },
-  {
-    "id": "classic/reorder#3",
-    "page": "classic/reorder",
-    "name": "Reorder (example 3)",
-    "script": false,
-    "scenario": "classic.reorder",
-    "seed": 1,
-    "source": "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }"
   },
   {
     "id": "classic/serial-chain#1",

@@ -719,7 +719,7 @@ export const classicConstructs: Construct[] = [
   ),
   template(
     "reorder",
-    "classic/reorder",
+    "book/order-quantities",
     "One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.",
     [
       param("demand", "number", "Average demand per day.", {

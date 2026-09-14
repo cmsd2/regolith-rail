@@ -1,6 +1,6 @@
 /* prelude: shared by every checks notebook. Keep in sync with packages/docs/checks/prelude.mac. */
 expect_equal(name, got, want) :=
-  if is(equal(ratsimp(got - want), 0)) then true
+  if is(equal(radcan(ratsimp(got - want)), 0)) then true
   else error("check failed:", name, "got", got, "want", want)$
 expect_close(name, got, want, tol) :=
   if is(abs(float(got - want)) <= tol) then true

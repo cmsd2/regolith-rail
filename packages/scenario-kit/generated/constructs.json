@@ -1687,8 +1687,8 @@
           "default": "1"
         }
       ],
-      "docs": "classic/reorder",
-      "href": "classic/reorder#classic-reorder"
+      "docs": "book/order-quantities",
+      "href": "book/order-quantities#classic-reorder"
     },
     {
       "name": "classic.serial_chain",

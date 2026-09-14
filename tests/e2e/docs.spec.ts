@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { docPaths } from "../../packages/docs/src/content.ts";
 import { MOVED_PAGES } from "../../packages/docs/src/moved.ts";
-import { expectSlot, hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
+import { expectSlot, hoverText, openItem, openWorkbench, run, setEditorText } from "./helpers.ts";
 
 const NOTICE = "not affiliated with or endorsed by Paradox Interactive or Haemimont Games";
 
@@ -195,6 +195,17 @@ test.describe("the book", () => {
     await expect(page).toHaveURL(/\/docs\/book\/newsvendor$/);
     await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
       "One period under uncertainty: the newsvendor",
+    );
+  });
+
+  test("a classic template's About this problem link opens its chapter beside the editor", async ({
+    page,
+  }) => {
+    await openWorkbench(page);
+    await openItem(page, "classic:scenario:classic.reorder");
+    await page.getByTestId("scenario-docs").click();
+    await expect(page.getByTestId("docs-panel").locator("h1")).toHaveText(
+      "Order quantities: EOQ and (s, S)",
     );
   });
 

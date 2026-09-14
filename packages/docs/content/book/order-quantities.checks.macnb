@@ -1,0 +1,83 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "code",
+   "source": "/* prelude: shared by every checks notebook. Keep in sync with packages/docs/checks/prelude.mac. */\nexpect_equal(name, got, want) :=\n  if is(equal(radcan(ratsimp(got - want)), 0)) then true\n  else error(\"check failed:\", name, \"got\", got, \"want\", want)$\nexpect_close(name, got, want, tol) :=\n  if is(abs(float(got - want)) <= tol) then true\n  else error(\"check failed:\", name, \"got\", float(got), \"want\", float(want), \"tolerance\", tol)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* The economic order quantity: order Q whenever stock runs out, with demand D a day, order cost K and holding cost h. */\nassume(Q > 0, D > 0, K > 0, h > 0)$\ncost(Q) := K * D / Q + h * Q / 2$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: eoq */\neoq: rhs(first(sublist(solve(diff(cost(Q), Q) = 0, Q), lambda([e], is(rhs(e) > 0)))))$\nexpect_equal(\"eoq\", eoq, sqrt(2 * K * D / h));\nexpect_equal(\"eoq-cost\", cost(eoq), sqrt(2 * K * D * h));\nexpect_equal(\"eoq-minimum\", is(subst([K = 20, D = 10, h = 1], diff(cost(Q), Q, 2)) > 0), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: eoq-terms-balance */\n/* At the optimum the ordering and holding terms are equal. */\nexpect_equal(\"balance\", subst(Q = eoq, K * D / Q - h * Q / 2), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: eoq-defaults */\ndefaults: [K = 20, D = 10, h = 1]$\nexpect_equal(\"default-quantity\", subst(defaults, eoq), 20);\nexpect_equal(\"default-cost\", subst(defaults, cost(20)), 20);\nexpect_equal(\"default-orders-per-day\", subst(defaults, D / 20), 1/2);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: flat-cost */\n/* Relative to the optimum, ordering x times the optimal quantity costs (x + 1/x) / 2 times as much. */\nexpect_equal(\"relative-cost\", cost(x * eoq) / cost(eoq), (x + 1/x) / 2);\nexpect_equal(\"half-again\", (3/2 + 2/3) / 2, 13/12);\nexpect_close(\"half-again-percent\", 100 * (13/12 - 1), 8.33, 0.005);\nexpect_equal(\"double\", (2 + 1/2) / 2, 5/4);\nexpect_equal(\"half\", (1/2 + 2) / 2, 5/4);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: order-sizes */\nexpect_equal(\"cost-10\", subst([K = 20, D = 10, h = 1], cost(10)), 25);\nexpect_equal(\"cost-40\", subst([K = 20, D = 10, h = 1], cost(40)), 25);\nexpect_close(\"cost-30\", subst([K = 20, D = 10, h = 1], cost(30)), 21.67, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: reorder-point */\n/* Steady demand of 10 a day over a lead time L and one review R, in thousandths of a unit, rounded up. */\nreorder_point(L_days, R_days) := ceiling(10 * 1000 * (L_days + R_days))$\nexpect_equal(\"point-hourly\", reorder_point(0, 1/24), 417);\nexpect_equal(\"point-minute\", reorder_point(0, 1/1440), 7);\nexpect_equal(\"order-up-to\", reorder_point(0, 1/24) + 20 * 1000, 20417);\nexpect_equal(\"point-two-days\", reorder_point(2, 1/24), 20417);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: dearer-orders */\nexpect_equal(\"double-k-quantity\", subst([K = 40, D = 10, h = 1], eoq), 20 * sqrt(2));\nexpect_close(\"double-k-quantity-decimal\", subst([K = 40, D = 10, h = 1], eoq), 28.28, 0.005);\nexpect_equal(\"double-k-cost-ratio\", subst([K = 40, D = 10, h = 1], cost(eoq)) / 20, sqrt(2));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: square-root-law */\nexpect_equal(\"quadruple-demand\", subst(D = 4 * D, eoq) / eoq, 2);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  }
+ ]
+}

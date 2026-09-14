@@ -133,3 +133,26 @@ end }`);
     expect(onHand).toBeGreaterThan(5 * position);
   }, 300_000);
 });
+
+describe("chapter 5, order quantities", () => {
+  it("on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit", () => {
+    const loaded = runtime.loadScript(templateCall("classic.reorder", { review_period: 60_000 }));
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const costPerDay = (quantity: number) => {
+      // Reorder when the position falls below what one minute of demand needs.
+      const policy = runtime.createPolicy(
+        `return ops.policy { review = { target = ops.min_max { min = 7, max = ${7 + quantity * 1000} } } }`,
+      );
+      try {
+        const out = runSimulation(loaded.scenario, policy, { detail: "summary" });
+        expect(out.metrics.unmetDemand).toBe(0);
+        return out.metrics.costs.total / 1000 / 20;
+      } finally {
+        policy.close();
+      }
+    };
+    expect(Math.abs(costPerDay(20) - 20)).toBeLessThan(1);
+    expect(Math.abs(costPerDay(10) - 25)).toBeLessThan(1);
+    expect(Math.abs(costPerDay(40) - 25)).toBeLessThan(1);
+  }, 120_000);
+});

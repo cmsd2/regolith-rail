@@ -116,7 +116,7 @@ would then need Maxima installed.
 
 - **The map.** A `MOVED_PAGES` map in `docs/src` records each old slug and its new slug and anchor:
   - `classic/newsvendor` → `book/newsvendor`;
-  - `classic/reorder` → `book/base-stock`;
+  - `classic/reorder` → `book/order-quantities`, the chapter its steady-demand defaults teach;
   - `failure-modes/half-capacity` → `book/modelling#case-study-half-capacity`;
   - `failure-modes/double-dispatch` → `book/base-stock#case-study-double-dispatch`.
 - **Uses of the map:**

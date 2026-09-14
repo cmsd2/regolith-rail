@@ -4,6 +4,7 @@
  */
 export const MOVED_PAGES: Readonly<Record<string, string>> = {
   "classic/newsvendor": "book/newsvendor",
+  "classic/reorder": "book/order-quantities",
   "failure-modes/half-capacity": "book/modelling#case-study-half-capacity",
 };
 

@@ -47,7 +47,7 @@ describe("catalogue", () => {
       ["example:policy:docs/failure-modes/double-dispatch#1", "Two trains fix"],
       ["example:policy:docs/failure-modes/ping-pong#1", "Mixed line fix"],
     ]);
-    expect(catalogueItem("example:policy:docs/classic/reorder#2")?.listed).toBe(false);
+    expect(catalogueItem("example:policy:docs/ops/min-max#1")?.listed).toBe(false);
   });
 
   it("gives every item a valid, unique id, a name and a one-line description", () => {
