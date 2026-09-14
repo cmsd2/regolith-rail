@@ -3,7 +3,7 @@ title: Reviews, lead times and base-stock
 description: Deciding from what is on hand and on the way, over the time an order must cover.
 section: Book
 part: 2
-chapter: 3
+chapter: 6
 ---
 
 ## What you will learn
@@ -17,7 +17,7 @@ chapter: 3
 
 ## The problem
 
-Chapter 4 orders once, for a single period. Most stock is not like that. A shop keeps
+Chapter 5 orders once, for a single period. Most stock is not like that. A shop keeps
 selling, reviews its shelves on a schedule, and reorders from a supplier who takes time
 to deliver. Each order has to last until the next one can arrive, and in the meantime
 earlier orders are still on their way.
@@ -39,8 +39,6 @@ ordered but not delivered, and subtracts demand that is waiting to be met:
 $$
 \text{position} = \text{on hand} + \text{on order} - \text{backorders}.
 $$
-
-<Check ref="maxima:inventory-position" />
 
 With 5 on hand, 7 on order and 2 backordered, the position is 10.
 
@@ -65,8 +63,8 @@ interval is $9/4$ days and demand over it is Poisson with mean 9.
 ### Base stock
 
 A base-stock policy raises the inventory position to a fixed level $S$ at every review,
-ordering $S$ minus the position. What happens over the protection interval is then a
-newsvendor problem. Each extra unit of $S$ costs $h$ for holding when it turns out not to
+ordering $S$ minus the position. What happens over the protection interval is then the
+newsvendor problem of chapter 5. Each extra unit of $S$ costs $h$ for holding when it turns out not to
 be needed, and saves $b$ for a backorder when it is. The best level is the critical
 fractile of demand $N$ over the protection interval:
 

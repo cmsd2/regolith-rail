@@ -3,7 +3,7 @@ title: Safety stock and service levels
 description: How much stock to hold above average demand, and what "good enough service" means.
 section: Book
 part: 2
-chapter: 6
+chapter: 7
 ---
 
 ## What you will learn
@@ -17,7 +17,7 @@ chapter: 6
 
 ## The problem
 
-Chapter 3 set a base-stock level from costs: what a backorder costs against what a unit
+Chapter 6 set a base-stock level from costs: what a backorder costs against what a unit
 held costs. Often nobody can say what a backorder costs. A hospital pharmacy, a
 maintenance store or a spare-parts depot is instead given a target: run out in no more
 than one cycle in twenty, say, or meet 99% of demand straight from the shelf.
@@ -52,8 +52,6 @@ $$
 \text{CSL}(S) = \sum_{\ell} p_\ell \, P\big(\text{Poisson}(\lambda(R + \ell)) \le S\big).
 $$
 
-<Check ref="maxima:service-level" />
-
 This needs the orders not to overtake each other, which holds when lead times differ by
 less than a review period.
 
@@ -74,8 +72,6 @@ Demand over an interval of random length $T$ has variance
 $$
 \operatorname{Var}(D_T) = \lambda\,\mathbb{E}[T] + \lambda^2 \operatorname{Var}(T).
 $$
-
-<Check ref="maxima:interval-variance" />
 
 The first term is the randomness of demand, the second the randomness of the interval.
 Here $\mathbb{E}[T] = 9$ days and $\operatorname{Var}(T) = 1$, so the variance is
@@ -106,8 +102,6 @@ the demand in a cycle:
 $$
 \beta \approx 1 - \frac{\mathbb{E}\left[(D_T - S)^+\right]}{\lambda R}.
 $$
-
-<Check ref="maxima:fill-rate" />
 
 At a level of 113 the expected shortfall is about 0.246 units against a week's demand of
 70, a fill rate of about 0.996. A level that lets one cycle in twenty end short still meets
@@ -158,7 +152,7 @@ could then overtake each other and the formula above would no longer hold.
   when no demand is waiting in the minute before a delivery, and leaves out the first
   cycle, which starts from empty stock.
 - **Binomial arrivals.** Poisson demand is drawn in small sub-steps within each minute,
-  as chapter 2 describes, so its variance is very slightly lower than the model's.
+  as chapter 3 describes, so its variance is very slightly lower than the model's.
 - **Backorders only.** With lost sales, stock that runs out also hides how much demand
   there was, and the analysis changes.
 

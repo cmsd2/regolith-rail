@@ -160,13 +160,13 @@ test.describe("the book", () => {
   });
 
   test("moves from one chapter to the next and back", async ({ page }) => {
-    await page.goto("/docs/book/base-stock");
-    await expect(page.getByTestId("doc-article")).toContainText("Part II: Inventory · Chapter 3");
+    await page.goto("/docs/book/order-quantities");
+    await expect(page.getByTestId("doc-article")).toContainText("Part II: Inventory · Chapter 4");
     await page.getByTestId("chapter-next").click();
     await expect(page).toHaveURL(/\/docs\/book\/newsvendor$/);
-    await expect(page.getByTestId("doc-article")).toContainText("Chapter 4");
+    await expect(page.getByTestId("doc-article")).toContainText("Chapter 5");
     await page.getByTestId("chapter-previous").click();
-    await expect(page).toHaveURL(/\/docs\/book\/base-stock$/);
+    await expect(page).toHaveURL(/\/docs\/book\/order-quantities$/);
   });
 
   test("a chapter shows its checks' working in the page before scripts load", async ({
@@ -176,7 +176,7 @@ test.describe("the book", () => {
     const page = await context.newPage();
     await page.goto("/docs/book/newsvendor");
     const article = page.getByTestId("doc-article");
-    await expect(article).toContainText("Part II: Inventory · Chapter 4");
+    await expect(article).toContainText("Part II: Inventory · Chapter 5");
     const check = article.locator('[data-check="maxima:best-order"]').first();
     await expect(check).toHaveAttribute("data-kind", "maxima");
     expect(await check.innerHTML()).toContain('expect_equal("best-order", best, 15);');

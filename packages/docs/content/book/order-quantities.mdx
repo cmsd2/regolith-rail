@@ -3,7 +3,7 @@ title: "Order quantities: EOQ and (s, S)"
 description: How much to order when every order has a fixed cost, and the reorder point that says when.
 section: Book
 part: 2
-chapter: 5
+chapter: 4
 ---
 
 ## What you will learn
@@ -16,11 +16,11 @@ chapter: 5
 
 ## The problem
 
-Chapter 3 ordered at every review, as much as the position had fallen. That suits
-stock whose orders cost nothing to place. Many orders do cost something whatever their
-size: a delivery, a set-up, paperwork. Ordering little and often then wastes those fixed
-costs, while ordering a lot at once fills the shelves with stock that costs money to
-hold.
+Part I built a line and measured it. Part II turns to the decisions inside one station:
+how much to order, when, and how much to keep in reserve. It starts with the oldest of
+them. Many orders cost something whatever their size: a delivery, a set-up, paperwork.
+Ordering little and often wastes those fixed costs, while ordering a lot at once fills
+the shelves with stock that costs money to hold.
 
 The economic order quantity answers how much to order when demand is steady. It is one
 of the oldest results in operations research, and its reasoning, trading a cost that
@@ -40,7 +40,7 @@ $$
 C(Q) = \frac{KD}{Q} + \frac{hQ}{2}.
 $$
 
-<Check ref="maxima:eoq" />
+<Check ref="maxima:eoq-cost" />
 
 The first term falls as $Q$ grows and the second rises. Setting the derivative to zero
 gives the economic order quantity and its cost:
@@ -69,8 +69,6 @@ $$
 \frac{C(xQ^*)}{C(Q^*)} = \frac{1}{2}\left(x + \frac{1}{x}\right)
 $$
 
-<Check ref="maxima:flat-cost" />
-
 times the best. Ordering half again as much costs only about 8.3% more, and ordering
 double or half as much costs 25% more. An estimate of $D$ or $K$ that is somewhat wrong,
 or a quantity rounded to a convenient size, costs little.
@@ -84,18 +82,20 @@ about 21.67.
 
 ### When to order: (s, S)
 
-The quantity says how much. With a lead time and periodic reviews, the station also
-needs a reorder point $s$: order when the position falls below the demand expected before
-the order could arrive, and order up to $S = s + Q^*$. This is an (s, S) policy (Axsäter,
-2015, pp. 115–116).
+The quantity says how much. A station that can only order at a review, on a schedule,
+also needs a reorder point $s$: order when stock falls below the demand expected before
+the next review, and order up to $S = s + Q^*$. This is an (s, S) policy (Axsäter, 2015,
+pp. 115–116).
 
 With 10 units a day, no lead time and hourly reviews, the next hour's demand is
 $10/24$ of a unit, 417 thousandths rounded up. The policy orders up to $417 + 20{,}000 =
-20{,}417$ thousandths whenever the position falls below 417.
+20{,}417$ thousandths whenever stock falls below 417.
 
 <Check ref="maxima:reorder-point" />
 
-When demand is random, the reorder point also carries safety stock. Chapter 6 sets it.
+When orders take time to arrive, the reorder point must cover that time too; chapter 6
+works it out as the protection interval. When demand is random, it also carries safety
+stock, which chapter 7 sets.
 
 ## In the simulator
 

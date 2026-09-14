@@ -3,7 +3,7 @@ title: Randomness and simulation
 description: Random arrivals, estimating averages by simulation, and telling a real difference from luck.
 section: Book
 part: 1
-chapter: 2
+chapter: 3
 ---
 
 ## What you will learn
@@ -38,8 +38,6 @@ $$
 P(N = k) = \frac{e^{-m} m^k}{k!}, \qquad k = 0, 1, 2, \ldots
 $$
 
-<Check ref="maxima:poisson-mean-variance" />
-
 Its mean and its variance are both $m$, so the standard deviation is $\sqrt{m}$. Demand
 that averages 9 units over a stretch of time typically lands within 3 units of that.
 
@@ -51,8 +49,6 @@ $$
 P(\text{no arrival in } s) = e^{-\lambda s},
 $$
 
-<Check ref="maxima:exponential-gap" />
-
 so the gaps between arrivals are exponential, with mean $1/\lambda$.
 
 <Check ref="maxima:exponential-gap" />
@@ -62,7 +58,7 @@ so the gaps between arrivals are exponential, with mean $1/\lambda$.
 Inventory decisions care about demand over a stretch of time: the lead time before an
 order arrives, plus the time until the next chance to order. With 4 arrivals a day, a
 lead time of 2 days and a review every 6 hours, demand over that stretch has mean
-$4 \times 2.25 = 9$ and standard deviation 3. Chapter 3 builds on this.
+$4 \times 2.25 = 9$ and standard deviation 3. Chapter 6 builds on this.
 
 <Check ref="maxima:protection-demand" />
 
@@ -75,8 +71,6 @@ $\sigma$, the average of $n$ independent runs has standard deviation
 $$
 \operatorname{SE}(\bar{X}) = \frac{\sigma}{\sqrt{n}},
 $$
-
-<Check ref="maxima:standard-error" />
 
 its standard error. Precision grows only with the square root of the effort: four times
 as many runs halve the standard error.
@@ -116,8 +110,6 @@ so both face the same arrivals, their costs move together with correlation $\rho
 $$
 \operatorname{Var}(D) = \sigma_A^2 + \sigma_B^2 - 2\rho\,\sigma_A \sigma_B.
 $$
-
-<Check ref="maxima:paired-variance" />
 
 With equal spreads and $\rho = 0.9$, the variance of the difference is a tenth of what
 independent runs give, so the same precision needs a tenth of the runs. This technique is

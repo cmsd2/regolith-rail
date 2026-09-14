@@ -148,7 +148,7 @@
   {
     "id": "classic/fixed-route-delivery#1",
     "page": "classic/fixed-route-delivery",
-    "name": "Fixed-route delivery (example 1)",
+    "name": "Fixed-route delivery (template) (example 1)",
     "script": true,
     "scenario": "two-station",
     "seed": 1,
@@ -157,7 +157,7 @@
   {
     "id": "classic/fixed-route-delivery#2",
     "page": "classic/fixed-route-delivery",
-    "name": "Fixed-route delivery (example 2)",
+    "name": "Fixed-route delivery (template) (example 2)",
     "script": false,
     "scenario": "classic.fixed_route_delivery",
     "seed": 1,
@@ -166,7 +166,7 @@
   {
     "id": "classic/serial-chain#1",
     "page": "classic/serial-chain",
-    "name": "Serial supply chain",
+    "name": "Serial supply chain (template)",
     "script": true,
     "scenario": "two-station",
     "seed": 1,

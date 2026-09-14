@@ -3,7 +3,7 @@ title: "One period under uncertainty: the newsvendor"
 description: Choosing one quantity before demand is known, when too much and too little both cost.
 section: Book
 part: 2
-chapter: 4
+chapter: 5
 ---
 
 ## What you will learn
@@ -39,7 +39,7 @@ $$
 C(Q) = cQ + p\,\mathbb{E}\left[(D - Q)^+\right],
 $$
 
-<Check ref="maxima:best-cost" />
+<Check ref="maxima:expected-cost" />
 
 where $(x)^+$ means $\max(x, 0)$.
 
@@ -63,7 +63,7 @@ $$
 P(D \le Q) \ge \frac{p - c}{p}.
 $$
 
-<Check ref="maxima:marginal-cost" />
+<Check ref="maxima:optimality-condition" />
 
 ### The critical ratio
 
@@ -138,8 +138,6 @@ To see the lopsided curve, open **Batch**, tick **Compare**, and compare the ref
 policy with copies ordering 10 and 20. The total cost metric rises on both sides of 15,
 by more below it than above.
 
-<Check ref="maxima:cost-either-side" />
-
 ## Where the simulator differs
 
 - **Timing.** Demand arrives through the day rather than all at once. Only the day's
@@ -195,7 +193,7 @@ about 105.07 units.
 A rail line has no stock that expires, but the newsvendor's trade-off appears whenever
 a train leaves a station for a long round trip. Whatever the train leaves behind has to
 last until it returns. Leaving too little starves the consumers there. Leaving too much
-fills storage that the next delivery, or another station, could have used. Chapter 3
+fills storage that the next delivery, or another station, could have used. Chapter 6
 returns to this as the protection interval.
 
 </GameNote>

@@ -46,10 +46,23 @@ describe("claims lint", () => {
     expect(checkClaims([page(body)], tests)).toEqual([]);
   });
 
-  it("names the line of an unchecked equation", () => {
-    const body = `Text.\n\n$$\nq = 1\n$$\n\nMore text.\n\n${exercises}`;
+  it("names the line of an equation with no check before the next heading or formula", () => {
+    const body = `Text.\n\n$$\nq = 1\n$$\n\nMore text.\n\n### Next\n\n$$\nr = 2\n$$\n\n$$\ns = 3\n$$\n\n<Check ref="test:known test" />\n\n${exercises}`;
     expect(checkClaims([page(body)], tests)).toEqual([
-      "book/newsvendor line 8: displayed mathematics has no <Check> after it",
+      "book/newsvendor line 8: displayed mathematics has no <Check> before the next heading or formula",
+      "book/newsvendor line 16: displayed mathematics has no <Check> before the next heading or formula",
+    ]);
+  });
+
+  it("lets one check after the worked numbers cover a formula and its numbers", () => {
+    const body = `$$\nq = 1\n$$\n\nSo $q$ is 1.\n\n- A list.\n\n<Check ref="test:known test" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests)).toEqual([]);
+  });
+
+  it("names a check cited twice outside the answers", () => {
+    const body = `$$\nq = 1\n$$\n\n<Check ref="test:known test" />\n\nSo $q$ is 1.\n\n<Check ref="test:known test" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests)).toEqual([
+      "book/newsvendor line 14: test:known test is already cited on line 10",
     ]);
   });
 

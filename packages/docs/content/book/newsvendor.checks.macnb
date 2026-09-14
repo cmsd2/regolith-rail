@@ -25,7 +25,21 @@
   },
   {
    "cell_type": "code",
+   "source": "/* check: expected-cost */\n/* The expected cost is the purchase plus the lost-demand cost, averaged over demand: the same as costing each outcome and averaging. */\nperiod_cost(q, d) := unit_cost * q + lost_cost * max(0, d - q)$\naveraged: makelist(sum(demand_probs[i] * period_cost(q, demand_values[i]), i, 1, n_values), q, 0, 30)$\nexpect_equal(\"expected-cost\", lsum(abs(e), e, averaged - makelist(expected_cost(q), q, 0, 30)), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
    "source": "/* check: marginal-cost */\n/* One more unit costs the unit cost for certain, and saves the lost-demand cost when demand exceeds the order. */\ngot: makelist(expected_cost(q + 1) - expected_cost(q), q, 0, 29)$\nwant: makelist(unit_cost - lost_cost * (1 - cdf(q)), q, 0, 29)$\nexpect_equal(\"marginal-cost\", lsum(abs(d), d, got - want), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: optimality-condition */\n/* Adding a unit stops paying, c - p (1 - F) >= 0, exactly when the chance F that demand is covered reaches (p - c) / p, since p > 0. */\nexpect_equal(\"optimality-condition\", c - p * (1 - F) - p * (F - (p - c) / p), 0);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

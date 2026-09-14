@@ -3,7 +3,7 @@ title: Forecasting
 description: Estimating demand from what has been seen, why simple forecasts lag behind growth, and what the lag costs.
 section: Book
 part: 2
-chapter: 7
+chapter: 8
 ---
 
 ## What you will learn
@@ -41,8 +41,6 @@ $$
 D_k - F_k = \frac{b\,(N + 1)}{2}.
 $$
 
-<Check ref="maxima:moving-average-lag" />
-
 A 7-day average of demand growing by 1 a day is always 4 units short. Averaging over a
 whole season removes the season, because the high and low days balance out.
 
@@ -59,8 +57,6 @@ $$
 F_{k+1} = \alpha D_k + (1 - \alpha) F_k.
 $$
 
-<Check ref="maxima:smoothing-weights" />
-
 Unrolled, the forecast is a weighted average of all past demand, with weight
 $\alpha(1-\alpha)^j$ on the day $j$ days before the latest. The weights sum to 1, and the
 average age of the data is $(1 - \alpha)/\alpha$ days, 4 days for $\alpha = 0.2$. A moving
@@ -76,8 +72,6 @@ which gives
 $$
 D_{k+1} - F_{k+1} = \frac{b}{\alpha}, \qquad D_k - F_{k+1} = \frac{b\,(1 - \alpha)}{\alpha}.
 $$
-
-<Check ref="maxima:smoothing-lag" />
 
 With $b = 1$ and $\alpha = 0.2$, the forecast is 5 units below the day it forecasts, and
 4 below the day just seen. A larger $\alpha$ lags less but passes more noise into the
