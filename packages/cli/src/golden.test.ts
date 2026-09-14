@@ -17,13 +17,4 @@ describe("golden result hashes", () => {
   it("match the results recorded before scenario format 2, over the fields that existed then", () => {
     expect(read(FORMAT1_GOLDEN_PATH)).toEqual(goldens.format1);
   });
-
-  it("give the Lua baseline the same results as the reference", () => {
-    for (const [key, hash] of Object.entries(goldens.current)) {
-      if (!key.startsWith("lua:balance-stock/")) continue;
-      expect(hash, key).toBe(
-        goldens.current[key.replace("lua:balance-stock/", "reference:balance-stock/")],
-      );
-    }
-  });
 });

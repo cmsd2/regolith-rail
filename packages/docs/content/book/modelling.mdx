@@ -107,7 +107,11 @@ The obvious rule depends on knowing which station supplies and which demands. A 
 meant for every line, whatever its stations do, cannot assume that. A natural catch-all
 is to balance: at each stop, move stock so that the stations hold similar amounts. It
 needs no roles and copes with any number of stations. The starter uses it as its
-baseline.
+baseline, and in `ops` it is a single line:
+
+```lua
+return ops.policy { target = ops.balance {} }
+```
 
 With two stations holding $m$ and $d$, the average is $(m + d)/2$, so a stop at the
 fuller station loads

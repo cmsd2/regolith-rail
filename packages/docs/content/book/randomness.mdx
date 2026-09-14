@@ -92,9 +92,12 @@ $$
 
 <Check ref="python:t-critical" />
 
-For 30 runs $t_{0.975,29} \approx 2.045$, and for 100 runs $t_{0.975,99} \approx 1.984$,
-close to the normal value 1.96. With 100 runs, a mean of 7.9 and $s = 1.4$, the interval
-is $7.9 \pm 0.28$, from 7.62 to 8.18.
+Here $t_{0.975,\,n-1}$ is the critical value of Student's t distribution with $n - 1$
+degrees of freedom: 97.5% of the distribution lies below it, so 2.5% lies beyond it in
+each tail and 95% between. Some books write it $t_{\alpha/2,\,n-1}$, with $\alpha = 0.05$
+the chance left outside. For 30 runs $t_{0.975,29} \approx 2.045$, and for 100 runs
+$t_{0.975,99} \approx 1.984$, close to the normal value 1.96. With 100 runs, a mean of 7.9
+and $s = 1.4$, the interval is $7.9 \pm 0.28$, from 7.62 to 8.18.
 
 <Check ref="python:interval-example" />
 

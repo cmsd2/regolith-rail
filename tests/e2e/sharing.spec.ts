@@ -86,7 +86,7 @@ test.describe("sharing", () => {
     await openWorkbench(page, `/${hash.slice(0, hash.length - 20)}`);
     await expect(page.getByTestId("notice-share-damaged")).toContainText("damaged");
     await expectSlot(page, "scenario", "builtin:scenario:two-station");
-    expect(await editorText(page, "policy-editor")).toContain("on_stop");
+    expect(await editorText(page, "policy-editor")).toContain("ops.balance");
   });
 
   test("a link from another Policy API version opens with a warning", async ({ page }) => {

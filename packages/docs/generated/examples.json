@@ -232,11 +232,20 @@
   {
     "id": "ops/balance#1",
     "page": "ops/balance",
-    "name": "ops.balance",
+    "name": "ops.balance (example 1)",
     "script": false,
     "scenario": "two-station",
     "seed": 1,
     "source": "return ops.policy { target = ops.balance {} }"
+  },
+  {
+    "id": "ops/balance#2",
+    "page": "ops/balance",
+    "name": "ops.balance (example 2)",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "local policy = {}\n\nlocal function stores(station, resource)\n  for _, id in ipairs(station.resources) do\n    if id == resource then\n      return true\n    end\n  end\n  return false\nend\n\nfunction policy.on_stop(ctx)\n  local here = ctx.here\n  for _, resource in ipairs(here.resources) do\n    local total, count = 0, 0\n    for _, id in ipairs(ctx.station_order) do\n      local other = ctx.stations[id]\n      if stores(other, resource) then\n        total = total + other.stock[resource]\n        count = count + 1\n      end\n    end\n    local target = math.floor(total / count)\n    local difference = here.stock[resource] - target\n    if difference > 0 then\n      ctx.load(resource, difference)\n    elseif difference < 0 then\n      ctx.unload(resource, -difference)\n    end\n  end\nend\n\nreturn policy"
   },
   {
     "id": "ops/lookahead#1",

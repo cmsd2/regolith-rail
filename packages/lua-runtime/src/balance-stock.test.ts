@@ -16,7 +16,7 @@ beforeAll(async () => {
 
 const SEEDS = Array.from({ length: 50 }, (_, i) => i + 1);
 
-describe("balance-stock.lua", () => {
+describe("the balance-stock policy", () => {
   for (const starter of starterScenarios) {
     it(`matches the reference implementation on ${starter.id} for seeds 1 to 50`, () => {
       const result = validateScenario(starter.document);
@@ -25,7 +25,9 @@ describe("balance-stock.lua", () => {
       expect(lua.error).toBeUndefined();
       for (const seed of SEEDS) {
         const expected = runSimulation(result.scenario, balanceStockReferencePolicy(), { seed });
-        const actual = runSimulation(result.scenario, lua, { seed });
+        // The ops version records decision traces, which the reference does not.
+        const run = runSimulation(result.scenario, lua, { seed });
+        const actual = { ...run, events: run.events.filter((e) => e.kind !== "trace") };
         if (hashRun(actual) !== hashRun(expected)) {
           expect(actual.events, `${starter.id} seed ${seed}`).toEqual(expected.events);
           expect(actual.metrics, `${starter.id} seed ${seed}`).toEqual(expected.metrics);

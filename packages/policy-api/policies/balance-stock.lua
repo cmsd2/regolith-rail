@@ -5,37 +5,7 @@
 -- stock of that resource across all stations on the line that store it. Nothing
 -- else is considered: not how fast stations consume or produce, not what other
 -- trains carry, and not which station needs the resource most.
+--
+-- The ops.balance documentation page shows the same rule written in plain Lua.
 
-local policy = {}
-
-local function stores(station, resource)
-  for _, id in ipairs(station.resources) do
-    if id == resource then
-      return true
-    end
-  end
-  return false
-end
-
-function policy.on_stop(ctx)
-  local here = ctx.here
-  for _, resource in ipairs(here.resources) do
-    local total, count = 0, 0
-    for _, id in ipairs(ctx.station_order) do
-      local other = ctx.stations[id]
-      if stores(other, resource) then
-        total = total + other.stock[resource]
-        count = count + 1
-      end
-    end
-    local target = math.floor(total / count)
-    local difference = here.stock[resource] - target
-    if difference > 0 then
-      ctx.load(resource, difference)
-    elseif difference < 0 then
-      ctx.unload(resource, -difference)
-    end
-  end
-end
-
-return policy
+return ops.policy { target = ops.balance {} }
