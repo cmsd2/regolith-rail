@@ -80,8 +80,10 @@ demand point, and the train a vehicle on a fixed route.
 
 Knowing which station makes metal and which uses it, the first rule most people think of
 is to load everything at the mine and unload everything at the dome. Does the train have
-the capacity for that? Even the slowest round trip, moving a full load at both ends, takes
-$28/3$ hours. The train then makes $18/7$ trips a day, and could carry
+the capacity for that? Each leg takes four hours, and a stop takes ten minutes plus a
+minute for every unit moved, so even the slowest round trip, moving a full load of 30 at
+both ends, takes $2 \times 4 + 2 \times (10 + 30)/60 = 28/3$ hours. In a day the train
+makes $24 \div 28/3 = 18/7$ such trips, and could carry
 
 $$
 30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a day},
@@ -161,8 +163,16 @@ always returns empty.
 
 Why does balancing fail on a line where the obvious rule succeeds? Suppose the line
 settles into a steady cycle, where each trip delivers what the dome uses during one round
-trip. Call the load $L$ and the round trip $T$. The dome uses $36\,T$ units in a trip
-lasting $T$ days, and the trip lasts the travel time plus two stops moving $L$ units each.
+trip. Call the load $L$, in units, and the round trip $T$, in seconds. The load is what
+the dome uses in a trip, at 36 units a day, and the trip is the eight hours of travel plus
+two stops that each take 600 seconds and 60 more for every unit moved:
+
+$$
+L = \frac{36\,T}{86\,400}, \qquad T = 28\,800 + 2\,(600 + 60\,L).
+$$
+
+<Check ref="maxima:steady-equations" />
+
 Solving the two together gives
 
 $$
@@ -191,9 +201,9 @@ everything. Much of the rest of this book is about putting knowledge like that t
 
 ## Where the simulator differs
 
-- **Stops take longer with more cargo.** The case study treats the steady cycle as
-  exact. In the simulator, demand varies, so loads and trip times vary from trip to
-  trip around the steady values.
+- **Demand varies.** The case study treats the steady cycle as exact. In the simulator
+  the dome's use wanders by up to 20%, so loads and trip times vary from trip to trip
+  around the steady values.
 - **Stock is measured in thousandths of a unit.** Policies see and move amounts in
   milli-units, so 30 units is `30000`.
 - **The balancing rule is an assumption.** The baseline implements balancing as the

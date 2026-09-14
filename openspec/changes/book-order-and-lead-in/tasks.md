@@ -34,12 +34,12 @@
 
 ## 6. Prose pass
 
-- [ ] 6.1 Chapter 1: show the round-trip and trips-a-day working, display the two steady-cycle equations before their solution, fix the "Stops take longer with more cargo" bullet. Verify `docs:claims` passes with no check value changed.
-- [ ] 6.2 Chapters 4 and 5 (EOQ, newsvendor): read in the new order, fix the contraction, and make each chapter's opening follow the one before it. Verify by reading each chapter once in full.
-- [ ] 6.3 Chapter 6 (base stock): remove the text and script duplicated from chapter 3, fix "their inventory position", wrap the over-long source line. Verify `pnpm lint` and `docs:check` pass.
-- [ ] 6.4 Chapter 7 (safety stock): correct the fill-rate sentence to one minus the shortfall over the period's demand, and replace "cycle" by "review period" where that is meant. Verify the fill-rate check still passes and the text agrees with the formula.
-- [ ] 6.5 Chapter 8 (forecasting): give Holt's method its two update equations with a Maxima cell, fix "simple smoothing's settles", and add a three-sentence walkthrough of the reference policy before its code. Verify `docs:claims` passes.
-- [ ] 6.6 Read all eight chapters in order once more and fix any transition or reference the earlier tasks left. Verify the contents page, every previous and next link, and the link check.
+- [x] 6.1 Chapter 1: show the round-trip and trips-a-day working, display the two steady-cycle equations before their solution, fix the "Stops take longer with more cargo" bullet. Verify `docs:claims` passes with no check value changed.
+- [x] 6.2 Chapters 4 and 5 (EOQ, newsvendor): read in the new order, fix the contraction, and make each chapter's opening follow the one before it. Verify by reading each chapter once in full.
+- [x] 6.3 Chapter 6 (base stock): remove the text and script duplicated from chapter 3, fix "their inventory position", wrap the over-long source line. Verify `pnpm lint` and `docs:check` pass.
+- [x] 6.4 Chapter 7 (safety stock): correct the fill-rate sentence to one minus the shortfall over the period's demand, and replace "cycle" by "review period" where that is meant. Verify the fill-rate check still passes and the text agrees with the formula.
+- [x] 6.5 Chapter 8 (forecasting): give Holt's method its two update equations with a Maxima cell, fix "simple smoothing's settles", and add a three-sentence walkthrough of the reference policy before its code. Verify `docs:claims` passes.
+- [x] 6.6 Read all eight chapters in order once more and fix any transition or reference the earlier tasks left. Verify the contents page, every previous and next link, and the link check.
 
 ## 7. Entry pages and roadmap
 

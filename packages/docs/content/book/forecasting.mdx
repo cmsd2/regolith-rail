@@ -81,9 +81,20 @@ forecast.
 
 ### Holt's method
 
-Holt's method smooths a trend as well as a level, and forecasts the level plus the trend.
-Started with no idea of the trend, its error dies away, while simple smoothing's settles
-at $b/\alpha$.
+Holt's method keeps two numbers, a level $\ell_k$ and a trend $t_k$, and updates both
+each day, the level towards what was just seen and the trend towards how much the level
+moved:
+
+$$
+\ell_k = \alpha D_k + (1 - \alpha)(\ell_{k-1} + t_{k-1}), \qquad
+t_k = \beta\,(\ell_k - \ell_{k-1}) + (1 - \beta)\,t_{k-1}.
+$$
+
+Its forecast is the level plus the trend, $F_{k+1} = \ell_k + t_k$. Started with no idea
+of the trend, its error dies away as the trend estimate catches up, while simple
+smoothing's error settles at $b/\alpha$: with $\alpha = 0.2$ and $\beta = 0.1$ the
+one-day-ahead error is within 0.01 of zero after 200 days, where simple smoothing is
+still 5 short.
 
 <Check ref="maxima:holt" />
 
@@ -126,9 +137,12 @@ return classic.forecasting { level = 20, trend = 1, noise = false }
 
 <Check ref="test:starts demand at the level and raises it by the trend each day" />
 
-The reference policy measures what the last day used from the fall in its inventory
-position, smooths it, and orders up to three days of forecast plus a safety allowance. It
-records its demand and forecast each day, so you can chart them together.
+The reference policy is plain Lua, in three parts. First it works out its inventory
+position: stock less backorders, plus what is on order. Then it takes the fall in the
+position since the last review as the last day's demand, smooths it into
+`memory.forecast`, and records both so that they can be charted together. Last it orders
+up to three days of forecast plus a safety allowance, `COVER` and `SAFETY`, and remembers
+the position it left behind for the next review to measure from.
 
 ```lua runnable scenario=classic.forecasting
 local ALPHA = 0.2

@@ -64,8 +64,8 @@ interval is $9/4$ days and demand over it is Poisson with mean 9.
 
 A base-stock policy raises the inventory position to a fixed level $S$ at every review,
 ordering $S$ minus the position. What happens over the protection interval is then the
-newsvendor problem of chapter 5. Each extra unit of $S$ costs $h$ for holding when it turns out not to
-be needed, and saves $b$ for a backorder when it is. The best level is the critical
+newsvendor problem of chapter 5. Each extra unit of $S$ costs $h$ for holding when it
+turns out not to be needed, and saves $b$ for a backorder when it is. The best level is the critical
 fractile of demand $N$ over the protection interval:
 
 $$
@@ -164,9 +164,10 @@ after another.
 ## Case study: double dispatch
 
 The `two-trains` starter has two trains sharing a line from a mine to a factory and a
-dome. It was built to show double dispatch: under the balancing baseline, both trains react
-to the same low stock, so one station can be oversupplied while the other waits. It looks like the stock-on-hand mistake: each train
-judges a shortage without counting what the other is already bringing.
+dome. It was built to show double dispatch: under the balancing baseline, both trains
+react to the same low stock, so one station can be oversupplied while the other waits. It
+looks like the stock-on-hand mistake: each train judges a shortage without counting what
+the other is already bringing.
 
 <Scenario starter="two-trains" />
 
@@ -185,7 +186,7 @@ return ops.policy {
 ```
 
 The second remedy adds [ops.lookahead](/docs/ops/lookahead), which reserves cargo for
-stations further along, so that the other train counts it in their inventory position:
+stations further along, so that the other train counts it in its inventory position:
 
 ```lua runnable scenario=two-trains
 return ops.policy {

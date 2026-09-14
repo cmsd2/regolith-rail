@@ -56,7 +56,8 @@ This needs the orders not to overtake each other, which holds when lead times di
 less than a review period.
 
 Take demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal
-chance. Demand over a cycle has mean 80 or 100, 90 on average.
+chance. Demand over the review period and a lead time has mean 80 or 100, 90 on
+average.
 
 <Check ref="maxima:cycle-means" />
 
@@ -96,8 +97,8 @@ is 106, so the lead time's variability alone costs 7 units of stock.
 
 ### Fill rate
 
-Approximate the fill rate by the expected shortfall at the end of a cycle, divided by
-the demand in a cycle:
+Each review period's demand is met by one order, so the fill rate is about one minus the
+expected shortfall at the end of a cycle divided by the demand in a review period:
 
 $$
 \beta \approx 1 - \frac{\mathbb{E}\left[(D_T - S)^+\right]}{\lambda R}.
@@ -243,8 +244,9 @@ line can do about them beyond holding a station full.
 
 <Answer>
 
-Demand over a cycle now has mean 45 or 65, and the level falls to 75. More frequent
-reviews shorten the protection interval, and the stock needed falls with it.
+Demand over the review period and a lead time now has mean 45 or 65, and the level
+falls to 75. More frequent reviews shorten the protection interval, and the stock needed
+falls with it.
 
 <Check ref="maxima:twice-weekly" />
 
