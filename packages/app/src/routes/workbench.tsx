@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserSupport } from "../components/BrowserSupport.tsx";
 import { ErrorList, useRunErrors } from "../components/ErrorList.tsx";
-import { LibraryExplorer } from "../components/LibraryExplorer.tsx";
 import { LineMap } from "../components/LineMap.tsx";
 import { MetricsSummary } from "../components/MetricsSummary.tsx";
 import { Notices } from "../components/Notices.tsx";
@@ -14,6 +13,12 @@ import { ShareControls } from "../components/ShareControls.tsx";
 import { StopInspector } from "../components/StopInspector.tsx";
 import { PlaybackControls, Timeline } from "../components/Timeline.tsx";
 import styles from "../components/Workbench.module.css";
+import {
+  DocsColumn,
+  ExplorerColumn,
+  LibraryToggle,
+  useWorkbenchLayout,
+} from "../components/WorkbenchLayout.tsx";
 import { startWorkbenchSession, useWorkbench, workbench } from "../state/instance.ts";
 
 // The editors bring in CodeMirror, so they load separately from the rest of the page.
@@ -113,6 +118,7 @@ export default function Workbench() {
   const mounted = useWorkbench((s) => s.loaded);
   const view = useWorkbench((s) => s.view);
   const docsOpen = useWorkbench((s) => s.docs.length > 0);
+  const layout = useWorkbenchLayout();
   useEffect(() => startWorkbenchSession(), []);
   useEffect(() => {
     // Documentation links anywhere in the workbench, including editor tooltips, open
@@ -131,8 +137,12 @@ export default function Workbench() {
   return (
     <Page docsInPanel>
       <BrowserSupport>
-        <div className={docsOpen ? `${styles.layout} ${styles.withDocs}` : styles.layout}>
+        <div
+          className={docsOpen ? `${styles.layout} ${styles.withDocs}` : styles.layout}
+          style={layout.style}
+        >
           <div className={styles.toolbar}>
+            {mounted && <LibraryToggle layout={layout} />}
             <ViewSwitch />
             <ScenarioControls />
             {view === "run" && <RunControls />}
@@ -140,7 +150,7 @@ export default function Workbench() {
             <ShareControls />
             <Notices />
           </div>
-          {mounted ? <LibraryExplorer /> : <div />}
+          {mounted ? <ExplorerColumn layout={layout} /> : <div />}
           {mounted ? (
             <Suspense fallback={<div />}>
               <EditorPanel />
@@ -157,11 +167,11 @@ export default function Workbench() {
             )}
           </div>
           {mounted && docsOpen && (
-            <div className={styles.docs}>
+            <DocsColumn layout={layout}>
               <Suspense fallback={<p className={styles.muted}>Loading documentation…</p>}>
                 <DocsPanel />
               </Suspense>
-            </div>
+            </DocsColumn>
           )}
         </div>
       </BrowserSupport>

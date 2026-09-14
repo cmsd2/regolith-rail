@@ -44,8 +44,8 @@
 
 ## 8. Layout
 
-- [ ] 8.1 Lay the workbench out as explorer, editor, views and optional docs columns, with drag and keyboard resizing and a collapsible explorer. Remember widths and collapsed state in `localStorage` with safe fallbacks. Verify an end-to-end test that collapses the explorer, reloads, and finds it still collapsed with the editor widened.
-- [ ] 8.2 Below 800 px, open the explorer as a drawer that closes when an item is chosen. Verify an end-to-end test at 375 px wide.
+- [x] 8.1 Lay the workbench out as explorer, editor, views and optional docs columns, with drag and keyboard resizing and a collapsible explorer. Remember widths and collapsed state in `localStorage` with safe fallbacks. Verify an end-to-end test that collapses the explorer, reloads, and finds it still collapsed with the editor widened.
+- [x] 8.2 Below 800 px, open the explorer as a drawer that closes when an item is chosen. Verify an end-to-end test at 375 px wide.
 
 ## 9. Documentation
 
