@@ -67,4 +67,4 @@
   - import a policy, and an experiment round trip between browsers;
   - an example keeps the player's work;
   - migration from seeded version 1 data.
-- [ ] 10.3 Run the full check, documentation check, determinism tests and end-to-end tests in CI on a pull request. Verify every blocking job passes and golden hashes are unchanged.
+- [x] 10.3 Run the full check, documentation check, determinism tests and end-to-end tests in CI on a pull request. Verify every blocking job passes and golden hashes are unchanged.

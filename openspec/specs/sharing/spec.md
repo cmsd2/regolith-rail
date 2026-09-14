@@ -20,13 +20,13 @@ contents SHALL be carried in the URL fragment so they are not sent to the host.
 - **THEN** the link opens with the script's source in the editor, not only its evaluated document
 
 ### Requirement: No automatic execution
-Opening a share link SHALL load its contents without running them. The player
-SHALL see the policy source before choosing to run it.
+Opening a share link SHALL add it to the library as a shared experiment, fill the run's slots from it and
+select its view, but SHALL NOT run it. The player SHALL see the policy source before choosing to run it.
 
 #### Scenario: Open a link
 - **WHEN** a player opens a share link
-- **THEN** the policy and scenario are shown and nothing runs until the player
-  presses Run
+- **THEN** the slots show its scenario and policies, the experiment is listed under Shared with me, and no
+  simulation starts until Run is pressed
 
 ### Requirement: Link problems
 A link that cannot be decoded SHALL show an error and open the default view. A
@@ -44,26 +44,27 @@ that some sites may truncate it.
 - **THEN** its contents load with a version warning
 
 ### Requirement: Local saving
-Players SHALL be able to save, list, open, rename and delete named policies and scenarios, including scenario
-scripts, in the browser. The editor contents SHALL be saved automatically as a draft and restored on the next
-visit.
+Players' own policies, scenarios (including scenario scripts) and experiments SHALL be kept in the browser as
+Mine items in the library. They SHALL save automatically after each edit. The run's slots SHALL be restored
+on the next visit.
 
 #### Scenario: Draft restored
-- **WHEN** a player edits a policy and closes the tab without saving
-- **THEN** reopening the application restores the edited policy as a draft
+- **WHEN** a player edits a policy and closes the tab without any further action
+- **THEN** reopening the application restores the edited policy in the Policy slot and under Mine
 
 #### Scenario: Script saved
-- **WHEN** a player saves a scenario script under a name and reopens it later
+- **WHEN** a player edits a scenario script and reopens the application later
 - **THEN** the script source is restored and evaluates to the same document
 
 ### Requirement: Storage unavailable
-When browser storage is unavailable the application SHALL keep working, SHALL
-tell the player that work will not be kept, and SHALL still create share links.
+When browser storage is unavailable the application SHALL keep working, SHALL tell the player that work will
+not be kept, and SHALL still create share links. The library SHALL work for the rest of the session, holding
+Mine and Shared with me items in memory.
 
 #### Scenario: Private browsing without storage
 - **WHEN** the application cannot access browser storage
-- **THEN** a notice says work will not be saved, and running and sharing still
-  work
+- **THEN** a notice says work will not be saved, and running, editing library items and sharing still work
+  until the tab is closed
 
 ### Requirement: Older links
 Share links and saved work created before scenario scripts and format 2 SHALL continue to open, with format 1
@@ -72,3 +73,16 @@ scenarios upgraded on load.
 #### Scenario: Link from the first release
 - **WHEN** a player opens a share link created before this change
 - **THEN** the policy and scenario are restored and the scenario is shown upgraded to format 2
+
+### Requirement: Migration of earlier saved work
+On the first visit after this change, saved policies, saved scenarios and the draft from earlier releases
+SHALL be moved into the library.
+
+- **Saved items:** these SHALL become Mine items with the same names and contents.
+- **Draft:** an edited draft SHALL become Mine items that fill the slots. An unedited starter or built-in
+  policy in the draft SHALL fill its slot with the built-in item instead.
+- **Old records:** SHALL be removed only after the library has been written.
+
+#### Scenario: Saved policy migrated
+- **WHEN** a player who saved a policy named "buffer" in an earlier release opens the application
+- **THEN** Policies › Mine lists "buffer" with the same source, and nothing else they saved is lost
