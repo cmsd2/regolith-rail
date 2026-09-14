@@ -143,6 +143,8 @@ export interface WorkbenchState {
   updateExperiment(id: ItemId): void;
   /** Adds an experiment from a share link to the library, unless it is already there. */
   addSharedExperiment(item: ExperimentItem): void;
+  /** Adds an imported item to Mine. */
+  addItem(item: LibraryItem): void;
   renameItem(id: ItemId, name: string): void;
   /** Keeps a slot's item under Mine with a name: renames a Mine item, or copies anything else. */
   saveSlotAs(slot: SlotName, name: string): void;
@@ -495,6 +497,10 @@ export function createWorkbench(dependencies: WorkbenchDependencies): StoreApi<W
           const updated = { ...item, content: experimentContentOf(s), updatedAt: now() };
           return { items: { ...s.items, [id]: updated } };
         });
+      },
+
+      addItem(item) {
+        set((s) => (isEditable(item.id) ? { items: { ...s.items, [item.id]: item } } : {}));
       },
 
       addSharedExperiment(item) {

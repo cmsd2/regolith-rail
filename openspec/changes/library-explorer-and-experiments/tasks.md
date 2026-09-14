@@ -30,8 +30,8 @@
 
 ## 6. Import and export
 
-- [ ] 6.1 Import policies, scenarios and experiments from files into Mine, with the kind taken from the chosen group. Reject files over 1 MB or not valid UTF-8. Verify unit tests for each kind, an invalid scenario that imports with errors shown when opened, and both rejections.
-- [ ] 6.2 Export items as `.lua` or `.json`, and experiments as versioned `.json`. Verify a unit test that exporting then importing an experiment gives equal content.
+- [x] 6.1 Import policies, scenarios and experiments from files into Mine, with the kind taken from the chosen group. Reject files over 1 MB or not valid UTF-8. Verify unit tests for each kind, an invalid scenario that imports with errors shown when opened, and both rejections.
+- [x] 6.2 Export items as `.lua` or `.json`, and experiments as versioned `.json`. Verify a unit test that exporting then importing an experiment gives equal content.
 
 ## 7. Explorer and This run panel
 

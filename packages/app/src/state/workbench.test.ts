@@ -3,6 +3,7 @@ import { LuaRuntime } from "@regolith-rail/lua-runtime";
 import { classicTemplates, STARTER_SCRIPTS, templateCall } from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
 import { catalogueItem } from "../lib/catalogue.ts";
+import { importFile } from "../lib/files.ts";
 import {
   BatchPool,
   CancelledError,
@@ -304,6 +305,22 @@ describe("workbench store", () => {
     expect(copy).toMatch(/^mine:policy:/);
     expect(copy).not.toBe(mineId);
     expect(store.getState().items[mineId]?.content).toBe("-- mine\nreturn {}");
+  });
+
+  it("adds imported items to Mine, where they can fill a slot", () => {
+    const store = workbench();
+    const imported = importFile(
+      "policy",
+      { name: "buffer.lua", bytes: new TextEncoder().encode("-- buffer\nreturn {}") },
+      [],
+      1,
+    );
+    if (!imported.ok) throw new Error(imported.message);
+    store.getState().addItem(imported.item);
+    store.getState().fillSlot("policy", imported.item.id);
+    expect(store.getState().policy).toEqual({ name: "buffer", source: "-- buffer\nreturn {}" });
+    store.getState().addItem({ ...imported.item, id: "builtin:policy:naive" });
+    expect(store.getState().itemById("builtin:policy:naive")?.name).toBe("naive");
   });
 
   it("runs the current policy and scenario", async () => {
