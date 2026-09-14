@@ -86,7 +86,7 @@ and $s = 1.4$, the interval is $7.9 \pm 0.28$, from 7.62 to 8.18.
 
 <Check ref="python:interval-example" />
 
-The same idea estimates anything. The share of random points in a square that land
+The same idea estimates any average. The share of random points in a square that land
 inside a quarter circle estimates $\pi/4$, and with 400,000 points its standard error, as
 an estimate of $\pi$, is about 0.0026.
 
@@ -128,14 +128,15 @@ rate.
 Chapter 1's line is the place to see what a seed changes. The `two-station` starter's
 dome uses 36 units a day on average, but its rate is redrawn every two hours, up to 20%
 either way, from the seed. Open it with the balancing baseline, run seed 1, then seed 2:
-the unmet demand differs, and neither run is the answer.
+the unmet demand differs, and neither figure is the policy's unmet demand. Each is one
+draw.
 
 <Scenario starter="two-station" />
 
 Switch to **Batch** and run `balance-stock` over 100 seeds. Unmet demand averages 28.0
 units with a sample standard deviation of 3.1, so the standard error of the mean is 0.31
 and the 95% interval runs from about 27.4 to 28.6. The single runs range over more than
-ten units: any one of them could have been ten units out.
+ten units, so a single run can sit ten units from the average.
 
 <Check ref="test:on two-station over seeds 1 to 100 balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand on every seed" />
 
@@ -156,7 +157,7 @@ difference with a 95% confidence interval.
 
 On unmet demand there is nothing to pair: the obvious rule meets all demand on every
 seed, so the difference is the baseline's own spread, and its interval, $28.0 \pm 0.6$,
-leaves out zero by a wide margin. Stalled production is where pairing shows. Both
+leaves out zero by a wide margin. Stalled production shows what pairing does. Both
 policies stall the mine more on a seed where the dome happens to use less, so their
 stalls rise and fall together, with a correlation of about 0.75. The paired differences
 spread 2.98 units against the 3.73 that independent runs would give, a fifth less, so the

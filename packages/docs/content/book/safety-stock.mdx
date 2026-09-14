@@ -180,7 +180,8 @@ The shock is larger than any buffer a 30-unit station can hold. The storm takes 
 units of the mine's output and adds 54 units to the dome's demand, 94 units against a
 station that holds 30. No safety stock rides it out. What the buffer decides is when the
 shortage starts and how long it lasts: the mine comes back a day into the storm and
-deliveries resume, and a dome still holding stock when they do hardly notices.
+deliveries resume, and a dome that still has stock when they do comes through with little
+or no shortage.
 
 <Check ref="maxima:storm-shock" />
 
@@ -270,7 +271,7 @@ varies between 1 and 3 days.
 <Answer>
 
 Yes. About 99.1% of cycles end with no one waiting, matching the analytic 0.991 for level
-121. The last four percent of service cost eight more units than the first ninety-five.
+121. Going from 0.95 to 0.99 costs eight more units, over a third more safety stock.
 
 <Check ref="test:on classic.safety_stock over seeds 1 to 200 level 121 meets a 0.99 cycle service level" />
 

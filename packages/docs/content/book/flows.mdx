@@ -22,7 +22,8 @@ Chapter 1 wrote down a line and asked whether one train could serve it. The answ
 from counting: units a day made, units a day used, trips a day the train can make. That
 kind of counting is the first tool of operations research, and it works before anything
 about randomness or policy has been decided. A flow is a rate: units a day into a place,
-units a day out of it. Stock is what the flows leave behind.
+units a day out of it. Stock is the difference between what has flowed in and what has
+flowed out.
 
 Flows and stock are tied together by one relation that holds for any system in which
 things enter, wait and leave: the average stock is the average flow multiplied by the
@@ -47,8 +48,8 @@ $$
 $$
 
 At a station that only consumes, steady stock means deliveries arrive, on average, at the
-rate the station uses them. That sounds obvious, and it is, but it has a sharp edge: a
-demand station whose stock is steady is being supplied at exactly its consumption rate,
+rate the station uses them. That sounds obvious, but it has a consequence worth stating:
+a demand station whose stock is steady is being supplied at exactly its consumption rate,
 whatever the policy is doing at each stop. Policies change how much stock the station
 holds and how often it runs dry; they cannot change the long-run flow, which the
 consumers set. On the two-station line the mine makes 9 units a day more than the dome
@@ -163,7 +164,7 @@ stations, about a third of the stock on the line ends up at the one place that c
 it. The starter's description calls it dead stock: metal that was mined and carried and
 then does nothing.
 
-Little's law says what that costs. Over seeds 1 to 20 the balancing baseline delivers
+Little's law puts a time on it. Over seeds 1 to 20 the balancing baseline delivers
 about 32.5 units a day and holds about 52 units on the line, 24.6 at the mine, 13.5 at
 the junction, 6.5 at the dome and 7.2 on the train. Each unit therefore spends about 38
 hours between being mined and being used, and about 10 of those hours parked at the
@@ -176,8 +177,8 @@ train carries a full load most of the way and the dome's station stays near 23. 
 spends about 45 hours on the line. The difference is where the hours are spent. Under
 balancing, 10 of 38 hours are at a station that uses nothing and the dome, at 6.5 units,
 has under five hours of cover. Under roles, none of the time is wasted and the dome holds
-16 hours of cover. Holding more stock is not the problem; holding it where it does no
-good is.
+16 hours of cover. The roles policy holds more stock than balancing and serves the dome
+better, because none of its stock sits where it cannot be used.
 
 Little's law is only an identity, and it says nothing about whether a policy is good. Its
 use is in reading a line: it turns the stock chart into a statement about time, and it
@@ -244,7 +245,7 @@ In the rail game, a line through a station with nothing attached to it, a juncti
 station whose buildings have been removed, is common, and trains balance stock into it
 like any other. On a long line, the stock parked at such a station is stock the domes at
 the ends of the line are waiting for. Watching how full an idle station stays is the
-quickest sign that a line's trains are wasting the time of every unit they carry.
+quickest way to see how much of a line's stock is doing nothing.
 
 <Evidence level="observed" />
 
