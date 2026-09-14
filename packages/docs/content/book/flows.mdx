@@ -125,10 +125,10 @@ chart shows how much sits in each. It opens with the balancing baseline.
 
 Run `balance-stock` and watch the junction on the line map. Its station fills within the
 first day and stays about a third full for the rest of the run, while the dome runs short.
-Over seeds 1 to 20 the junction holds about 13 units on average, three tenths of the stock
-at the stations, and the dome goes short on every seed.
+Over 20 replications the junction holds about 13 units on average, three tenths of the stock
+at the stations, and the dome goes short in every replication.
 
-<Check ref="test:on relay over seeds 1 to 20 the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short on every seed" />
+<Check ref="test:on relay over 20 replications the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short in every replication" />
 
 This run can also show Little's law holding, because all three of its quantities can be
 measured separately, and the run view does. Open **Metrics** and look below the metrics
@@ -167,14 +167,14 @@ return ops.policy {
 }
 ```
 
-Run it and the junction stays empty, the dome meets all its demand on every one of seeds
-1 to 20, and the dome's station holds about 23 units on average, 16 hours of use. Followed
+Run it and the junction stays empty, the dome meets all its demand in every one of 20
+replications, and the dome's station holds about 23 units on average, 16 hours of use. Followed
 unit by unit, a unit now waits 15 hours at the dome before it is used: the same figure,
 read as time instead of stock.
 
-<Check ref="test:on relay over seeds 1 to 20 giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use" />
+<Check ref="test:on relay over 20 replications giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use" />
 
-Compare the two in **Batch** over 100 seeds. Unmet demand falls to nothing, and the
+Compare the two in **Batch** over 100 replications. Unmet demand falls to nothing, and the
 [empty distance](/docs/metrics#empty-distance-share) share falls too, since the train no
 longer runs back and forth topping up a station that uses nothing.
 
@@ -187,13 +187,13 @@ whenever it holds more. Nothing is consumed at the junction, so its stock settle
 mean and stays there, and about a third of what the stations hold sits at the one place
 that cannot use it. This is dead stock: stock that is held but never moves on to use.
 
-Little's law puts a time on it. Over seeds 1 to 20 the balancing baseline delivers
+Little's law puts a time on it. Over 20 replications the balancing baseline delivers
 about 32.5 units a day and holds about 52 units on the line, 24.6 at the mine, 13.5 at
 the junction, 6.5 at the dome and 7.2 on the train. Each unit therefore spends about 38
 hours between being mined and being used, and about 10 of those hours parked at the
 junction.
 
-<Check ref="test:on relay over seeds 1 to 20 the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction" />
+<Check ref="test:on relay over 20 replications the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction" />
 
 Under the roles policy the line holds more stock, not less: about 64 units, since the
 train carries a full load most of the way and the dome's station stays near 23. Each unit
@@ -258,7 +258,7 @@ dome is filled to its capacity, and the junction is balanced towards the average
 line that now holds more. The dome meets all its demand, because its own role fills it,
 but a third of the line's stock still waits where nothing uses it.
 
-<Check ref="test:on relay over seeds 1 to 20 giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met" />
+<Check ref="test:on relay over 20 replications giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met" />
 
 </Answer>
 

@@ -135,20 +135,20 @@ return ops.policy {
 }
 ```
 
-A test runs it for 400 seeds, and in each run counts the cycles that end with no one
+A test runs it for 400 replications, and in each run counts the cycles that end with no one
 waiting, just before each delivery after the first. The analytic 0.9546 lies inside the
 99% confidence interval of the simulated share.
 
-<Check ref="test:meets the analytic cycle service level of its reference level over 400 seeds" />
+<Check ref="test:meets the analytic cycle service level of its reference level over 400 replications" />
 
 Now see what the lead time's variability costs. Order up to 106 instead, the level that a
-fixed two-day lead time needs, and compare the two in **Batch** over 200 seeds: the
+fixed two-day lead time needs, and compare the two in **Batch** over 200 replications: the
 backorder metrics rise. Counting cycles as the test does, level 106 ends only about 88%
-of cycles with no one waiting when the lead time varies, but 95.6% when the template's
+of cycles with no one waiting when the lead time varies, but about 96% when the template's
 `lead_time` is fixed at `days(2)`. Those seven units are the price of not knowing
 when the order will arrive.
 
-<Check ref="test:on classic.safety_stock over seeds 1 to 200 level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88" />
+<Check ref="test:on classic.safety_stock over 200 replications level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88" />
 
 The template refuses lead times that differ by a review period or more, because orders
 could then overtake each other and the formula above would no longer hold.
@@ -169,12 +169,12 @@ a band.
 On a line, safety stock is what the demand station holds between visits. The train's
 round trip takes between eight and a third and nine and a third hours, so the dome uses
 eight to nine units between one visit and the next. Under balancing it holds about 10
-units when the storm begins, ten hours of normal use and four of the surge. Over seeds 1
-to 50 its station runs dry about 17 hours into the storm, stands empty for about 24
+units when the storm begins, ten hours of normal use and four of the surge. Over 50
+replications its station runs dry about 17 hours into the storm, stands empty for about 24
 hours in all, is still empty into the day after the storm has passed, and about 53 units
 of demand go unmet.
 
-<Check ref="test:on storm-shock over seeds 1 to 50 the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet" />
+<Check ref="test:on storm-shock over 50 replications the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet" />
 
 The shock is larger than any buffer a 30-unit station can hold. The storm takes away 40
 units of the mine's output and adds 54 units to the dome's demand, 94 units against a
@@ -211,7 +211,7 @@ return ops.policy {
 }
 ```
 
-<Check ref="test:on storm-shock over seeds 1 to 50 keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12" />
+<Check ref="test:on storm-shock over 50 replications keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12" />
 
 The chapter's method sizes safety stock for ordinary variability, and the few units that
 the dome's wandering use needs over a nine-hour visit are small beside a shock like this.
@@ -266,14 +266,14 @@ varies between 1 and 3 days.
 </Answer>
 
 4. Set the template's `target_service` to 0.99, so that the reference orders up to 121 as
-   in exercise 1, and run it over 200 seeds. Is the target met?
+   in exercise 1, and run it over 200 replications. Is the target met?
 
 <Answer>
 
-Yes. About 99.1% of cycles end with no one waiting, matching the analytic 0.991 for level
+Yes. About 99% of cycles end with no one waiting, matching the analytic 0.991 for level
 121. Going from 0.95 to 0.99 costs eight more units, over a third more safety stock.
 
-<Check ref="test:on classic.safety_stock over seeds 1 to 200 level 121 meets a 0.99 cycle service level" />
+<Check ref="test:on classic.safety_stock over 200 replications level 121 meets a 0.99 cycle service level" />
 
 </Answer>
 

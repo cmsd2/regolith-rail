@@ -1,4 +1,5 @@
 import {
+  batchSeeds,
   runAverages,
   runSimulation,
   type Scenario,
@@ -12,6 +13,13 @@ import { LuaRuntime } from "./policy.ts";
 
 // Claims the book's chapters make about the simulator, referred to from the chapters by title.
 
+/**
+ * A batch in the workbench takes one seed and gives each replication its own stream, derived
+ * from the seed and the replication's number. These are the replications of seed 1.
+ */
+const REPLICATIONS = batchSeeds(1, 400);
+const replication = (i: number) => REPLICATIONS[i] as number;
+
 let runtime: LuaRuntime;
 beforeAll(async () => {
   runtime = await LuaRuntime.load();
@@ -24,7 +32,8 @@ function metricsOver(scenarioId: string, source: string, seeds: number) {
   try {
     return Array.from(
       { length: seeds },
-      (_, i) => runSimulation(result.scenario, policy, { seed: i + 1, detail: "summary" }).metrics,
+      (_, i) =>
+        runSimulation(result.scenario, policy, { seed: replication(i), detail: "summary" }).metrics,
     );
   } finally {
     policy.close();
@@ -32,14 +41,14 @@ function metricsOver(scenarioId: string, source: string, seeds: number) {
 }
 
 describe("chapter 1, modelling operations", () => {
-  it("on two-station the balancing baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds", () => {
+  it("on two-station the balancing baseline leaves demand unmet while the mine's production stalls, in each of 20 replications", () => {
     for (const metrics of metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 20)) {
       expect(metrics.unmetDemand).toBeGreaterThan(0);
       expect(metrics.stalledProduction).toBeGreaterThan(0);
     }
   });
 
-  it("on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds", () => {
+  it("on two-station taking everything from the mine and leaving everything at the dome meets all demand in each of 20 replications", () => {
     const fix = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
@@ -60,7 +69,7 @@ function stockOver(scenarioId: string, source: string, seeds: number) {
   const policy = runtime.createPolicy(source);
   try {
     return Array.from({ length: seeds }, (_, i) => {
-      const out = runSimulation(result.scenario, policy, { seed: i + 1, detail: "full" });
+      const out = runSimulation(result.scenario, policy, { seed: replication(i), detail: "full" });
       const stock = out.stock as Int32Array;
       const rows = stock.length / out.sites.length;
       const stations: Record<string, number> = {};
@@ -127,7 +136,7 @@ describe("chapter 2, flows, rates and Little's law", () => {
     expect(roles.lambdaW / roles.L).toBeGreaterThan(0.94);
   }, 120_000);
 
-  it("on relay over seeds 1 to 20 the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short on every seed", () => {
+  it("on relay over 20 replications the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short in every replication", () => {
     const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
     const junction = mean(runs.map((r) => r.stations.Junction as number));
     expect(junction).toBeGreaterThan(12.5);
@@ -144,7 +153,7 @@ describe("chapter 2, flows, rates and Little's law", () => {
     }
   }, 300_000);
 
-  it("on relay over seeds 1 to 20 the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction", () => {
+  it("on relay over 20 replications the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction", () => {
     const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
     const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
     expect(perDay).toBeGreaterThan(32);
@@ -160,7 +169,7 @@ describe("chapter 2, flows, rates and Little's law", () => {
     expect(junctionHours).toBeLessThan(11);
   }, 300_000);
 
-  it("on relay over seeds 1 to 20 giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use", () => {
+  it("on relay over 20 replications giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use", () => {
     const runs = stockOver("relay", ROLES, 20);
     for (const run of runs) {
       expect(run.stations.Junction).toBe(0);
@@ -175,7 +184,7 @@ describe("chapter 2, flows, rates and Little's law", () => {
     expect((dome / perDay) * 24).toBeLessThan(17);
   }, 300_000);
 
-  it("on relay over seeds 1 to 20 giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met", () => {
+  it("on relay over 20 replications giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met", () => {
     const runs = stockOver(
       "relay",
       `return ops.policy {
@@ -211,7 +220,7 @@ describe("chapter 3, randomness and simulation", () => {
     return cov / (x.length - 1) / (a.sd * b.sd);
   };
 
-  it("on two-station over seeds 1 to 100 balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand on every seed", () => {
+  it("on two-station over 100 replications balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100).map(
       (m) => m.unmetDemand / 1000,
     );
@@ -224,7 +233,7 @@ describe("chapter 3, randomness and simulation", () => {
     for (const m of metricsOver("two-station", OBVIOUS, 100)) expect(m.unmetDemand).toBe(0);
   }, 300_000);
 
-  it("on two-station over seeds 1 to 100 the two policies' stalled production rises and falls together with a correlation of about 0.75, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more", () => {
+  it("on two-station over 100 replications the two policies' stalled production rises and falls together with a correlation of about 0.8, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100);
     const obvious = metricsOver("two-station", OBVIOUS, 100);
     const compare = (pick: (m: (typeof balance)[number]) => number) => {
@@ -236,7 +245,7 @@ describe("chapter 3, randomness and simulation", () => {
     };
     const stalled = compare((m) => m.stalledProduction / 1000);
     expect(stalled.correlation).toBeGreaterThan(0.7);
-    expect(stalled.correlation).toBeLessThan(0.8);
+    expect(stalled.correlation).toBeLessThan(0.85);
     expect(stalled.ratio).toBeGreaterThan(0.75);
     expect(stalled.ratio).toBeLessThan(0.85);
     const empty = compare((m) => m.emptyDistanceShare);
@@ -244,7 +253,7 @@ describe("chapter 3, randomness and simulation", () => {
     expect(empty.ratio).toBeGreaterThan(1);
   }, 300_000);
 
-  it("comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more", () => {
+  it("comparing base-stock levels 13 and 15 on the same 100 replications, paired differences spread less than half as much as independent runs, and level 15 costs more", () => {
     const params = {
       random: true,
       demand: 4,
@@ -261,7 +270,10 @@ describe("chapter 3, randomness and simulation", () => {
       );
       try {
         return Array.from({ length: 100 }, (_, i) => {
-          const out = runSimulation(loaded.scenario, policy, { seed: i + 1, detail: "summary" });
+          const out = runSimulation(loaded.scenario, policy, {
+            seed: replication(i),
+            detail: "summary",
+          });
           return out.metrics.costs.total / 1000 / 30;
         });
       } finally {
@@ -297,14 +309,17 @@ describe("chapter 6, reviews, lead times and base-stock", () => {
     expect(Math.round((reference?.expectedCostPerDay as number) * 100) / 100).toBe(7.97);
   });
 
-  it("on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, on seeds 1 to 100", () => {
+  it("on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, over 100 replications", () => {
     const loaded = runtime.loadScript(templateCall("classic.reorder", params));
     if (!loaded.ok) throw new Error("the template should evaluate");
     const costPerDay = (source: string) => {
       const policy = runtime.createPolicy(source);
       try {
         const total = Array.from({ length: 100 }, (_, i) => {
-          const out = runSimulation(loaded.scenario, policy, { seed: i + 1, detail: "summary" });
+          const out = runSimulation(loaded.scenario, policy, {
+            seed: replication(i),
+            detail: "summary",
+          });
           return out.metrics.costs.total / 1000 / 30;
         }).reduce((a, b) => a + b, 0);
         return total / 100;
@@ -344,7 +359,7 @@ describe("chapter 6, the double dispatch case study", () => {
     };
   };
 
-  it("on two-trains over seeds 1 to 100, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running", () => {
+  it("on two-trains over 100 replications, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running", () => {
     const baseline = means(BUILT_IN_POLICIES["balance-stock"]);
     const roles = means(ROLES);
     const lookahead = means(LOOKAHEAD);
@@ -399,7 +414,10 @@ describe("chapter 7, the storm shock case study", () => {
     const policy = runtime.createPolicy(source);
     try {
       const runs = Array.from({ length: seeds }, (_, i) => {
-        const out = runSimulation(result.scenario, policy, { seed: i + 1, detail: "full" });
+        const out = runSimulation(result.scenario, policy, {
+          seed: replication(i),
+          detail: "full",
+        });
         const stock = out.stock as Int32Array;
         const sites = out.sites.length;
         const rows = stock.length / sites;
@@ -445,7 +463,7 @@ describe("chapter 7, the storm shock case study", () => {
     }
   }
 
-  it("on storm-shock over seeds 1 to 50 the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet", () => {
+  it("on storm-shock over 50 replications the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet", () => {
     const dome = domeOver(BUILT_IN_POLICIES["balance-stock"], 50);
     expect(dome.atStorm).toBeGreaterThan(8.5);
     expect(dome.atStorm).toBeLessThan(10.5);
@@ -458,7 +476,7 @@ describe("chapter 7, the storm shock case study", () => {
     expect(dome.unmet).toBeLessThan(56);
   }, 600_000);
 
-  it("on storm-shock over seeds 1 to 50 keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12", () => {
+  it("on storm-shock over 50 replications keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12", () => {
     const full = domeOver(FILL, 50);
     expect(full.atStorm).toBeGreaterThan(22);
     expect(full.atStorm).toBeLessThan(24.5);
@@ -518,7 +536,7 @@ describe("simulator exercises", () => {
     const policy = runtime.createPolicy(source);
     try {
       return Array.from({ length: seeds }, (_, i) => {
-        const out = runSimulation(scenario, policy, { seed: i + 1, detail: "summary" });
+        const out = runSimulation(scenario, policy, { seed: replication(i), detail: "summary" });
         return out.metrics.costs.total / 1000 / days;
       });
     } finally {
@@ -531,7 +549,7 @@ describe("simulator exercises", () => {
     try {
       return mean(
         Array.from({ length: seeds }, (_, i) => {
-          const out = runSimulation(scenario, policy, { seed: i + 1, detail: "full" });
+          const out = runSimulation(scenario, policy, { seed: replication(i), detail: "full" });
           const site = out.sites.findIndex((s) => s.station === "Shop" && s.resource === "Goods");
           const deliveries = out.events.filter((e) => e.kind === "delivery").slice(1);
           const backorders = out.backorders as Int32Array;
@@ -546,7 +564,7 @@ describe("simulator exercises", () => {
     }
   };
 
-  it("on two-station with 60-unit stations, balancing leaves about 5 units unmet over seeds 1 to 20 instead of about 28, but the dome still goes short on every seed", () => {
+  it("on two-station with 60-unit stations, balancing leaves about 5 units unmet over 20 replications instead of about 28, but the dome still goes short in every replication", () => {
     const large = load(
       (STARTER_SCRIPTS["two-station"] as string).replaceAll("small_station", "large_station"),
     );
@@ -555,8 +573,8 @@ describe("simulator exercises", () => {
       const unmet = Array.from(
         { length: 20 },
         (_, i) =>
-          runSimulation(large, policy, { seed: i + 1, detail: "summary" }).metrics.unmetDemand /
-          1000,
+          runSimulation(large, policy, { seed: replication(i), detail: "summary" }).metrics
+            .unmetDemand / 1000,
       );
       expect(mean(unmet)).toBeGreaterThan(4);
       expect(mean(unmet)).toBeLessThan(6.5);
@@ -573,7 +591,7 @@ describe("simulator exercises", () => {
     expect(small).toBeLessThan(30);
   }, 300_000);
 
-  it("on two-station over seeds 1 to 10 the paired difference in unmet demand between the obvious rule and balancing is about 27 units with a 95% half-width under 2, so ten seeds already leave out zero", () => {
+  it("on two-station over 10 replications the paired difference in unmet demand between the obvious rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 10);
     const obvious = metricsOver("two-station", OBVIOUS, 10);
     const difference = spread(
@@ -581,8 +599,8 @@ describe("simulator exercises", () => {
         (m, i) => (m.unmetDemand - (balance[i] as (typeof balance)[number]).unmetDemand) / 1000,
       ),
     );
-    expect(difference.mean).toBeLessThan(-25);
-    expect(difference.mean).toBeGreaterThan(-29);
+    expect(difference.mean).toBeLessThan(-27);
+    expect(difference.mean).toBeGreaterThan(-30);
     // t for 9 degrees of freedom at 97.5%.
     const half = (2.262 * difference.sd) / Math.sqrt(10);
     expect(half).toBeLessThan(2);
@@ -606,7 +624,7 @@ describe("simulator exercises", () => {
     }
   }, 120_000);
 
-  it("on classic.newsvendor over seeds 1 to 100 ordering 15 costs about 41 a day, 20 about 43 and 10 about 47.5, each within a unit of the model", () => {
+  it("on classic.newsvendor over 100 replications ordering 15 costs about 41 a day, 20 about 43 and 10 about 48, each within a unit of the model", () => {
     const scenario = load(templateCall("classic.newsvendor", {}));
     const at = (units: number) => mean(costsPerDay(scenario, orderUpTo(units * 1000), 100, 30));
     const [ten, fifteen, twenty] = [at(10), at(15), at(20)];
@@ -617,7 +635,7 @@ describe("simulator exercises", () => {
     expect(twenty).toBeLessThan(ten);
   }, 300_000);
 
-  it("on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.8 a day over seeds 1 to 100, less than ordering 15 or 25", () => {
+  it("on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25", () => {
     const scenario = load(templateCall("classic.newsvendor", { lost_cost: 10 }));
     const at = (units: number) => mean(costsPerDay(scenario, orderUpTo(units * 1000), 100, 30));
     const twenty = at(20);
@@ -627,7 +645,7 @@ describe("simulator exercises", () => {
     expect(twenty).toBeLessThan(at(25));
   }, 300_000);
 
-  it("on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over seeds 1 to 100 the simulated cost agrees within its interval", () => {
+  it("on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over 100 replications the simulated cost agrees within its interval", () => {
     const params = {
       random: true,
       demand: 4,
@@ -647,7 +665,7 @@ describe("simulator exercises", () => {
     expect(Math.abs(costs.mean - analytic)).toBeLessThan((2.626 * costs.sd) / 10);
   }, 300_000);
 
-  it("on classic.safety_stock over seeds 1 to 200 level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88", () => {
+  it("on classic.safety_stock over 200 replications level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88", () => {
     const variable = load(templateCall("classic.safety_stock", {}));
     const fixed = load(templateCall("classic.safety_stock", { lead_time: 2 * DAY }));
     expect(
@@ -662,7 +680,7 @@ describe("simulator exercises", () => {
     expect(short).toBeLessThan(0.9);
   }, 600_000);
 
-  it("on classic.safety_stock over seeds 1 to 200 level 121 meets a 0.99 cycle service level", () => {
+  it("on classic.safety_stock over 200 replications level 121 meets a 0.99 cycle service level", () => {
     const template = classicTemplates.find((t) => t.name === "classic.safety_stock");
     expect(template?.reference({ target_service: 0.99 }).values.level).toBe(121);
     expect(

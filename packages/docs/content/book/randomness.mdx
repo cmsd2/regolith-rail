@@ -55,7 +55,8 @@ so the gaps between arrivals are exponential, with mean $1/\lambda$.
 
 ### Estimating by simulation
 
-Run a simulation $n$ times with different seeds and average the costs. The average
+Run a simulation $n$ times, each replication with fresh random numbers, and average the
+costs. The average
 $\bar{X}$ estimates the expected cost. If one run's cost has standard deviation
 $\sigma$, the average of $n$ independent runs has standard deviation
 
@@ -92,10 +93,10 @@ an estimate of $\pi$, is about 0.0026.
 
 <Check ref="python:monte-carlo-pi" />
 
-### Comparing on the same seeds
+### Comparing on the same streams
 
 To compare policies A and B, look at the difference $D = X_B - X_A$. If the two are run
-on unrelated random numbers, the variances simply add. If they are run on the same seed,
+on unrelated random numbers, the variances simply add. If they are run on the same streams,
 so both face the same arrivals, their costs move together with correlation $\rho$, and
 
 $$
@@ -125,6 +126,14 @@ rate.
 
 <Check ref="test:keeps Poisson arrivals whole and repeatable for the same seed" />
 
+A batch takes one seed and a number of replications. Each replication draws its random
+numbers from its own stream, derived from the seed and the replication's number, so the
+replications are independent of one another, as if one long stream ran on from
+replication to replication, and each can be rerun on its own. A batch run again gives the
+same results, and the same streams serve both policies in a comparison.
+
+<Check ref="test:derives batch seeds from base seed and count only" />
+
 Chapter 1's line is the place to see what a seed changes. The `two-station` starter's
 dome uses 36 units a day on average, but its rate is redrawn every two hours, up to 20%
 either way, from the seed. Open it with the balancing baseline, run seed 1, then seed 2:
@@ -133,12 +142,12 @@ draw.
 
 <Scenario starter="two-station" />
 
-Switch to **Batch** and run `balance-stock` over 100 seeds. Unmet demand averages 28.0
-units with a sample standard deviation of 3.1, so the standard error of the mean is 0.31
-and the 95% interval runs from about 27.4 to 28.6. The single runs range over more than
+Switch to **Batch**, keep the seed at 1, and run `balance-stock` for 100 replications.
+Unmet demand averages 28.0 units with a sample standard deviation of 3.0, so the
+standard error of the mean is 0.30 and the 95% interval runs from about 27.4 to 28.6. The single runs range over more than
 ten units, so a single run can sit ten units from the average.
 
-<Check ref="test:on two-station over seeds 1 to 100 balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand on every seed" />
+<Check ref="test:on two-station over 100 replications balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication" />
 
 Now tick **Compare**, choose the obvious rule from chapter 1 as the second policy, and
 run again.
@@ -150,29 +159,29 @@ return ops.policy {
 }
 ```
 
-The batch runs both policies on the same seeds, and reports each metric's paired
+The batch runs both policies on the same streams, and reports each metric's paired
 difference with a 95% confidence interval.
 
 <Check ref="test:compares two policies on the same seeds" />
 
-On unmet demand there is nothing to pair: the obvious rule meets all demand on every
-seed, so the difference is the baseline's own spread, and its interval, $28.0 \pm 0.6$,
+On unmet demand there is nothing to pair: the obvious rule meets all demand in every
+replication, so the difference is the baseline's own spread, and its interval, $28.0 \pm 0.6$,
 leaves out zero by a wide margin. Stalled production shows what pairing does. Both
-policies stall the mine more on a seed where the dome happens to use less, so their
-stalls rise and fall together, with a correlation of about 0.75. The paired differences
-spread 2.98 units against the 3.73 that independent runs would give, a fifth less, so the
+policies stall the mine more on a replication where the dome happens to use less, so their
+stalls rise and fall together, with a correlation of about 0.8. The paired differences
+spread 2.9 units against the 3.7 that independent runs would give, a fifth less, so the
 same precision needs about two thirds as many runs.
 
 Pairing can also hurt. The two policies' empty running moves in opposite directions with
-demand: balancing runs emptier on a seed where the dome uses less, and the obvious rule
-on one where it uses more. Their correlation is negative, and the paired differences
+demand: balancing runs emptier on a replication where the dome uses less, and the
+obvious rule on one where it uses more. Their correlation is negative, and the paired differences
 spread more than independent runs would. Common random numbers reduce variance when
 the policies respond to the noise in the same direction, which is the usual case, but it
 is worth checking.
 
-<Check ref="test:on two-station over seeds 1 to 100 the two policies' stalled production rises and falls together with a correlation of about 0.75, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more" />
+<Check ref="test:on two-station over 100 replications the two policies' stalled production rises and falls together with a correlation of about 0.8, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more" />
 
-Chapter 6 compares two order-up-to levels on the same seeds. There both policies answer
+Chapter 6 compares two order-up-to levels on the same streams. There both policies answer
 the same demand in the same direction, and the paired spread falls to less than half.
 
 ## Where the simulator differs
@@ -191,10 +200,9 @@ the same demand in the same direction, and the paired spread falls to less than 
 
   <Check ref="test:uses conservative t critical values" />
 
-- **Batches repeat.** A batch's seeds are derived from a base seed and the number of
-  runs, so running the same batch again gives the same results.
-
-  <Check ref="test:derives batch seeds from base seed and count only" />
+- **Batches repeat.** Each replication's stream comes from the seed and the replication's
+  number alone, so running the same batch again gives the same results, and adding
+  replications leaves the earlier ones unchanged.
 
 ## Exercises
 
@@ -210,7 +218,7 @@ runs.
 
 </Answer>
 
-2. Two policies' costs correlate at 0.75 when run on the same seeds, and have equal
+2. Two policies' costs correlate at 0.75 when run on the same streams, and have equal
    spreads. Compared with independent runs, how many runs does a paired comparison need
    for the same precision?
 
@@ -233,16 +241,16 @@ $e^{-4} \approx 0.0183$, a little under 2%.
 
 </Answer>
 
-4. Run the comparison of the obvious rule with balancing over 10 seeds instead of 100.
-   Does the interval for the difference in unmet demand still leave out zero?
+4. Run the comparison of the obvious rule with balancing with 10 replications instead of
+   100. Does the interval for the difference in unmet demand still leave out zero?
 
 <Answer>
 
-Easily. On seeds 1 to 10 the difference is about 27 units and the 95% half-width is under
-2. Ten seeds are plenty when the difference is large beside the spread of single runs; it
-is a small difference that needs many.
+Easily. With 10 replications the difference is about 28 units and the 95% half-width is
+under 2. Ten replications are plenty when the difference is large beside the spread of
+single runs; it is a small difference that needs many.
 
-<Check ref="test:on two-station over seeds 1 to 10 the paired difference in unmet demand between the obvious rule and balancing is about 27 units with a 95% half-width under 2, so ten seeds already leave out zero" />
+<Check ref="test:on two-station over 10 replications the paired difference in unmet demand between the obvious rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero" />
 
 </Answer>
 
@@ -251,7 +259,7 @@ is a small difference that needs many.
 Colonies in the rail game do not use resources at a perfectly steady rate, and the
 starter scenarios model that with rates that vary from hour to hour. A single run of a
 line is one possible colony. Before deciding one dispatch rule beats another, compare
-them in **Batch** over many seeds and check the interval leaves out zero.
+them in **Batch** over many replications and check the interval leaves out zero.
 
 </GameNote>
 

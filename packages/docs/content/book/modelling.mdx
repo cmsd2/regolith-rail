@@ -168,18 +168,18 @@ return ops.policy {
 }
 ```
 
-It meets all of the dome's demand on every one of seeds 1 to 20. Once the dome's station
+It meets all of the dome's demand on every one of 20 replications. Once the dome's station
 is full, the mine can still stall, as the surplus says it must.
 
-<Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds" />
+<Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand in each of 20 replications" />
 
 Now put the balancing baseline back in the run: click `balance-stock`, or use it from the
-**Policies** list in the library. Run it and open **Metrics**. On every one of seeds 1 to
-20, the dome goes short while the mine stalls, at the same time.
+**Policies** list in the library. Run it and open **Metrics**. In every one of 20 replications, the
+dome goes short while the mine stalls, at the same time.
 
-<Check ref="test:on two-station the balancing baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
+<Check ref="test:on two-station the balancing baseline leaves demand unmet while the mine's production stalls, in each of 20 replications" />
 
-Compare the two in **Batch** to see the difference over many seeds, and what taking
+Compare the two in **Batch** to see the difference over many replications, and what taking
 everything costs in [empty distance](/docs/metrics#empty-distance-share): the train
 always returns empty.
 
@@ -269,12 +269,12 @@ stations still have to hold very different amounts.
 <Answer>
 
 Mostly. The steady cycle needs a gap of about 26 units between the stations, and a
-60-unit station holds it with room to spare, so over seeds 1 to 20 unmet demand falls
-from about 28 units to about 5. But the dome still goes short on every seed: balancing
+60-unit station holds it with room to spare, so over 20 replications unmet demand falls
+from about 28 units to about 5. But the dome still goes short in every replication: balancing
 still moves half the gap it sees, so the dome sits low whenever the mine sits high, and
 any disturbance closes the difference.
 
-<Check ref="test:on two-station with 60-unit stations, balancing leaves about 5 units unmet over seeds 1 to 20 instead of about 28, but the dome still goes short on every seed" />
+<Check ref="test:on two-station with 60-unit stations, balancing leaves about 5 units unmet over 20 replications instead of about 28, but the dome still goes short in every replication" />
 
 </Answer>
 

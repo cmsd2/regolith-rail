@@ -129,17 +129,17 @@ return ops.policy {
 ```
 
 Amounts in policies are in thousandths of a unit, so 15 units is `15000`. A test runs
-the template with this policy for 400 seeds, and checks that the analytic 41.11 lies
+the template with this policy for 400 replications, and checks that the analytic 41.11 lies
 inside the 99% confidence interval of the simulated mean cost per day.
 
-<Check ref="test:reaches the analytic expected cost at the critical-ratio quantity over 400 seeds" />
+<Check ref="test:reaches the analytic expected cost at the critical-ratio quantity over 400 replications" />
 
 To see the lopsided curve, open **Batch**, tick **Compare**, and compare the reference
 policy with copies ordering 10 and 20. The total cost metric rises on both sides of 15,
-by more below it than above: over seeds 1 to 100 the three cost about 41, 43 and 47.5 a
+by more below it than above: over 100 replications the three cost about 41, 43 and 48 a
 day, each within a unit of the model's 41.11, 42.78 and 47.78.
 
-<Check ref="test:on classic.newsvendor over seeds 1 to 100 ordering 15 costs about 41 a day, 20 about 43 and 10 about 47.5, each within a unit of the model" />
+<Check ref="test:on classic.newsvendor over 100 replications ordering 15 costs about 41 a day, 20 about 43 and 10 about 48, each within a unit of the model" />
 
 ## Where the simulator differs
 
@@ -199,12 +199,12 @@ about 105.07 units.
 The critical ratio becomes $(10 - 2)/10 = 4/5$, and 20 is the smallest order with
 $P(D \le Q) \ge 4/5$, since demand is at most 20 with probability $8/9$. Its expected cost
 is $410/9 \approx 45.56$ a day; ordering 15 costs $470/9 \approx 52.22$, and ordering 25,
-which covers every outcome, costs exactly 50. Over seeds 1 to 100 the simulator agrees:
-about 45.8 for 20, and more for both 15 and 25.
+which covers every outcome, costs exactly 50. Over 100 replications the simulator agrees:
+about 45.6 for 20, and more for both 15 and 25.
 
 <Check ref="maxima:lost-cost-ten" />
 
-<Check ref="test:on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.8 a day over seeds 1 to 100, less than ordering 15 or 25" />
+<Check ref="test:on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25" />
 
 </Answer>
 

@@ -121,7 +121,7 @@ return ops.policy {
 
 <Check ref="test:the reorder template's base-stock reference for 4 a day, a 2-day lead time and 6-hour reviews orders up to 13 and expects 7.97 a day" />
 
-Over 200 seeds, the simulated cost per day agrees with that value within its confidence
+Over 200 replications, the simulated cost per day agrees with that value within its confidence
 interval.
 
 <Check ref="test:reaches the analytic expected cost of a base-stock policy with random demand" />
@@ -134,13 +134,13 @@ return ops.policy {
 }
 ```
 
-In **Batch**, tick **Compare**, and run both over 100 seeds. Both policies face the same
-demand, so their costs rise and fall together, and on seeds 1 to 100 the paired
+In **Batch**, tick **Compare**, and run both over 100 replications. Both policies face the same
+demand, so their costs rise and fall together, and over 100 replications the paired
 differences spread less than half as much as independent runs would. The interval for the
 difference leaves out zero: ordering up to 15 costs more, because every unit above the
 critical fractile is held more often than it is needed.
 
-<Check ref="test:comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more" />
+<Check ref="test:comparing base-stock levels 13 and 15 on the same 100 replications, paired differences spread less than half as much as independent runs, and level 15 costs more" />
 
 Now order up to the same level from stock on hand, in plain Lua:
 
@@ -155,11 +155,11 @@ return {
 }
 ```
 
-On seeds 1 to 100 it costs more than five times as much a day. Open the stock chart to
+Over 100 replications it costs more than five times as much a day. Open the stock chart to
 see why: stock climbs far above 13 as repeated orders for the same shortage arrive one
 after another.
 
-<Check ref="test:on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, on seeds 1 to 100" />
+<Check ref="test:on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, over 100 replications" />
 
 ## Case study: double dispatch
 
@@ -200,11 +200,11 @@ return ops.policy {
 }
 ```
 
-The measurements do not flatter the second remedy. On seeds 1 to 100, roles alone leave
+The measurements do not flatter the second remedy. Over 100 replications, roles alone leave
 less than a tenth of the baseline's unmet demand. Adding lookahead leaves more unmet
 demand than roles alone, and more than three times the empty running.
 
-<Check ref="test:on two-trains over seeds 1 to 100, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running" />
+<Check ref="test:on two-trains over 100 replications, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running" />
 
 A likely reason shows in how lookahead decides. At the mine, a train loads only what the
 stations ahead are short of *now*. The dome is four hours' travel away and uses 7 units in
@@ -264,16 +264,16 @@ The protection interval shrinks to $5/4$ days with mean demand 5, and the level 
 </Answer>
 
 4. Set the template's lead time to one day, so that the reference orders up to 8 as in
-   exercise 3, and run it over 100 seeds. What does it cost a day?
+   exercise 3, and run it over 100 replications. What does it cost a day?
 
 <Answer>
 
-About 4.8 a day, against 7.97 with a two-day lead time: the level falls by 5 units and
+About 4.7 a day, against 7.97 with a two-day lead time: the level falls by 5 units and
 the cost by two fifths, because less stock is held and less demand arrives before an
-order can. The template's analytic value is 4.81, and over seeds 1 to 100 the simulated
+order can. The template's analytic value is 4.81, and over 100 replications the simulated
 cost agrees with it within its confidence interval.
 
-<Check ref="test:on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over seeds 1 to 100 the simulated cost agrees within its interval" />
+<Check ref="test:on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over 100 replications the simulated cost agrees within its interval" />
 
 </Answer>
 
