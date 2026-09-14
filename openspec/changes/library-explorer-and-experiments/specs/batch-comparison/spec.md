@@ -14,5 +14,5 @@ The player SHALL be able to set up a batch from the run's slots and a few settin
 - **THEN** the current scenario and policy are selected as A with 100 seeds
 
 #### Scenario: Compare with a library policy
-- **WHEN** the player turns on comparison and fills the Compare slot with Policies › Built in › naive
+- **WHEN** the player turns on comparison, chooses policy B and uses the built-in naive policy
 - **THEN** the batch compares the Policy slot's policy as A with naive as B on the same seeds

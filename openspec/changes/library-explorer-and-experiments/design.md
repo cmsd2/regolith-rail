@@ -76,13 +76,17 @@ stable ids:
 - Documentation runnable examples: `example:policy:docs/<page>#<n>`.
 - Classic templates at their defaults: `classic:scenario:<template>`.
 - Classic reference policies at the template defaults: `classic:policy:<template>`.
-- Built-in experiments: `classic:experiment:<template>` for each template with its reference policy, and
-  `builtin:experiment:<failure mode>` for each failure-mode page's suggested fix.
+
+Scenarios carry their lesson rather than being paired in built-in experiments:
+
+- a starter scenario item records its documentation page and its suggested fix, the id of the runnable
+  example on that failure-mode page;
+- a classic scenario item records its page and that its reference policy is `classic:policy:<template>`,
+  or the unlisted reference item for other parameters.
 
 Failure-mode fixes and docs examples come from the documentation's runnable examples. The docs build
 already extracts those with their scenario, so they need no second copy. `scenario-kit` exports its example
-policies with names and one-line descriptions. The docs check fails if a catalogue entry lacks a
-description.
+policies with names and one-line descriptions. A unit test fails if a catalogue entry lacks a description.
 
 *Alternative considered:* seed IndexedDB with built-ins. Rejected: they would go stale when the site updates
 and would need their own migrations.
@@ -107,13 +111,15 @@ reintroduces unsaved state.
 ### 4. Automatic saving replaces drafts
 
 The session subscribes to Mine items and slots, and writes changed items and the slot record to storage
-500 ms after the last change and on `pagehide`, as drafts do today. The storage layout:
+500 ms after the last change and on `pagehide`, as drafts do today. The library is one IndexedDB database with
+one object store, `records`, because idb-keyval opens one store per database:
 
-| Store | Keys |
+| Keys | Holds |
 | --- | --- |
-| `items` | item id |
-| `experiments` | item id (experiments are items, but kept apart so listing them stays cheap) |
-| `session` | one record: slots, view, seed, batch settings |
+| `item:<id>` | Mine and shared items, experiments included |
+| `session` | the slots, unlisted items they use, view, seed and batch settings |
+
+Items are written with `setMany` and removed with `delMany`, one transaction each per save.
 
 The draft status indicator becomes a saving indicator on the This run panel.
 
@@ -128,8 +134,9 @@ The draft status indicator becomes a saving indicator on the This run panel.
 
 Opening an experiment:
 
-1. Each part is exposed as a read-only transient item, `experiment:<id>/scenario`, `/policy` or `/compare`,
-   listed under the experiment in the explorer.
+1. Each part is exposed as a read-only unlisted item, `experiment:<id>/scenario`, `/policy` or `/compare`.
+   A part still equal to the read-only item it came from uses that item instead, so a classic reference
+   policy keeps following its template.
 2. The slots point at those items.
 3. The seed, view and batch settings are restored.
 
@@ -165,7 +172,42 @@ Shared with me and keeps the fragment short. Unknown example references show a n
   - **Experiments:** these import from `.json` files with `{ "regolithRail": "experiment", "version": 1, ... }`.
 - **Export:** creates a Blob and a temporary object URL with a `download` attribute. Nothing is sent anywhere.
 
-### 9. Layout
+### 9. Explorer: slots above three lists, selecting apart from using
+
+The explorer column holds This run at the top and a tab list below it: Scenarios, Policies and Saved runs, one
+list shown at a time. Built-in experiments are not listed; each scenario's lesson sits on the Scenario slot
+instead (decision 2), which removes the confusing pairing of scenarios, policies and experiments in one tree.
+
+- **Selecting and using:** a click selects an item and shows its description and actions in a details area of
+  fixed height, so the list never moves under the pointer. Double-click, Enter or the Use action puts the item
+  in its slot. Browsing never swaps the editor's contents.
+- **Choosing a slot:** it selects the matching tab and sets `choosing` in the workbench store, so the batch
+  view can start choosing policy B as well. Using a policy then fills Compare. Escape cancels.
+- **Structure:** each list is an ARIA tree (`role="tree"`, `treeitem`, roving tabindex) inside a tab panel.
+  Grouping, visible rows and key handling are pure functions with unit tests. The components are checked end
+  to end, since the app has no component test setup and adds no dependency for one.
+
+*Alternative considered:* one tree with Scenarios, Policies and Experiments as top-level groups. Rejected
+after trying it: it put unrelated items side by side, suggested every policy suits every scenario, and a single
+click swapped the editor.
+
+### 10. Policy fit
+
+The Policies list groups by fit to the scenario in the Scenario slot:
+
+1. **For this scenario:** catalogue policies whose `example.scenario` is that scenario, its suggested fix, and
+   for a classic template its reference policy. A Mine or shared scenario uses the shipped scenario it was
+   copied from, following `origin`.
+2. **Built in**, **Mine**, **Shared with me**.
+3. **Other examples**, collapsed.
+
+Fit is judged from the hooks a policy defines and what the scenario offers. `on_stop` needs vehicles, and
+`on_review` needs stations with reviews. The hooks come from the checker worker's `hooksOf`, which only loads
+the policy. They are cached by a hash of the source, so switching scenarios does not reload policies. A policy
+none of whose hooks the scenario calls is dimmed with the reason, but stays usable. Information-level
+problems are still reported when the policy loads.
+
+### 11. Layout
 
 The workbench grid becomes explorer | editor | views | docs. Column widths are CSS custom properties set by
 drag handles: pointer events, plus arrow-key resizing on focus. Widths and the explorer's collapsed state are
@@ -173,12 +215,9 @@ kept in `localStorage`, wrapped in try/catch, not in IndexedDB. They are per-bro
 work. Below 800 px wide:
 
 - the explorer becomes a Radix Dialog drawer opened from a toolbar button;
-- choosing an item closes the drawer.
+- using an item closes the drawer.
 
-The explorer tree uses the ARIA tree pattern (`role="tree"`, `treeitem`, roving tabindex) rather than a new
-dependency.
-
-### 10. Migration from saved work and drafts
+### 12. Migration from saved work and drafts
 
 `openStorage` opens database version 2.
 
@@ -197,9 +236,13 @@ session.
   offered on the slot. Nothing is deleted automatically. A clean-up aid can follow if it proves needed.
 - **[Four columns are cramped on laptops]** → The explorer collapses to a rail. Docs and explorer widths are
   resizable and remembered. The docs panel stays optional.
-- **[Transient items for reference policies and experiment parts confuse the tree]** → They are listed only
-  under their experiment, or not at all for reference policies. Slots show a clear origin label, such as
-  "Reference policy · classic.newsvendor".
+- **[Unlisted items for reference policies and experiment parts confuse the lists]** → They are never listed.
+  Slots show a clear origin label, such as "From the experiment Storm buffer".
+- **[Fit checks load every policy in a worker]** → Hooks are cached by source hash and only checked for
+  policies in the visible list. The checker worker already loads policies for editor checks.
+- **[Hooks alone misjudge fit]** → A policy can define `on_stop` yet do nothing useful on a scenario. The dim
+  state only warns and never blocks, and policies written for the scenario are grouped first, which carries
+  most of the guidance.
 - **[Automatic saving writes on every keystroke burst]** → Debounced to 500 ms and one transaction per flush,
   as drafts today.
 - **[Migration loses work]** → Old records are deleted only after new ones commit. Unit tests cover migration

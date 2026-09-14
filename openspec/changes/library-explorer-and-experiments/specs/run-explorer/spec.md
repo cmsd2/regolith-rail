@@ -24,7 +24,7 @@ template or one of their own.
 - **THEN** the errors are shown at their locations and Run is disabled until they are fixed
 
 #### Scenario: Template parameters
-- **WHEN** the player activates `classic.serial_chain` in the library and sets the number of stages to 3 in the
+- **WHEN** the player uses `classic.serial_chain` from the library and sets the number of stages to 3 in the
   parameter form
 - **THEN** the scenario is re-evaluated with three stages and the map shows three stations in series
 
@@ -36,6 +36,6 @@ classic reference, shared and imported policies, by filling the Policy slot with
 which library item the policy comes from.
 
 #### Scenario: Run a built-in policy
-- **WHEN** the player activates Policies › Built in › supply-to-demand and presses Run
+- **WHEN** the player uses the built-in supply-to-demand policy and presses Run
 - **THEN** the run uses supply-to-demand on the current scenario, and the editor names supply-to-demand as its
   source

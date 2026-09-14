@@ -14,33 +14,30 @@ documentation have no home: opening a docs example replaces the player's policy 
 A plain file tree does not fix this. A tree opens one document, but a run combines items of different kinds,
 and a policy can come from a built-in, an example, a share link, a file or the player's own editing. This
 change separates browsing (a library) from combining (the run's slots), and names the saved combination an
-experiment. That covers what share links, classic templates with reference policies and failure-mode fixes
-already are. It belongs to M9, whose guides must take a new player from nothing to a shared result, and
+experiment. Share links already are experiments, and each scenario's lesson, why the baseline fails and
+what fixes it, moves onto the scenario itself. It belongs to M9, whose guides must take a new player from nothing to a shared result, and
 replaces the local saving delivered in M5.
 
 ## What Changes
 
-- **Library explorer.** A collapsible, resizable column on the left of the workbench lists everything the
-  player can use.
-  - **Grouped by kind:** Scenarios, Policies and Experiments.
-  - **Then by source:**
-    - **Built in:** the Mars starter scenarios and the baseline policies.
-    - **Examples:** example policies from the scenario kit and the documentation.
-    - **Classic problems:** the classic templates and their reference policies.
-    - **Mine:** anything the player made, edited or imported.
-    - **Shared with me:** anything that arrived through a share link.
-  - Each item shows its one-line description.
-- **This run.** A panel pinned above the library shows the current Scenario and Policy, and the Compare policy
-  in the batch view.
-  - Clicking a library item fills the slot for its kind.
-  - Choosing a slot narrows the library to items that fit it.
-  - Clicking an experiment fills every slot and restores its seeds and view.
+- **This run.** Three slots at the top of a new left-hand column hold the run's Scenario, Policy and, in the
+  batch view with comparison on, Compare policy.
+  - **Scenario lessons:** the Scenario slot carries what the scenario teaches. A starter shows why the baseline
+    fails and offers its suggested fix. A classic template shows its parameters and offers its reference
+    policy.
+  - **Choosing:** choosing a slot shows the matching list. The batch view offers choosing policy B too.
+- **Library explorer.** Below the slots, three lists shown one at a time:
+  - **Scenarios**, grouped by source: Built in, Examples, Classic problems, Mine and Shared with me.
+  - **Policies**, grouped by fit to the current scenario. Its fix, reference policy and examples come first,
+    then built-in, Mine and shared policies, with other examples collapsed last. Policies that define no hook
+    the scenario calls are dimmed with the reason.
+  - **Saved runs**, the player's and shared experiments.
+  - **Selecting and using:** clicking an item only selects it and shows its description and actions.
+    Double-clicking, Enter or Use puts it in its slot, so browsing never swaps the editor's contents.
 - **Experiments.** An experiment is a saved snapshot of the slots, the seed, the batch settings and the view.
-  - The player can save the current run as an experiment and open it later.
+  - The player can save the current run as an experiment, open it later from Saved runs, and update it.
   - A share link opens as an experiment under Shared with me, and opening the same link again does not add a
     duplicate.
-  - Classic templates with their reference policies, and failure-mode scenarios with their suggested fixes,
-    appear as built-in experiments.
 - **Copy on edit.** Built-in, example, classic and shared items never change.
   - Editing one creates a copy under Mine, and the slot switches to the copy.
   - Mine items save automatically.
@@ -59,8 +56,8 @@ replaces the local saving delivered in M5.
 ## Capabilities
 
 ### New Capabilities
-- `library`: the library explorer, item kinds and sources, run slots, experiments, copy on edit, automatic
-  saving, and import and export of files.
+- `library`: the library explorer and its lists, run slots and scenario lessons, policy fit, experiments and
+  saved runs, copy on edit, automatic saving, and import and export of files.
 
 ### Modified Capabilities
 - `run-explorer`: scenario and policy selection moves from the toolbar and drawer to the library and slots;
