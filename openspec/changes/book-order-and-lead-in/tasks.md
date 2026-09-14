@@ -43,7 +43,7 @@
 
 ## 7. Entry pages and roadmap
 
-- [ ] 7.1 Rewrite `index.mdx`: lead with Getting started and the Book, list the four case studies by chapter under "Lessons from the starter lines", and say ping-pong waits for Part III. Verify the link check and an e2e test that the index links to each case study.
-- [ ] 7.2 Change `getting-started.mdx` to days, explaining sol once, and fix `library.mdx`'s "classic problem" link to describe a template. Verify by reading both pages and the link check.
-- [ ] 7.3 Update `docs/roadmap.md`: chapter numbers in §8, the M7 status with eight chapters and one tier of lessons, and the Little's law entry marked as chapter 2. Verify by searching the roadmap for "book chapter".
-- [ ] 7.4 Run the full gate: `pnpm check`, `docs:check`, `docs:claims`, build, `docs:links`, `test:determinism` and `test:e2e`. Verify all pass and golden hashes are unchanged.
+- [x] 7.1 Rewrite `index.mdx`: lead with Getting started and the Book, list the four case studies by chapter under "Lessons from the starter lines", and say ping-pong waits for Part III. Verify the link check and an e2e test that the index links to each case study.
+- [x] 7.2 Change `getting-started.mdx` to days, explaining sol once, and fix `library.mdx`'s "classic problem" link to describe a template. Verify by reading both pages and the link check.
+- [x] 7.3 Update `docs/roadmap.md`: chapter numbers in §8, the M7 status with eight chapters and one tier of lessons, and the Little's law entry marked as chapter 2. Verify by searching the roadmap for "book chapter".
+- [x] 7.4 Run the full gate: `pnpm check`, `docs:check`, `docs:claims`, build, `docs:links`, `test:determinism` and `test:e2e`. Verify all pass and golden hashes are unchanged.

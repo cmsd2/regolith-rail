@@ -301,12 +301,16 @@ baseline breaks down as demand rises.
 Can start alongside M3; content grows with every later stage.
 
 **Status** Delivered, except live widgets. The encyclopedia is becoming a book,
-*Operations research on the line*: Parts I (Foundations) and II (Inventory) are
-written, with a scenario in every chapter and every formula and number checked
-by Maxima, Python or the simulator in CI. Parts III (Networks), IV
-(Optimisation) and V (Dynamics) are to come. Documentation sections are
-organised as getting started, the book, guides, failure modes, reference and
-game mechanics.
+*Operations research on the line*: Part I (Foundations, chapters 1 to 3) and
+Part II (Inventory, chapters 4 to 8) are written in the standard order,
+deterministic before random and one period before many. Every chapter has a
+scenario, a comparison to run, an exercise run in the simulator, and every
+formula and number checked by Maxima, Python or the simulator in CI. Four of
+the five starter lessons are case studies in chapters; ping-pong waits for
+Part III. Parts III (Networks), IV (Optimisation) and V (Dynamics) are to come.
+Documentation sections are organised as getting started, the book, guides, the
+one remaining failure mode, reference (including the template pages) and game
+mechanics.
 
 **Deliverables**
 - In-app documentation panel and prerendered public pages under `/docs`.
@@ -666,9 +670,10 @@ visits is the review period, and the travel time for cargo is the lead time.
 - **Random walks with replenishment** [M7]. Stock at one station under a min–max
   rule is a random walk whose long-run distribution can be computed and compared
   with the simulation (Brémaud, 2020, pp. 128–135; Taha, 2017, pp. 661–662).
-- **Queues and Little's law** [M7]. Birth–death queues show variability growing
-  sharply as supply approaches demand. Little's law turns average stock and
-  throughput into the average time goods spend at a station. Known queueing results
+- **Queues and Little's law** [M7; Little's law in book chapter 2, queues in
+  Part V]. Birth–death queues show variability growing sharply as supply
+  approaches demand. Little's law turns average stock and throughput into the
+  average time goods spend at a station. Known queueing results
   also validate the engine (Brémaud, 2020, pp. 500–502; Taha, 2017, pp. 667–668;
   Eiselt and Sandblom, 2022, p. 475).
 - **Monte Carlo and the number of seeds** [M6; book chapter 3]. Standard error falls with the square

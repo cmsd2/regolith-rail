@@ -190,6 +190,24 @@ test.describe("the book", () => {
     await expect(page.getByTestId("doc-article").locator("h1")).toHaveText("Modelling operations");
   });
 
+  test("the index lists each starter's lesson under its chapter", async ({ page }) => {
+    await page.goto("/docs");
+    const article = page.getByTestId("doc-article");
+    for (const [name, href] of [
+      ["half capacity", "/docs/book/modelling#case-study-half-capacity"],
+      ["dead stock", "/docs/book/flows#case-study-dead-stock"],
+      ["double dispatch", "/docs/book/base-stock#case-study-double-dispatch"],
+      ["storm shock", "/docs/book/safety-stock#case-study-storm-shock"],
+      ["Ping-pong", "/docs/failure-modes/ping-pong"],
+    ]) {
+      await expect(article.getByRole("link", { name: name as string })).toHaveAttribute(
+        "href",
+        href as string,
+      );
+    }
+    await expect(article).toContainText("Part III of the book will take it up");
+  });
+
   test("disruption recovery's old page sends readers to chapter 7's storm shock", async ({
     page,
   }) => {
