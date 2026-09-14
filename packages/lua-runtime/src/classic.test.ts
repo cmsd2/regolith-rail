@@ -8,7 +8,7 @@ beforeAll(async () => {
   runtime = await LuaRuntime.load();
 });
 
-const SOL = 86_400_000;
+const DAY = 86_400_000;
 
 const load = (source: string): Scenario => {
   const result = runtime.loadScript(source);
@@ -69,7 +69,7 @@ describe("newsvendor", () => {
     const stand = scenario.stations[0];
     expect(stand?.resources[0]).toMatchObject({ capacity: "unlimited", expires: true });
     expect(stand?.consumers[0]?.perPeriod).toEqual({
-      periodMs: SOL,
+      periodMs: DAY,
       amount: {
         kind: "discrete",
         values: [5, 10, 15, 20, 25].map((v, i) => ({
@@ -78,7 +78,7 @@ describe("newsvendor", () => {
         })),
       },
     });
-    expect(stand?.review).toEqual({ periodMs: SOL, offsetMs: 60_000 });
+    expect(stand?.review).toEqual({ periodMs: DAY, offsetMs: 60_000 });
   });
 
   it("reaches the analytic expected cost at the critical-ratio quantity over 400 seeds", () => {
@@ -106,8 +106,8 @@ describe("reorder", () => {
     const out = runSimulation(scenario, referencePolicy("classic.reorder", params), {
       detail: "summary",
     });
-    const perSol = out.metrics.costs.total / 1000 / 20;
-    expect(Math.abs(perSol - (reference.expectedCostPerSol as number))).toBeLessThan(1);
+    const perDay = out.metrics.costs.total / 1000 / 20;
+    expect(Math.abs(perDay - (reference.expectedCostPerDay as number))).toBeLessThan(1);
     expect(out.metrics.unmetDemand).toBe(0);
   }, 120_000);
 
@@ -115,20 +115,20 @@ describe("reorder", () => {
     const params = {
       random: true,
       demand: 4,
-      lead_time: 2 * SOL,
+      lead_time: 2 * DAY,
       review_period: 6 * 3_600_000,
       order_cost: 0,
-      duration: 30 * SOL,
+      duration: 30 * DAY,
     };
     const reference = template("classic.reorder").reference(params);
     const scenario = load(templateCall("classic.reorder", params));
     const policy = referencePolicy("classic.reorder", params);
-    const perSol = Array.from({ length: 200 }, (_, i) => {
+    const perDay = Array.from({ length: 200 }, (_, i) => {
       const out = runSimulation(scenario, policy, { seed: i + 1, detail: "summary" });
       return out.metrics.costs.total / 1000 / 30;
     });
-    const { mean, half } = interval(perSol);
-    expect(Math.abs(mean - (reference.expectedCostPerSol as number))).toBeLessThan(half);
+    const { mean, half } = interval(perDay);
+    expect(Math.abs(mean - (reference.expectedCostPerDay as number))).toBeLessThan(half);
   }, 180_000);
 });
 
@@ -143,7 +143,7 @@ describe("serial chain", () => {
       "Stage3",
     ]);
     for (const station of scenario.stations) {
-      expect(station.suppliers[0]?.leadTime).toEqual({ kind: "fixed", value: 14 * SOL });
+      expect(station.suppliers[0]?.leadTime).toEqual({ kind: "fixed", value: 14 * DAY });
     }
     expect(scenario.stations[3]?.consumers).toHaveLength(1);
   });
@@ -172,7 +172,7 @@ describe("serial chain", () => {
       stages.forEach((stage, i) => {
         // Daily order sizes after a warm-up, with a zero for each review without an order.
         const reviews = ofKind(out.events, "review").filter(
-          (e) => e.station === stage && e.t >= 10 * SOL,
+          (e) => e.station === stage && e.t >= 10 * DAY,
         );
         const orders = new Map(
           ofKind(out.events, "order")

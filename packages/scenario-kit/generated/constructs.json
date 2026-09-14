@@ -1600,10 +1600,10 @@
         {
           "name": "demand",
           "type": "number",
-          "summary": "Average demand per sol.",
+          "summary": "Average demand per day.",
           "required": false,
           "default": "10",
-          "unit": "units per sol"
+          "unit": "units per day"
         },
         {
           "name": "random",
@@ -1631,7 +1631,7 @@
         {
           "name": "holding_cost",
           "type": "integer",
-          "summary": "Cost per unit held per sol.",
+          "summary": "Cost per unit held per day.",
           "required": false,
           "default": "1"
         },
@@ -1659,7 +1659,7 @@
         {
           "name": "shortage_cost",
           "type": "integer",
-          "summary": "Cost per unit lost, or per unit backordered per sol.",
+          "summary": "Cost per unit lost, or per unit backordered per day.",
           "required": false,
           "default": "10"
         },
@@ -1676,7 +1676,7 @@
           "type": "integer",
           "summary": "Length of a run.",
           "required": false,
-          "default": "sols(20)",
+          "default": "days(20)",
           "unit": "ms"
         },
         {
@@ -1732,14 +1732,14 @@
         {
           "name": "holding_cost",
           "type": "integer",
-          "summary": "Cost per unit held per sol at every stage.",
+          "summary": "Cost per unit held per day at every stage.",
           "required": false,
           "default": "1"
         },
         {
           "name": "backorder_cost",
           "type": "integer",
-          "summary": "Cost per unit of customer demand backordered per sol.",
+          "summary": "Cost per unit of customer demand backordered per day.",
           "required": false,
           "default": "2"
         },
@@ -1756,7 +1756,7 @@
           "type": "integer",
           "summary": "Length of a run.",
           "required": false,
-          "default": "sols(60)",
+          "default": "days(60)",
           "unit": "ms"
         },
         {
@@ -1788,10 +1788,10 @@
         {
           "name": "demand",
           "type": "number",
-          "summary": "Demand per sol at each customer.",
+          "summary": "Demand per day at each customer.",
           "required": false,
           "default": "4",
-          "unit": "units per sol"
+          "unit": "units per day"
         },
         {
           "name": "customer_capacity",
@@ -1882,7 +1882,7 @@
           "type": "integer",
           "summary": "Length of a run.",
           "required": false,
-          "default": "sols(20)",
+          "default": "days(20)",
           "unit": "ms"
         },
         {

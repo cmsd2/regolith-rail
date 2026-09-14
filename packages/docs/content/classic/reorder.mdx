@@ -20,40 +20,40 @@ pp. 105–113).
 
 One station, `Shop`, stores `Goods` with unlimited room.
 
-- Demand is a steady `demand` units a sol, or, with `random = true`, Poisson arrivals of
+- Demand is a steady `demand` units a day, or, with `random = true`, Poisson arrivals of
   one unit each at that average rate.
-- Unmet demand is backordered at `shortage_cost` per unit per sol, or lost at that cost
+- Unmet demand is backordered at `shortage_cost` per unit per day, or lost at that cost
   per unit with `shortage = "lost"`.
-- Stock costs `holding_cost` per unit per sol to hold.
+- Stock costs `holding_cost` per unit per day to hold.
 - The shop is reviewed every `review_period`, a minute into each period. An order costs
   `order_cost`, plus `unit_cost` per unit, and arrives after `lead_time`.
 
 ```lua runnable script
-return classic.reorder { random = true, demand = 4, lead_time = sols(2), review_period = hours(6) }
+return classic.reorder { random = true, demand = 4, lead_time = days(2), review_period = hours(6) }
 ```
 
 ## Steady demand: the economic order quantity
 
-With steady demand $D$ per sol, an order cost $K$ and a holding cost $h$, ordering $Q$
+With steady demand $D$ per day, an order cost $K$ and a holding cost $h$, ordering $Q$
 units whenever stock runs out costs
 
 $$
 \frac{KD}{Q} + \frac{hQ}{2}
 $$
 
-per sol: orders placed $D/Q$ times a sol, and an average stock of half an order. The
+per day: orders placed $D/Q$ times a day, and an average stock of half an order. The
 two terms balance at the economic order quantity
 
 $$
-Q^* = \sqrt{\frac{2KD}{h}}, \qquad \text{with cost } \sqrt{2KDh} \text{ per sol}
+Q^* = \sqrt{\frac{2KD}{h}}, \qquad \text{with cost } \sqrt{2KDh} \text{ per day}
 $$
 
 (Axsäter, 2015, pp. 45–48; Taha, 2017, pp. 507–510). The cost curve is flat near the
 optimum: ordering half again as much costs only about 8% more.
 
 With the defaults, $D = 10$, $K = 20$ and $h = 1$, the order is 20 units and the cost 20
-per sol. A test runs the template with a review every minute and no lead time, and
-checks that the simulated cost per sol is within one cost unit of 20.
+per day. A test runs the template with a review every minute and no lead time, and
+checks that the simulated cost per day is within one cost unit of 20.
 
 The reference policy orders $Q^*$ whenever the inventory position falls below what the
 lead time and one review period need, so stock never runs out between reviews:
@@ -79,7 +79,7 @@ S^* = \min\left\{ S : P(N \le S) \ge \frac{b}{b + h} \right\}, \qquad
 N \sim \text{Poisson}\big(\lambda (L + R)\big).
 $$
 
-With demand of 4 a sol, a two-sol lead time, a review every six hours, $h = 1$ and
+With demand of 4 a day, a two-day lead time, a review every six hours, $h = 1$ and
 $b = 10$, lead-time demand has a mean of 9 and the fractile is $10/11$, so $S^* = 13$:
 
 ```lua runnable scenario=classic.reorder
@@ -89,8 +89,8 @@ return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }
 The template's reference result follows the run tick by tick. At each minute the stock
 or backlog is $S$ minus the demand since the last review whose order has arrived, so
 its expected holding and backorder cost follow from Poisson probabilities, including
-the first two sols before any order arrives. Over 30 sols without an order cost this
-comes to 7.97 per sol, and a test checks it against 200 seeds.
+the first two days before any order arrives. Over 30 days without an order cost this
+comes to 7.97 per day, and a test checks it against 200 seeds.
 
 ## Where the simulator differs
 

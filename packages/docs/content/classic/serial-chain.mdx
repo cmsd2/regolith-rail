@@ -22,8 +22,8 @@ Stations `Stage1` to `StageN` store `Beer` with unlimited room.
 - `Stage1` orders from an outside brewery; every later stage orders from the stage
   before it. Each shipment takes `lead_time`.
 - Customers buy from the last stage each period, from a discrete distribution. Unmet
-  demand is backordered at `backorder_cost` per unit per sol.
-- Every stage holds stock at `holding_cost` per unit per sol and is reviewed once a
+  demand is backordered at `backorder_cost` per unit per day.
+- Every stage holds stock at `holding_cost` per unit per day and is reviewed once a
   period, a minute in.
 - A stage ships what it can when an order arrives and the rest as its own stock
   arrives.

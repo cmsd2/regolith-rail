@@ -20,7 +20,7 @@ the same problem on a line.
 
 - `Depot` stores `Fuel` with unlimited room, orders from an outside supplier with a
   `lead_time`, and is reviewed every `review_period`.
-- `Customer1` to `CustomerN` each store `customer_capacity` and use `demand` a sol.
+- `Customer1` to `CustomerN` each store `customer_capacity` and use `demand` a day.
   Demand that finds no fuel is lost at `lost_cost` per unit.
 - Legs of `distance` join the depot and the customers in a loop, and `vehicles` trucks
   of `vehicle_capacity` go round it, spaced out along the loop.

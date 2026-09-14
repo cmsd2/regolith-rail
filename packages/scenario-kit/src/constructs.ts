@@ -722,9 +722,9 @@ export const classicConstructs: Construct[] = [
     "reorder",
     "One store replenished from an outside supplier after a lead time, facing steady or random demand, with holding, ordering and shortage costs.",
     [
-      param("demand", "number", "Average demand per sol.", {
+      param("demand", "number", "Average demand per day.", {
         default: "10",
-        unit: "units per sol",
+        unit: "units per day",
       }),
       param("random", "boolean", "Poisson arrivals of one unit each instead of a steady rate.", {
         default: "false",
@@ -734,17 +734,17 @@ export const classicConstructs: Construct[] = [
         default: "hours(1)",
         unit: "ms",
       }),
-      param("holding_cost", "integer", "Cost per unit held per sol.", { default: "1" }),
+      param("holding_cost", "integer", "Cost per unit held per day.", { default: "1" }),
       param("order_cost", "integer", "Fixed cost per order.", { default: "20" }),
       param("unit_cost", "integer", "Cost per unit ordered.", { default: "0" }),
       param("shortage", '"lost"|"backorder"', "Whether unmet demand is lost or backordered.", {
         default: '"backorder"',
       }),
-      param("shortage_cost", "integer", "Cost per unit lost, or per unit backordered per sol.", {
+      param("shortage_cost", "integer", "Cost per unit lost, or per unit backordered per day.", {
         default: "10",
       }),
       param("initial", "number", "Stock at the start of a run.", { default: "0", unit: "units" }),
-      param("duration", "integer", "Length of a run.", { default: "sols(20)", unit: "ms" }),
+      param("duration", "integer", "Length of a run.", { default: "days(20)", unit: "ms" }),
       seedParam,
     ],
   ),
@@ -774,17 +774,17 @@ export const classicConstructs: Construct[] = [
         default: "discrete { { 2, 1 }, { 4, 2 }, { 6, 1 } }",
         unit: "units",
       }),
-      param("holding_cost", "integer", "Cost per unit held per sol at every stage.", {
+      param("holding_cost", "integer", "Cost per unit held per day at every stage.", {
         default: "1",
       }),
-      param("backorder_cost", "integer", "Cost per unit of customer demand backordered per sol.", {
+      param("backorder_cost", "integer", "Cost per unit of customer demand backordered per day.", {
         default: "2",
       }),
       param("initial", "number", "Stock at every stage at the start.", {
         default: "12",
         unit: "units",
       }),
-      param("duration", "integer", "Length of a run.", { default: "sols(60)", unit: "ms" }),
+      param("duration", "integer", "Length of a run.", { default: "days(60)", unit: "ms" }),
       seedParam,
     ],
   ),
@@ -797,9 +797,9 @@ export const classicConstructs: Construct[] = [
         default: "3",
         range: [1, 20],
       }),
-      param("demand", "number", "Demand per sol at each customer.", {
+      param("demand", "number", "Demand per day at each customer.", {
         default: "4",
-        unit: "units per sol",
+        unit: "units per day",
       }),
       param("customer_capacity", "number", "Storage at each customer.", {
         default: "20",
@@ -835,7 +835,7 @@ export const classicConstructs: Construct[] = [
       param("cost_per_distance", "integer", "Transport cost per unit of distance.", {
         default: "0",
       }),
-      param("duration", "integer", "Length of a run.", { default: "sols(20)", unit: "ms" }),
+      param("duration", "integer", "Length of a run.", { default: "days(20)", unit: "ms" }),
       seedParam,
     ],
   ),

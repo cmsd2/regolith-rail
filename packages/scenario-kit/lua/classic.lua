@@ -119,7 +119,7 @@ classic.reorder = construct("classic.reorder", {
     description = "A store sells goods from stock and reorders from a supplier who delivers after a lead time. Holding stock costs money, every order has a fixed cost, and running out costs more, so the policy chooses when to order and how much.",
     docs = "classic/reorder",
     information = "local",
-    duration = p.duration or sols(20),
+    duration = p.duration or days(20),
     seed = p.seed,
     stations = {
       station({
@@ -195,7 +195,7 @@ classic.serial_chain = construct("classic.serial_chain", {
     description = "Stages in series pass beer from a brewery at Stage1 to customers at the last stage, each ordering from the one before it and waiting a lead time for shipments. Each stage sees only the orders of the stage after it, so small swings in customer demand can grow into large swings upstream.",
     docs = "classic/serial-chain",
     information = "line",
-    duration = p.duration or sols(60),
+    duration = p.duration or days(60),
     seed = p.seed,
     stations = stations,
   })
@@ -266,7 +266,7 @@ classic.fixed_route_delivery = construct("classic.fixed_route_delivery", {
     description = "A depot restocked by an outside supplier serves customers that trucks visit on a fixed loop. Each truck decides how much to load at the depot and how much to leave at each customer, so no customer runs dry before the truck comes round again.",
     docs = "classic/fixed-route-delivery",
     information = "line",
-    duration = p.duration or sols(20),
+    duration = p.duration or days(20),
     seed = p.seed,
     stations = stations,
     arcs = arcs,

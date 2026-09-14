@@ -18,8 +18,8 @@ export interface ReferenceResult {
   policy: string;
   /** What the policy does, in a sentence. */
   summary: string;
-  /** Expected cost per sol under the reference policy, when an analytic result is known. */
-  expectedCostPerSol?: number;
+  /** Expected cost per day under the reference policy, when an analytic result is known. */
+  expectedCostPerDay?: number;
   /** Expected cost per review period, for templates stated per period. */
   expectedCostPerPeriod?: number;
   /** Other analytic values, such as the order quantity, by name. */
@@ -37,7 +37,7 @@ export interface ClassicTemplate {
 }
 
 const MINUTE = 60_000;
-const SOL = 86_400_000;
+const DAY = 86_400_000;
 
 // --- Distributions ------------------------------------------------------------------------
 
@@ -90,8 +90,8 @@ const templateConstruct = (name: string): Construct => {
 };
 
 const DURATION_UNITS: [string, number][] = [
-  ["weeks", 7 * SOL],
-  ["days", SOL],
+  ["weeks", 7 * DAY],
+  ["days", DAY],
   ["hours", 3_600_000],
   ["minutes", MINUTE],
 ];
@@ -136,7 +136,7 @@ const newsvendor: ClassicTemplate = {
     },
     unit_cost: 2,
     lost_cost: 5,
-    period: SOL,
+    period: DAY,
     periods: 30,
     seed: 1,
   },
@@ -163,7 +163,7 @@ const newsvendor: ClassicTemplate = {
       summary: `Order up to ${quantity} units at each review: the smallest quantity that meets demand with probability at least ${ratio.toFixed(3)}.`,
       policy: `-- Newsvendor: order up to the critical-ratio quantity.\nreturn ops.policy { review = { target = ops.order_up_to { level = ${quantity * 1000} } } }\n`,
       expectedCostPerPeriod: perPeriod,
-      expectedCostPerSol: (perPeriod * SOL) / num(params, "period"),
+      expectedCostPerDay: (perPeriod * DAY) / num(params, "period"),
       values: { criticalRatio: ratio, quantity },
     };
   },
@@ -183,7 +183,7 @@ const reorder: ClassicTemplate = {
     shortage: "backorder",
     shortage_cost: 10,
     initial: 0,
-    duration: 20 * SOL,
+    duration: 20 * DAY,
     seed: 1,
   },
   reference(input) {
@@ -197,19 +197,19 @@ const reorder: ClassicTemplate = {
     if (!params.random) {
       // Economic order quantity, with a reorder point covering the lead time and one review.
       const quantity = Math.sqrt((2 * k * demand) / h);
-      const reorderPoint = Math.ceil((demand * 1000 * (lead + period)) / SOL);
+      const reorderPoint = Math.ceil((demand * 1000 * (lead + period)) / DAY);
       const orderUpTo = reorderPoint + Math.round(quantity * 1000);
       return {
         policyName: "Economic order quantity",
         summary: `Order ${quantity.toFixed(2)} units whenever the inventory position falls below what the lead time and one review period need.`,
         policy: `-- Economic order quantity: order Q = sqrt(2KD/h) when stock would run out before the next review.\nreturn ops.policy { review = { target = ops.min_max { min = ${reorderPoint}, max = ${orderUpTo} } } }\n`,
-        expectedCostPerSol: Math.sqrt(2 * k * demand * h) + c * demand,
+        expectedCostPerDay: Math.sqrt(2 * k * demand * h) + c * demand,
         values: { quantity, reorderPoint: reorderPoint / 1000 },
       };
     }
     // Base-stock: the newsvendor fractile of Poisson demand over the lead time and one review.
     const b = num(params, "shortage_cost");
-    const cover = (demand * (lead + period)) / SOL;
+    const cover = (demand * (lead + period)) / DAY;
     const ratio = b / (b + h);
     const chances = poissonProbabilities(cover);
     let level = 0;
@@ -228,19 +228,19 @@ const reorder: ClassicTemplate = {
       values: { level, criticalRatio: ratio },
     };
     if (params.shortage === "backorder") {
-      result.expectedCostPerSol = baseStockCostPerSol(params, level);
+      result.expectedCostPerDay = baseStockCostPerDay(params, level);
     }
     return result;
   },
 };
 
 /**
- * Expected cost per sol of a base-stock policy with Poisson demand and backorders, tick by tick
+ * Expected cost per day of a base-stock policy with Poisson demand and backorders, tick by tick
  * as the engine runs it: reviews one minute into each period, deliveries before the tick at their
  * arrival time, and costs on the stock or backlog left after each tick.
  */
-function baseStockCostPerSol(params: TemplateParams, level: number): number {
-  const rate = num(params, "demand") / SOL;
+function baseStockCostPerDay(params: TemplateParams, level: number): number {
+  const rate = num(params, "demand") / DAY;
   const h = num(params, "holding_cost");
   const b = num(params, "shortage_cost");
   const k = num(params, "order_cost");
@@ -284,7 +284,7 @@ function baseStockCostPerSol(params: TemplateParams, level: number): number {
       ordering += k * (1 - Math.exp(-rate * period)) + c * rate * period;
     }
   }
-  return total / ticks + (ordering * SOL) / duration;
+  return total / ticks + (ordering * DAY) / duration;
 }
 
 const serialChain: ClassicTemplate = {
@@ -292,8 +292,8 @@ const serialChain: ClassicTemplate = {
   title: "Serial supply chain",
   defaults: {
     stages: 4,
-    lead_time: 2 * SOL,
-    review_period: SOL,
+    lead_time: 2 * DAY,
+    review_period: DAY,
     demand: {
       discrete: [
         [2, 1],
@@ -304,7 +304,7 @@ const serialChain: ClassicTemplate = {
     holding_cost: 1,
     backorder_cost: 2,
     initial: 12,
-    duration: 60 * SOL,
+    duration: 60 * DAY,
     seed: 1,
   },
   reference() {
@@ -330,12 +330,12 @@ const fixedRouteDelivery: ClassicTemplate = {
     vehicles: 1,
     vehicle_capacity: 30,
     speed: 5,
-    lead_time: SOL,
-    review_period: SOL,
+    lead_time: DAY,
+    review_period: DAY,
     depot_initial: 60,
     lost_cost: 5,
     cost_per_distance: 0,
-    duration: 20 * SOL,
+    duration: 20 * DAY,
     seed: 1,
   },
   reference() {
