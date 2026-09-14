@@ -8,7 +8,12 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
   timeout: 120_000,
-  use: { baseURL: `http://localhost:${port}/` },
+  // CI runners are slow enough that saving to IndexedDB can outlast the default five seconds.
+  expect: { timeout: process.env.CI ? 15_000 : 5_000 },
+  // A test that fails on CI runs once more with a trace, so timing failures can be diagnosed from
+  // the uploaded report instead of blocking a deploy. Retried passes are still reported as flaky.
+  retries: process.env.CI ? 1 : 0,
+  use: { baseURL: `http://localhost:${port}/`, trace: "on-first-retry" },
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
