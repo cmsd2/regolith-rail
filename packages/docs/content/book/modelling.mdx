@@ -12,8 +12,8 @@ chapter: 1
   judges them, and the constraints they must respect.
 - To see a policy as a rule that turns what a decision-maker observes into what it
   does, and to see why a sensible-sounding rule can still fail.
-- To work out, with a little algebra, why balancing stock between two stations delivers
-  too little, and to confirm it by running the simulator.
+- To check with a little algebra whether a simple rule can work on a line, and to see why
+  a rule that ignores what each station does can deliver too little.
 
 ## The problem
 
@@ -62,16 +62,26 @@ needs a rule. A policy maps what the vehicle observes at a stop, its cargo and t
 at the stations, to how much to load or unload. The simulator calls a policy at every
 stop, and the results measure the policy, not any one choice.
 
-### The line in numbers
+### The line
 
-In the `two-station` scenario the stations are 72,000 distance units apart and the
-vehicle travels at 5 units a second, so each leg takes 14,400 seconds, four hours.
+The line in this chapter joins two stations 72,000 distance units apart. At one end is a
+mine, which produces metal at 45 units a day into its station. At the other is a habitat
+dome, which uses 36 units a day from its station, sometimes up to 20% more or less. Each
+station holds at most 30 units. One train runs back and forth between them. It carries up
+to 30 units and travels at 5 units a second, so each leg takes 14,400 seconds, four hours.
+A stop takes 10 minutes, plus a minute for each unit moved.
 
 <Check ref="maxima:leg-time" />
 
-A stop takes 600 seconds plus 60 seconds for each unit moved. The slowest round trip,
-moving a full load of 30 units at both ends, takes $28/3$ hours. Even then the vehicle
-makes $18/7$ trips a day, and could carry
+In operations research terms, the mine's station is a supply point, the dome's station a
+demand point, and the train a vehicle on a fixed route.
+
+### The obvious rule: take everything, leave everything
+
+Knowing which station makes metal and which uses it, the first rule most people think of
+is to load everything at the mine and unload everything at the dome. Does the train have
+the capacity for that? Even the slowest round trip, moving a full load at both ends, takes
+$28/3$ hours. The train then makes $18/7$ trips a day, and could carry
 
 $$
 30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a day},
@@ -79,14 +89,28 @@ $$
 
 <Check ref="maxima:capacity-bound" />
 
-more than twice the 36 units a day the demand station consumes. Capacity is not the
-problem.
+more than twice the 36 units a day the dome uses. Over that slowest trip the mine makes
+17.5 units, which fits in the train, and the dome uses 14. Every trip brings more than
+the dome used while the train was away.
 
-### Balancing
+<Check ref="maxima:take-everything" />
 
-A natural rule is to balance: at each stop, move stock so that the stations hold similar
-amounts. With two stations holding $m$ and $d$, the average is $(m + d)/2$, so a stop at
-the fuller station loads
+The rule has one limit it cannot avoid. The mine makes 9 units a day more than the dome
+uses, so once the dome's station is full the surplus has nowhere to go and the mine
+stalls. That is a fact about the line, not a failure of the rule.
+
+<Check ref="maxima:surplus" />
+
+### A rule for any line: balancing
+
+The obvious rule depends on knowing which station supplies and which demands. A rule
+meant for every line, whatever its stations do, cannot assume that. A natural catch-all
+is to balance: at each stop, move stock so that the stations hold similar amounts. It
+needs no roles and copes with any number of stations. The starter uses it as its
+baseline.
+
+With two stations holding $m$ and $d$, the average is $(m + d)/2$, so a stop at the
+fuller station loads
 
 $$
 m - \frac{m + d}{2} = \frac{m - d}{2},
@@ -94,52 +118,18 @@ $$
 
 <Check ref="maxima:half-difference" />
 
-half the difference, however much room the vehicle has.
-
-Suppose the line settles into a steady cycle, where each trip delivers what the demand
-station uses during one round trip. Call the load $L$ and the round trip $T$. The dome
-uses $36\,T$ units in a trip lasting $T$ days, and the trip lasts the travel time plus two
-stops moving $L$ units each. Solving the two together gives
-
-$$
-T = \frac{600\,000}{19} \text{ s} \approx 8.77 \text{ h}, \qquad L = \frac{250}{19} \approx 13.16 \text{ units}.
-$$
-
-<Check ref="maxima:steady-load" />
-
-Balancing loads half the difference, so to load $L$ the supply station must hold $2L$
-more than the demand station:
-
-$$
-2L = \frac{500}{19} \approx 26.3 \text{ units},
-$$
-
-<Check ref="maxima:required-gap" />
-
-nearly 88% of a 30-unit station. To move enough, the supply end must sit close to full
-and the demand end close to empty. Any disturbance then pushes one end over the edge: the
-supply station fills and production stalls, or the demand station empties and demand
-goes unmet.
+half the difference, however much room the train has. The case study below follows that
+through.
 
 ## In the simulator
 
-The `two-station` starter is this line. The supply station produces 45 units a day, the
-demand station consumes 36 units a day, varying by up to 20% either way, and the run
-lasts 10 days. The baseline policy balances stock.
+The `two-station` starter is this line, run for 10 days. It opens with the balancing
+baseline.
 
 <Scenario starter="two-station" />
 
-Run the baseline and open **Metrics**. On every one of seeds 1 to 20, demand goes unmet
-at the demand station while production stalls at the supply station.
-
-<Check ref="test:on two-station the naive baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
-
-## Case study: half capacity
-
-The model says the fault is in the rule, not the line. A rule that treats the stations
-by their role instead of their stock takes everything it can at the supply end and leaves
-everything at the demand end. The vehicle then carries full loads when there is stock to
-carry, and the gap between the stations stops mattering.
+Try the obvious rule first. As an `ops` policy, the mine's station is a supply site that
+is drained and the dome's station a demand site that is filled:
 
 ```lua runnable fix
 return ops.policy {
@@ -148,24 +138,57 @@ return ops.policy {
 }
 ```
 
-This policy meets all demand on every one of seeds 1 to 20.
+It meets all of the dome's demand on every one of seeds 1 to 20. Once the dome's station
+is full, the mine can still stall, as the surplus says it must.
 
 <Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds" />
 
-Production still stalls under it. The supply station makes 9 units a day more than the
-demand station uses, so once the demand station is full the surplus has nowhere to go.
-That is a fact about the line, not a failure of the policy.
+Now run the balancing baseline and open **Metrics**. On every one of seeds 1 to 20, the
+dome goes short while the mine stalls, at the same time.
 
-<Check ref="maxima:surplus" />
+<Check ref="test:on two-station the naive baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
 
-Compare the two policies in **Batch** to see the difference over many seeds, and what the
-role-based rule costs in [empty distance](/docs/metrics#empty-distance-share): the vehicle
-now always returns empty.
+Compare the two in **Batch** to see the difference over many seeds, and what taking
+everything costs in [empty distance](/docs/metrics#empty-distance-share): the train
+always returns empty.
+
+## Case study: half capacity
+
+Why does balancing fail on a line where the obvious rule succeeds? Suppose the line
+settles into a steady cycle, where each trip delivers what the dome uses during one round
+trip. Call the load $L$ and the round trip $T$. The dome uses $36\,T$ units in a trip
+lasting $T$ days, and the trip lasts the travel time plus two stops moving $L$ units each.
+Solving the two together gives
+
+$$
+T = \frac{600\,000}{19} \text{ s} \approx 8.77 \text{ h}, \qquad L = \frac{250}{19} \approx 13.16 \text{ units}.
+$$
+
+<Check ref="maxima:steady-load" />
+
+Balancing loads half the difference, so to load $L$ the mine's station must hold $2L$ more
+than the dome's:
+
+$$
+2L = \frac{500}{19} \approx 26.3 \text{ units},
+$$
+
+<Check ref="maxima:required-gap" />
+
+nearly 88% of a 30-unit station. To move enough, the mine's station must sit close to full
+and the dome's close to empty. Any disturbance then pushes one end over the edge: the
+mine's station fills and production stalls, or the dome's empties and demand goes unmet.
+The train has the capacity; the rule only ever uses about half of the gap it sees.
+
+Balancing pays for its generality. It does not use what we know about this line, which
+station makes metal and which uses it, and on a line this simple that knowledge is worth
+almost everything. Rules that are told, or can work out, what each station does are the
+subject of much of the rest of this book.
 
 ## Where the simulator differs
 
-- **Stops take longer with more cargo.** The simple model above treats the steady cycle
-  as exact. In the simulator, demand varies, so loads and trip times vary from trip to
+- **Stops take longer with more cargo.** The case study treats the steady cycle as
+  exact. In the simulator, demand varies, so loads and trip times vary from trip to
   trip around the steady values.
 - **Stock is measured in thousandths of a unit.** Policies see and move amounts in
   milli-units, so 30 units is `30000`.
@@ -205,9 +228,10 @@ stations still have to hold very different amounts.
 <GameNote>
 
 In the rail game, trains appear to balance stock across the stations on a line, which is
-the rule this chapter models. A mine at one end of a long line and a dome at the other is
-exactly the two-station case: the dome runs short and the mine's extractors stop, even
-with a train that could carry far more.
+the catch-all rule this chapter models. A game has to work for every line a player
+builds, so a rule that needs no roles is a reasonable default. A mine at one end of a long
+line and a dome at the other is where it costs most: the dome runs short and the mine's
+extractors stop, even with a train that could carry far more.
 
 <Evidence level="observed" />
 

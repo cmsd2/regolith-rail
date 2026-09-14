@@ -39,6 +39,13 @@
   },
   {
    "cell_type": "code",
+   "source": "/* check: take-everything */\n/* Taking everything: even over the slowest round trip, the mine makes more than the dome uses. */\nslowest_days: (2 * leg + 2 * (dwell_base + dwell_per_unit * train_capacity)) / day$\nexpect_equal(\"mine-output-per-trip\", production_per_day * slowest_days, 35/2);\nexpect_equal(\"dome-use-per-trip\", consumption_per_day * slowest_days, 14);\nexpect_equal(\"load-fits-train\", is(production_per_day * slowest_days <= train_capacity), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
    "source": "/* check: half-difference */\n/* Moving each station to the average of two: the load at the fuller station is half the difference. */\nexpect_equal(\"half-difference\", m - (m + d) / 2, (m - d) / 2);",
    "metadata": {},
    "execution_count": null,
