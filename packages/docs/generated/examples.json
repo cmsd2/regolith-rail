@@ -1,0 +1,227 @@
+[
+  {
+    "id": "classic/fixed-route-delivery#1",
+    "page": "classic/fixed-route-delivery",
+    "name": "Fixed-route delivery (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.fixed_route_delivery { customers = 4, vehicles = 2 }"
+  },
+  {
+    "id": "classic/fixed-route-delivery#2",
+    "page": "classic/fixed-route-delivery",
+    "name": "Fixed-route delivery (example 2)",
+    "script": false,
+    "scenario": "classic.fixed_route_delivery",
+    "seed": 1,
+    "source": "return {\n  on_review = function(ctx)\n    local target = 0\n    for _, id in ipairs(ctx.station_order) do\n      local station = ctx.stations[id]\n      if station ~= ctx.here then target = target + station.capacity.Fuel end\n    end\n    local position = ctx.here.stock.Fuel\n    for _, order in ipairs(ctx.here.on_order or {}) do position = position + order.amount end\n    if target > position then ctx.order(\"Fuel\", target - position) end\n  end,\n  on_stop = function(ctx)\n    local here, truck = ctx.here, ctx.vehicle\n    if #here.suppliers > 0 then\n      local short, passed = 0, { [here.id] = true }\n      for _, stop in ipairs(truck.route.ahead) do\n        if passed[stop.station.id] then break end\n        passed[stop.station.id] = true\n        short = short + stop.station.capacity.Fuel - stop.station.stock.Fuel\n      end\n      local amount = math.min(short - truck.cargo.Fuel, here.stock.Fuel, truck.space.Fuel)\n      if amount > 0 then ctx.load(\"Fuel\", amount) end\n    else\n      local amount = math.min(truck.cargo.Fuel, here.capacity.Fuel - here.stock.Fuel)\n      if amount > 0 then ctx.unload(\"Fuel\", amount) end\n    end\n  end,\n}"
+  },
+  {
+    "id": "classic/newsvendor#1",
+    "page": "classic/newsvendor",
+    "name": "Newsvendor (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.newsvendor {}"
+  },
+  {
+    "id": "classic/newsvendor#2",
+    "page": "classic/newsvendor",
+    "name": "Newsvendor (example 2)",
+    "script": false,
+    "scenario": "classic.newsvendor",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
+  },
+  {
+    "id": "classic/reorder#1",
+    "page": "classic/reorder",
+    "name": "Reorder (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.reorder { random = true, demand = 4, lead_time = days(2), review_period = hours(6) }"
+  },
+  {
+    "id": "classic/reorder#2",
+    "page": "classic/reorder",
+    "name": "Reorder (example 2)",
+    "script": false,
+    "scenario": "classic.reorder",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.min_max { min = 417, max = 20417 } } }"
+  },
+  {
+    "id": "classic/reorder#3",
+    "page": "classic/reorder",
+    "name": "Reorder (example 3)",
+    "script": false,
+    "scenario": "classic.reorder",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }"
+  },
+  {
+    "id": "classic/serial-chain#1",
+    "page": "classic/serial-chain",
+    "name": "Serial supply chain",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.serial_chain {}"
+  },
+  {
+    "id": "failure-modes/dead-stock#1",
+    "page": "failure-modes/dead-stock",
+    "name": "Dead stock",
+    "script": false,
+    "scenario": "relay",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Junction = \"relay\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n  plan = ops.lookahead {},\n}"
+  },
+  {
+    "id": "failure-modes/disruption-recovery#1",
+    "page": "failure-modes/disruption-recovery",
+    "name": "Disruption recovery",
+    "script": false,
+    "scenario": "storm-shock",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    demand = ops.min_max { min = 20000, max = 30000 },\n  },\n}"
+  },
+  {
+    "id": "failure-modes/double-dispatch#1",
+    "page": "failure-modes/double-dispatch",
+    "name": "Double dispatch",
+    "script": false,
+    "scenario": "two-trains",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
+  },
+  {
+    "id": "failure-modes/half-capacity#1",
+    "page": "failure-modes/half-capacity",
+    "name": "Half capacity",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
+  },
+  {
+    "id": "failure-modes/ping-pong#1",
+    "page": "failure-modes/ping-pong",
+    "name": "Ping-pong",
+    "script": false,
+    "scenario": "mixed-line",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Farm = { Food = \"supply\", Metals = \"demand\" },\n    Mine = { Metals = \"supply\", Food = \"demand\" },\n    Depot = \"relay\",\n    Plant = { Polymers = \"supply\", Metals = \"demand\" },\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {}, relay = ops.pass_through {} },\n  plan = ops.lookahead {},\n  allocate = ops.priority {},\n}"
+  },
+  {
+    "id": "getting-started#1",
+    "page": "getting-started",
+    "name": "Getting started (example 1)",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    demand = ops.fill {},\n  },\n}"
+  },
+  {
+    "id": "getting-started#2",
+    "page": "getting-started",
+    "name": "Getting started (example 2)",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "local policy = {}\n\nfunction policy.on_start(ctx)\n  ctx.log(\"stations:\", #ctx.station_order)\nend\n\nfunction policy.on_stop(ctx)\n  if ctx.here.id == \"Mine\" then\n    ctx.load(\"Metals\", ctx.here.stock.Metals)\n  else\n    ctx.unload(\"Metals\", ctx.vehicle.cargo.Metals)\n  end\nend\n\nreturn policy"
+  },
+  {
+    "id": "language#1",
+    "page": "language",
+    "name": "Language and sandbox rules",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "local policy = {}\n\nfunction policy.on_stop(ctx)\n  local visits = (ctx.vehicle.memory.visits or 0) + 1\n  ctx.vehicle.memory.visits = visits\n  if visits <= 2 then\n    ctx.log(ctx.vehicle.id, \"visit\", visits, \"at\", ctx.here.id)\n  end\nend\n\nreturn policy"
+  },
+  {
+    "id": "ops/balance#1",
+    "page": "ops/balance",
+    "name": "ops.balance",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return ops.policy { target = ops.balance {} }"
+  },
+  {
+    "id": "ops/lookahead#1",
+    "page": "ops/lookahead",
+    "name": "ops.lookahead",
+    "script": false,
+    "scenario": "two-trains",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
+  },
+  {
+    "id": "ops/min-max#1",
+    "page": "ops/min-max",
+    "name": "ops.min_max",
+    "script": false,
+    "scenario": "storm-shock",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = {\n    supply = ops.drain {},\n    demand = ops.min_max { min = 20000, max = 30000 },\n  },\n}"
+  },
+  {
+    "id": "ops/policy#1",
+    "page": "ops/policy",
+    "name": "ops.policy (example 1)",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return ops.policy { target = ops.balance {} }"
+  },
+  {
+    "id": "ops/policy#2",
+    "page": "ops/policy",
+    "name": "ops.policy (example 2)",
+    "script": false,
+    "scenario": "relay",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = function(site, ctx)\n    if site.station == \"Mine\" then return \"supply\" end\n    if site.station == \"Dome\" then return \"demand\" end\n    return \"relay\"\n  end,\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = function(site, ctx)\n      -- Keep the dome two thirds full.\n      return math.floor(site.capacity * 2 / 3)\n    end,\n  },\n}"
+  },
+  {
+    "id": "scenarios/writing#1",
+    "page": "scenarios/writing",
+    "name": "Writing scenario scripts (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return mars.line {\n  id = \"outpost\",\n  title = \"Outpost\",\n  duration = sols(5),\n  stations = {\n    mars.small_station {\n      id = \"Mine\",\n      stock = { Metals = 10 },\n      buildings = { mars.extractor { resource = \"Metals\", rate = 30 } },\n    },\n    mars.large_station {\n      id = \"Dome\",\n      stock = { Metals = 20 },\n      buildings = { mars.consumer { resource = \"Metals\", rate = 20, variability = 15 } },\n    },\n  },\n  distances = 40000,\n  trains = { mars.train { id = \"T1\", start = \"Mine\" } },\n}"
+  },
+  {
+    "id": "scenarios/writing#2",
+    "page": "scenarios/writing",
+    "name": "Writing scenario scripts (example 2)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "local depot = station {\n  id = \"Depot\",\n  resources = { Malt = { capacity = \"unlimited\", initial = 200 } },\n}\n\nlocal shop = station {\n  id = \"Shop\",\n  resources = { \"Beer\", \"Malt\" },\n  consumers = {\n    consumer { resource = \"Beer\", poisson = poisson { per_sol = 12 }, unmet = \"backorder\" },\n  },\n  converters = {\n    converter { inputs = { Malt = 2 }, outputs = { Beer = 1 }, rate = 10 },\n  },\n  suppliers = {\n    supplier { resource = \"Beer\", lead_time = discrete { { days(1), 3 }, { days(2), 1 } } },\n  },\n  review = review { period = days(1), offset = minutes(1) },\n}\n\nreturn scenario {\n  id = \"brewpub\",\n  title = \"Brewpub\",\n  information = \"local\",\n  duration = sols(14),\n  stations = { depot, shop },\n  arcs = { arc { from = \"Depot\", to = \"Shop\", distance = 600 } },\n  vehicles = {\n    vehicle { id = \"Truck\", route = shuttle { stops = { depot, shop } }, speed = 5, capacity = 20 },\n  },\n}"
+  },
+  {
+    "id": "scenarios/writing#3",
+    "page": "scenarios/writing",
+    "name": "Writing scenario scripts (example 3)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "local stations = {}\nfor i, stock in ipairs({ 5, 10, 15 }) do\n  stations[i] = station { id = \"Stop\" .. i, resources = { Water = { initial = stock } } }\nend\n\nlocal l = line { stations = stations, distances = { 300, 500 } }\n\nreturn scenario {\n  id = \"water-line\",\n  duration = sols(2),\n  parts = { l },\n  vehicles = {\n    vehicle { id = \"Tanker\", route = loop { stops = { \"Stop1\", \"Stop2\", \"Stop3\" } }, speed = 4, capacity = 10 },\n  },\n  arcs = { arc { from = \"Stop3\", to = \"Stop1\", distance = 800 } },\n}"
+  },
+  {
+    "id": "scenarios/writing#4",
+    "page": "scenarios/writing",
+    "name": "Writing scenario scripts (example 4)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.serial_chain { stages = 3, lead_time = days(3) }"
+  }
+]

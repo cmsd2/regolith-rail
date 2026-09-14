@@ -8,6 +8,7 @@ import type { LuaRuntime } from "@regolith-rail/lua-runtime";
 import type { Root } from "mdast";
 import { visit } from "unist-util-visit";
 import { parseCodeMeta } from "./meta.ts";
+import { referencePages } from "./pages.ts";
 
 export interface Example {
   page: string;
@@ -49,6 +50,51 @@ export function extractExamples(page: string, tree: Root): Example[] {
 
 export const exampleName = (example: Example) =>
   `${example.page || "index"} example ${example.index} (line ${example.line})`;
+
+/** A runnable example as the workbench library lists it. */
+export interface ExampleEntry {
+  /** `<page>#<index>`, with `index` for the documentation home page. */
+  id: string;
+  page: string;
+  /** Named after its page, numbered when the page has several runnable examples. */
+  name: string;
+  script: boolean;
+  scenario: string;
+  seed: number;
+  source: string;
+}
+
+/** Every runnable example on the given pages, in page order, for the workbench library. */
+export function exampleIndex(
+  pages: readonly { slug: string; tree: Root; frontmatter: Record<string, unknown> }[],
+): ExampleEntry[] {
+  // Pages that add to a generated reference page take its title.
+  const referenceTitles = new Map(referencePages().map((p) => [p.slug, p.title]));
+  return pages.flatMap((page) => {
+    const examples = extractExamples(page.slug, page.tree);
+    const title = String(
+      page.frontmatter.title ?? referenceTitles.get(page.slug) ?? (page.slug || "Documentation"),
+    );
+    return examples.map((example) => ({
+      id: `${page.slug || "index"}#${example.index}`,
+      page: page.slug,
+      name: examples.length > 1 ? `${title} (example ${example.index})` : title,
+      script: example.script,
+      scenario: example.scenario,
+      seed: example.seed,
+      source: example.source,
+    }));
+  });
+}
+
+/** Names the problem when the committed examples index differs from the documentation. */
+export function checkExampleIndex(committed: unknown, current: ExampleEntry[]): string[] {
+  return JSON.stringify(committed) === JSON.stringify(current)
+    ? []
+    : [
+        "generated/examples.json is out of date with the runnable examples; run `pnpm --filter @regolith-rail/docs generate`",
+      ];
+}
 
 /** A policy with every hook doing nothing, for running script examples. */
 const IDLE_POLICY = "return { on_stop = function(ctx) end, on_review = function(ctx) end }";

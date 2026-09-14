@@ -1,4 +1,5 @@
 import { useStore } from "zustand";
+import { openLibraryStorage } from "../lib/library-storage.ts";
 import { openStorage } from "../lib/storage.ts";
 import { batchPoolSize, browserWorkerFactory } from "../workers/browser.ts";
 import { BatchPool, SimulationClient } from "../workers/client.ts";
@@ -22,14 +23,15 @@ export const library = createLibrary();
 
 let sessionStarted = false;
 
-/** Restores shared or draft work once per page load. */
+/** Restores the library and shared or saved work once per page load. */
 export function startWorkbenchSession(): void {
   if (sessionStarted) return;
   sessionStarted = true;
   void startSession({
     workbench,
     library,
-    storage: openStorage(),
+    storage: openLibraryStorage(),
+    formerStorage: openStorage(),
     hash: window.location.hash,
     clearHash: () =>
       window.history.replaceState(

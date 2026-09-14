@@ -1,10 +1,18 @@
 import { expect, test } from "@playwright/test";
-import { hoverText, hoverUntil, openWorkbench, run, setEditorText } from "./helpers.ts";
+import {
+  expectSlot,
+  hoverText,
+  hoverUntil,
+  openItem,
+  openWorkbench,
+  run,
+  setEditorText,
+} from "./helpers.ts";
 
 test.describe("first visit", () => {
   test("shows two-station with the naive baseline, ready to run", async ({ page }) => {
     await openWorkbench(page);
-    await expect(page.getByTestId("scenario-picker")).toHaveValue("two-station");
+    await expectSlot(page, "scenario", "builtin:scenario:two-station");
     await expect(page.getByTestId("policy-editor")).toContainText("Naive baseline");
     await expect(page.getByTestId("run")).toBeEnabled();
     await run(page);
@@ -57,7 +65,7 @@ test.describe("scenario editor", () => {
     await expect(
       page.getByTestId("scenario-editor").locator(".cm-lintRange-error").first(),
     ).toBeVisible();
-    await page.getByTestId("scenario-picker").selectOption("relay");
+    await openItem(page, "builtin:scenario:relay");
     await expect(page.getByTestId("run")).toBeEnabled();
   });
 });
@@ -73,7 +81,7 @@ test.describe("runs", () => {
       "policy-editor",
       "return { on_stop = function(ctx) for i = 1, 150000 do end end }\n",
     );
-    await page.getByTestId("scenario-picker").selectOption("mixed-line");
+    await openItem(page, "builtin:scenario:mixed-line");
     await page.getByTestId("run").click();
     await expect(page.getByTestId("cancel")).toBeVisible();
     await page.getByTestId("run-tab-metrics").click();

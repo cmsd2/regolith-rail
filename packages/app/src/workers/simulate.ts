@@ -3,6 +3,7 @@ import {
   checkPolicySource,
   type Diagnostic,
   type LuaRuntime,
+  type PolicyHooks,
   type ScriptScenario,
 } from "@regolith-rail/lua-runtime";
 import { type ModReadiness, modReadiness } from "../lib/mod-ready.ts";
@@ -97,6 +98,11 @@ export function simulationTasks(runtime: LuaRuntime) {
     /** Whether the pairing could run in the game, from the loaded policy's hooks. */
     modReady(policy: string, scenario: Scenario): ModReadiness {
       return modReadiness(runtime.hooksOf(policy), scenario);
+    },
+
+    /** The hooks a policy defines, from loading it without running anything. */
+    hooks(policy: string): PolicyHooks {
+      return runtime.hooksOf(policy);
     },
   };
 }

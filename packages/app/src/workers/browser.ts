@@ -15,6 +15,7 @@ export const browserWorkerFactory: WorkerFactory = () => {
       check: (source) => remote.check(source),
       loadScript: (source) => remote.loadScript(source),
       modReady: (policy, scenario) => remote.modReady(policy, scenario),
+      hooks: (policy) => remote.hooks(policy),
     },
     terminate: () => {
       remote[Comlink.releaseProxy]();

@@ -7,13 +7,15 @@
     ".": "./src/index.ts",
     "./node": "./src/node.ts",
     "./mdx": "./src/mdx-options.ts",
-    "./content": "./src/content.ts"
+    "./content": "./src/content.ts",
+    "./examples": "./generated/examples.json"
   },
   "scripts": {
     "typecheck": "tsc -p .",
     "check": "node scripts/check.ts",
     "links": "node scripts/links.ts",
-    "search-index": "node scripts/search-index.ts"
+    "search-index": "node scripts/search-index.ts",
+    "generate": "node scripts/generate-examples.ts"
   },
   "devDependencies": {
     "@types/hast": "^3.0.5",

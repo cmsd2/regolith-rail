@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { WorkbenchState } from "../state/workbench.ts";
+import type { LibraryItem } from "./library.ts";
 import { decodeShare, encodeShare, lengthWarning, type ShareState, sameShare } from "./share.ts";
 
 const state: ShareState = {
@@ -55,26 +56,53 @@ describe("share links", () => {
   });
 
   it("stay the same when a scenario finishes evaluating, and change with an edit", () => {
-    const evaluating = {
-      view: "run",
-      policy: state.policy,
-      policyB: state.policyB,
-      scenario: { ...state.scenario, status: "evaluating", scenario: null, errors: [] },
-      seed: 1,
-      saveReloadTest: false,
-      batch: { seedCount: 100, baseSeed: 1, compare: false },
-    } as unknown as WorkbenchState;
-    const ready = {
-      ...evaluating,
-      scenario: { ...evaluating.scenario, status: "ready", scenario: { id: "x" } },
-    } as unknown as WorkbenchState;
+    const items: Record<string, LibraryItem> = {
+      "mine:scenario:s": {
+        id: "mine:scenario:s",
+        kind: "scenario",
+        source: "mine",
+        name: "Shop",
+        content: state.scenario,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+      "mine:policy:p": {
+        id: "mine:policy:p",
+        kind: "policy",
+        source: "mine",
+        name: "mine",
+        content: state.policy.source,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    };
+    const stateWith = (overrides: Record<string, unknown>) =>
+      ({
+        view: "run",
+        slots: { scenario: "mine:scenario:s", policy: "mine:policy:p", compare: "mine:policy:p" },
+        itemById: (id: string) => items[id],
+        scenario: { ...state.scenario, status: "evaluating", scenario: null, errors: [] },
+        seed: 1,
+        saveReloadTest: false,
+        batch: { seedCount: 100, baseSeed: 1, compare: false },
+        ...overrides,
+      }) as unknown as WorkbenchState;
+    const evaluating = stateWith({});
+    const ready = stateWith({
+      scenario: { ...state.scenario, status: "ready", scenario: { id: "x" }, errors: [] },
+    });
     expect(sameShare(evaluating, ready)).toBe(true);
 
-    const edited = {
-      ...ready,
-      scenario: { ...ready.scenario, source: "return classic.reorder { demand = 6 }" },
-    } as unknown as WorkbenchState;
+    const edited = stateWith({
+      itemById: (id: string) =>
+        id === "mine:scenario:s"
+          ? {
+              ...items[id],
+              content: { ...state.scenario, source: "return classic.reorder { demand = 6 }" },
+            }
+          : items[id],
+    });
     expect(sameShare(ready, edited)).toBe(false);
-    expect(sameShare(ready, { ...ready, seed: 2 })).toBe(false);
+    expect(sameShare(ready, stateWith({ seed: 2 }))).toBe(false);
   });
 });

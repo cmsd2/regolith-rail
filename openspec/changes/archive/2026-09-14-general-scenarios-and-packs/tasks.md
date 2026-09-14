@@ -83,5 +83,5 @@
 
 ## 11. Release
 
-- [ ] 11.1 Run the full check, documentation check, determinism tests and end-to-end tests in CI on a pull request; verify every job passes and golden hashes are unchanged
-- [ ] 11.2 On the deployed site, run a Mars starter, a classic template with its reference policy, a script edit, and share a script link to another browser; record the result in the change notes
+- [x] 11.1 Run the full check, documentation check, determinism tests and end-to-end tests in CI on a pull request; verify every job passes and golden hashes are unchanged
+- [x] 11.2 On the deployed site, run a Mars starter, a classic template with its reference policy, a script edit, and share a script link to another browser; record the result in the change notes

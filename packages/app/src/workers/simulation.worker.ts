@@ -28,6 +28,9 @@ const api: SimulationWorkerApi = {
   async modReady(policy, scenario) {
     return (await tasks).modReady(policy, scenario);
   },
+  async hooks(policy) {
+    return (await tasks).hooks(policy);
+  },
 };
 
 Comlink.expose(api);

@@ -1,15 +1,19 @@
 import { deflateRawSync } from "node:zlib";
 import { expect, type Page, test } from "@playwright/test";
 import relay from "../../packages/engine/src/testing/format1/relay.json" with { type: "json" };
-import { hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
+import {
+  expectSlot,
+  hoverText,
+  openItem,
+  openTemplate,
+  openWorkbench,
+  run,
+  setEditorText,
+  showParameters,
+} from "./helpers.ts";
 
 const editorText = (page: Page, testId: string) =>
   page.getByTestId(testId).locator(".cm-content").innerText();
-
-async function pickTemplate(page: Page, name: string) {
-  await page.getByTestId("scenario-picker").selectOption(name);
-  await expect(page.getByTestId("run")).toBeEnabled({ timeout: 30_000 });
-}
 
 test.describe("scenario scripts", () => {
   test("show hover help for a construct with a documentation link", async ({ page }) => {
@@ -48,7 +52,7 @@ test.describe("scenario scripts", () => {
     await expect(page.getByTestId("scenario-errors")).toContainText("Line 2");
     await expect(page.getByTestId("scenario-errors")).toContainText("no parameter named colour");
     await expect(page.getByTestId("run")).toBeDisabled();
-    await page.getByTestId("scenario-picker").selectOption("relay");
+    await openItem(page, "builtin:scenario:relay");
     await expect(page.getByTestId("run")).toBeEnabled();
   });
 
@@ -66,7 +70,7 @@ test.describe("scenario scripts", () => {
 test.describe("classic templates", () => {
   test("re-evaluate from their parameter form", async ({ page }) => {
     await openWorkbench(page);
-    await pickTemplate(page, "classic.serial_chain");
+    await openTemplate(page, "classic.serial_chain");
     const map = page.getByTestId("line-map");
     await expect(map).toHaveAttribute("data-stations", "Stage1 Stage2 Stage3 Stage4");
     await page.getByTestId("template-param-stages").fill("3");
@@ -76,7 +80,7 @@ test.describe("classic templates", () => {
 
   test("link to their documentation page", async ({ page }) => {
     await openWorkbench(page);
-    await pickTemplate(page, "classic.serial_chain");
+    await openTemplate(page, "classic.serial_chain");
     await expect(page.getByTestId("scenario-docs")).toHaveAttribute(
       "href",
       /docs\/classic\/serial-chain$/,
@@ -86,7 +90,7 @@ test.describe("classic templates", () => {
   test("say a template with reviews is not mod-ready, and a Mars line is", async ({ page }) => {
     await openWorkbench(page);
     await expect(page.getByTestId("mod-ready")).toHaveText("Mod-ready", { timeout: 30_000 });
-    await pickTemplate(page, "classic.reorder");
+    await openTemplate(page, "classic.reorder");
     await expect(page.getByTestId("mod-ready")).toContainText("Not mod-ready", {
       timeout: 30_000,
     });
@@ -95,11 +99,14 @@ test.describe("classic templates", () => {
 
   test("run with their reference policy and inspect a review", async ({ page }) => {
     await openWorkbench(page);
-    await pickTemplate(page, "classic.reorder");
+    await openTemplate(page, "classic.reorder");
     expect(await editorText(page, "policy-editor")).toContain("ops.min_max");
     await run(page);
-    // Near the start of the run, where the first review ordered.
-    await page.getByTestId("review-track").click({ position: { x: 0, y: 3 } });
+    // At the start of the run, where the first review ordered. The strip can start part way
+    // through a pixel, so click half a pixel inside its left edge.
+    const track = await page.getByTestId("review-track").boundingBox();
+    if (!track) throw new Error("no review track");
+    await page.mouse.click(Math.ceil(track.x) + 0.5, track.y + 3);
     const inspector = page.getByTestId("review-inspector");
     await expect(inspector).toContainText("Shop");
     await expect(page.getByTestId("review-orders")).toContainText("Ordered");
@@ -110,7 +117,7 @@ test.describe("classic templates", () => {
 
   test("draw a loop as a network with its truck moving", async ({ page }) => {
     await openWorkbench(page);
-    await pickTemplate(page, "classic.fixed_route_delivery");
+    await openTemplate(page, "classic.fixed_route_delivery");
     const map = page.getByTestId("line-map");
     await expect(map).toHaveAttribute("data-layout", "loop");
     await expect(map).toHaveAttribute("data-stations", "Depot Customer1 Customer2 Customer3");
@@ -122,7 +129,7 @@ test.describe("classic templates", () => {
 test.describe("sharing and saving scripts", () => {
   test("a link keeps a scenario script, not only its document", async ({ page, browser }) => {
     await openWorkbench(page);
-    await pickTemplate(page, "classic.serial_chain");
+    await openTemplate(page, "classic.serial_chain");
     await page.getByTestId("template-param-stages").fill("3");
     await page.getByTestId("share").click();
     const link = await page.getByTestId("share-link").inputValue();
@@ -131,10 +138,11 @@ test.describe("sharing and saving scripts", () => {
     const opened = await other.newPage();
     await openWorkbench(opened, link.replace(/^https?:\/\/[^/]+\//, "/"));
     await opened.getByTestId("tab-scenario").click();
+    await showParameters(opened);
     const script = await editorText(opened, "scenario-editor");
     expect(script).toContain("classic.serial_chain");
     expect(script).toContain("stages = 3");
-    await expect(opened.getByTestId("scenario-picker")).toHaveValue("classic.serial_chain");
+    await expect(opened.getByTestId("template-param-stages")).toHaveValue("3");
     await other.close();
   });
 
@@ -147,14 +155,12 @@ test.describe("sharing and saving scripts", () => {
       "-- my chain\nreturn classic.serial_chain { stages = 2 }\n",
     );
     await expect(page.getByTestId("line-map")).toHaveAttribute("data-stations", "Stage1 Stage2");
-    const saved = page.getByTestId("saved-scenario");
-    await saved.locator("summary").click();
-    await saved.getByTestId("save-name").fill("chain");
-    await saved.getByTestId("save").click();
-    await expect(saved.getByTestId("saved-item")).toHaveCount(1);
+    await expectSlot(page, "scenario", /^mine:scenario:/);
+    const id = (await page.getByTestId("slot-scenario").getAttribute("data-item-id")) as string;
 
-    await page.getByTestId("scenario-picker").selectOption("relay");
-    await saved.getByTestId("saved-open").click();
+    await openItem(page, "builtin:scenario:relay");
+    await expectSlot(page, "scenario", "builtin:scenario:relay");
+    await openItem(page, id);
     expect(await editorText(page, "scenario-editor")).toContain("-- my chain");
     await expect(page.getByTestId("line-map")).toHaveAttribute("data-stations", "Stage1 Stage2");
   });

@@ -2,7 +2,7 @@ import { EVIDENCE_LEVELS, GAME, GAME_VERSION, isEvidenceLevel } from "@regolith-
 import { POLICY_API_VERSION, starterScenarios } from "@regolith-rail/engine";
 import { classicTemplates } from "@regolith-rail/scenario-kit";
 import type { MDXComponents } from "mdx/types";
-import { type ReactNode, useContext, useState } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 import { useNavigate } from "react-router";
 import { DocLink, DocsMode } from "./DocLink.tsx";
 import styles from "./docs.module.css";
@@ -12,6 +12,9 @@ const scenarioTitle = (id: string) =>
   classicTemplates.find((t) => t.name === id)?.title ??
   (starterScenarios.find((s) => s.id === id)?.document as { title?: string } | undefined)?.title ??
   id;
+
+/** The slug of the documentation page being shown, so examples know where they are. */
+export const DocPage = createContext("");
 
 /** A runnable example, wrapped around its highlighted code by the MDX build. */
 export function Example({
@@ -29,6 +32,7 @@ export function Example({
 }) {
   const script = kind === "script";
   const mode = useContext(DocsMode);
+  const page = useContext(DocPage);
   const navigate = useNavigate();
   const [opened, setOpened] = useState(false);
   return (
@@ -48,7 +52,7 @@ export function Example({
           type="button"
           onClick={() =>
             void openExample(
-              { source, kind: script ? "script" : "policy", scenario, seed: Number(seed) },
+              { source, kind: script ? "script" : "policy", scenario, seed: Number(seed), page },
               mode,
               navigate,
             ).then(() => setOpened(true))

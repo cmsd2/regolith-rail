@@ -1,51 +1,24 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
-import type { SavedItem, WorkStorage } from "../lib/storage.ts";
+import type { LibraryStorage } from "../lib/library-storage.ts";
 
 export type DraftStatus = "none" | "pending" | "saved" | "failed";
 
 export interface LibraryState {
   /** Unknown until storage has been opened. */
   available: boolean | null;
-  items: SavedItem[];
+  /** Whether the latest changes to Mine items and slots have been saved. */
   draft: DraftStatus;
 
-  attach(storage: WorkStorage): Promise<void>;
+  attach(storage: LibraryStorage): Promise<void>;
   setDraftStatus(draft: DraftStatus): void;
-  save(item: SavedItem): Promise<void>;
-  rename(kind: SavedItem["kind"], from: string, to: string): Promise<void>;
-  remove(kind: SavedItem["kind"], name: string): Promise<void>;
 }
 
-/** Named policies and scenarios saved in the browser. */
+/** Whether the player's library is kept in the browser, and how saving is going. */
 export function createLibrary(): StoreApi<LibraryState> {
-  let storage: WorkStorage | undefined;
-  return createStore<LibraryState>()((set) => {
-    const refresh = async () => {
-      if (storage) set({ items: await storage.list() });
-    };
-    return {
-      available: null,
-      items: [],
-      draft: "none",
-
-      async attach(opened) {
-        storage = opened;
-        set({ available: opened.available });
-        await refresh();
-      },
-      setDraftStatus: (draft) => set({ draft }),
-      async save(item) {
-        await storage?.save(item);
-        await refresh();
-      },
-      async rename(kind, from, to) {
-        await storage?.rename(kind, from, to);
-        await refresh();
-      },
-      async remove(kind, name) {
-        await storage?.remove(kind, name);
-        await refresh();
-      },
-    };
-  });
+  return createStore<LibraryState>()((set) => ({
+    available: null,
+    draft: "none",
+    attach: async (storage) => set({ available: storage.available }),
+    setDraftStatus: (draft) => set({ draft }),
+  }));
 }

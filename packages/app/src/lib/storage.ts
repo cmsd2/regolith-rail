@@ -1,4 +1,4 @@
-import { createStore, del, get, set, type UseStore, values } from "idb-keyval";
+import { clear, createStore, del, get, set, type UseStore, values } from "idb-keyval";
 import type { ScenarioKind, ScenarioSource } from "./scenario-source.ts";
 
 export interface SavedPolicy {
@@ -36,6 +36,8 @@ export interface WorkStorage {
   rename(kind: SavedItem["kind"], from: string, to: string): Promise<void>;
   loadDraft(): Promise<Draft | undefined>;
   saveDraft(draft: Draft): Promise<void>;
+  /** Removes every saved item and the draft, once they have been moved into the library. */
+  clear(): Promise<void>;
 }
 
 const key = (kind: SavedItem["kind"], name: string) => `${kind}:${name}`;
@@ -50,6 +52,7 @@ function unavailable(): WorkStorage {
     rename: nothing,
     loadDraft: async () => undefined,
     saveDraft: nothing,
+    clear: nothing,
   };
 }
 
@@ -74,6 +77,10 @@ export function memoryStorage(): WorkStorage {
     loadDraft: async () => draft,
     saveDraft: async (next) => {
       draft = next;
+    },
+    clear: async () => {
+      items.clear();
+      draft = undefined;
     },
   };
 }
@@ -109,5 +116,9 @@ export async function openStorage(): Promise<WorkStorage> {
     },
     loadDraft: () => get<Draft>("current", drafts),
     saveDraft: (draft) => set("current", draft, drafts),
+    async clear() {
+      await clear(saved);
+      await clear(drafts);
+    },
   };
 }

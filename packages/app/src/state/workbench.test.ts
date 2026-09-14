@@ -1,7 +1,10 @@
 import { batchSeeds } from "@regolith-rail/engine";
 import { LuaRuntime } from "@regolith-rail/lua-runtime";
-import { STARTER_SCRIPTS, templateCall } from "@regolith-rail/scenario-kit";
+import { classicTemplates, STARTER_SCRIPTS, templateCall } from "@regolith-rail/scenario-kit";
 import { beforeAll, describe, expect, it } from "vitest";
+import { catalogueItem } from "../lib/catalogue.ts";
+import { importFile } from "../lib/files.ts";
+import { classicExperiment } from "../lib/test-fixtures.ts";
 import {
   BatchPool,
   CancelledError,
@@ -10,7 +13,7 @@ import {
 } from "../workers/client.ts";
 import { simulationTasks } from "../workers/simulate.ts";
 import { createPlayhead } from "./playhead.ts";
-import { createWorkbench, DEFAULT_SCENARIO, referencePolicyName } from "./workbench.ts";
+import { createWorkbench, DEFAULT_SCENARIO } from "./workbench.ts";
 
 let runtime: LuaRuntime;
 beforeAll(async () => {
@@ -37,6 +40,7 @@ function inProcess(options: { hang?: boolean } = {}): WorkerHandle {
       check: async (source) => tasks.check(source),
       loadScript: async (source) => tasks.loadScript(source),
       modReady: async (policy, scenario) => tasks.modReady(policy, scenario),
+      hooks: async (policy) => tasks.hooks(policy),
     },
     terminate: () => {
       terminated = true;
@@ -63,7 +67,12 @@ describe("workbench store", () => {
     const state = workbench().getState();
     expect(state.scenario.starterId).toBe(DEFAULT_SCENARIO);
     expect(state.scenario.scenario?.id).toBe("two-station");
-    expect(state.policy.name).toBe("naive.lua");
+    expect(state.policy.name).toBe("naive");
+    expect(state.slots).toEqual({
+      scenario: "builtin:scenario:two-station",
+      policy: "builtin:policy:naive",
+      compare: "builtin:policy:supply-to-demand",
+    });
   });
 
   it("reports invalid JSON and clears the parsed scenario", () => {
@@ -117,7 +126,7 @@ describe("workbench store", () => {
   it("picks a template with its reference policy and rewrites it from parameters", async () => {
     const store = workbench();
     store.getState().selectTemplate("classic.serial_chain");
-    expect(store.getState().policy.name).toBe(referencePolicyName("classic.serial_chain"));
+    expect(store.getState().slots.policy).toBe("classic:policy:classic.serial_chain");
     await settled(store);
     expect(store.getState().scenario.scenario?.stations).toHaveLength(4);
     store.getState().setTemplateParams({ stages: 3 });
@@ -133,6 +142,216 @@ describe("workbench store", () => {
     ]);
     store.getState().setScenarioSource(`-- mine\n${store.getState().scenario.source}`);
     expect(store.getState().scenario.template).toBeUndefined();
+  });
+
+  it("copies a built-in policy on its first edit and edits the copy after that", () => {
+    const store = workbench();
+    const naive = catalogueItem("builtin:policy:naive");
+    store.getState().setPolicySource("-- one\nreturn {}");
+    const first = store.getState();
+    expect(first.slots.policy).toMatch(/^mine:policy:/);
+    expect(first.items[first.slots.policy]).toMatchObject({
+      name: "naive (copy)",
+      source: "mine",
+      origin: "builtin:policy:naive",
+      content: "-- one\nreturn {}",
+    });
+    expect(first.policy).toEqual({ name: "naive (copy)", source: "-- one\nreturn {}" });
+
+    store.getState().setPolicySource("-- two\nreturn {}");
+    const second = store.getState();
+    expect(second.slots.policy).toBe(first.slots.policy);
+    expect(Object.keys(second.items)).toHaveLength(1);
+    expect(second.policy.source).toBe("-- two\nreturn {}");
+    expect(catalogueItem("builtin:policy:naive")).toBe(naive);
+    expect(naive?.content).not.toContain("-- two");
+
+    // A second copy of the built-in gets the next free name.
+    store.getState().fillSlot("policy", "builtin:policy:naive");
+    store.getState().setPolicySource("-- three\nreturn {}");
+    expect(store.getState().policy.name).toBe("naive (copy 2)");
+  });
+
+  it("fills slots only with items of their kind, and runs nothing", () => {
+    const store = workbench();
+    store.getState().fillSlot("policy", "builtin:scenario:relay");
+    expect(store.getState().slots.policy).toBe("builtin:policy:naive");
+    store.getState().fillSlot("compare", "builtin:policy:naive");
+    expect(store.getState().policyB.name).toBe("naive");
+    expect(store.getState().run.status).toBe("idle");
+  });
+
+  it("counts template parameter changes as an edit and lets the reference policy follow", async () => {
+    const store = workbench();
+    const newsvendor = classicTemplates.find((t) => t.name === "classic.newsvendor");
+    if (!newsvendor) throw new Error("newsvendor missing");
+    store.getState().selectTemplate("classic.newsvendor");
+    store.getState().setTemplateParams({ lost_cost: 9 });
+    const state = store.getState();
+    expect(state.slots.scenario).toMatch(/^mine:scenario:/);
+    expect(state.items[state.slots.scenario]?.name).toBe("Newsvendor (copy)");
+    expect(state.scenario.template?.params.lost_cost).toBe(9);
+    expect(state.slots.policy).toMatch(/^classic:policy:classic\.newsvendor@/);
+    const params = { ...newsvendor.defaults, lost_cost: 9 };
+    expect(state.policy.source).toBe(newsvendor.reference(params).policy);
+    expect(catalogueItem("classic:scenario:classic.newsvendor")?.content).toMatchObject({
+      template: { params: newsvendor.defaults },
+    });
+
+    // Once edited, the reference policy is the player's and stays put.
+    store.getState().setPolicySource(`-- tuned\n${state.policy.source}`);
+    store.getState().setTemplateParams({ lost_cost: 12 });
+    expect(store.getState().policy.source).toMatch(/^-- tuned/);
+    expect(store.getState().scenario.template?.params.lost_cost).toBe(12);
+    await settled(store);
+  });
+
+  it("renames, duplicates, saves and deletes Mine items", () => {
+    const store = workbench();
+    store.getState().setPolicySource("-- a\nreturn {}");
+    const id = store.getState().slots.policy;
+    store.getState().renameItem(id, "buffer");
+    expect(store.getState().policy.name).toBe("buffer");
+    store.getState().renameItem("builtin:policy:naive", "nope");
+    expect(catalogueItem("builtin:policy:naive")?.name).toBe("naive");
+
+    const copy = store.getState().duplicateItem(id);
+    expect(copy && store.getState().items[copy]?.name).toBe("buffer (copy)");
+
+    store.getState().fillSlot("scenario", "builtin:scenario:relay");
+    store.getState().saveSlotAs("scenario", "my relay");
+    const scenarioId = store.getState().slots.scenario;
+    expect(store.getState().items[scenarioId]).toMatchObject({ name: "my relay", source: "mine" });
+
+    store.getState().deleteItem(id);
+    const after = store.getState();
+    expect(after.items[id]).toBeUndefined();
+    expect(after.items[after.slots.policy]).toMatchObject({
+      listed: false,
+      content: "-- a\nreturn {}",
+    });
+    store.getState().saveSlotAs("policy", "rescued");
+    const rescued = store.getState().items[store.getState().slots.policy];
+    expect(rescued).toMatchObject({ name: "rescued" });
+    expect(rescued?.listed).toBeUndefined();
+  });
+
+  it("saves the run as an experiment and restores it later without running", () => {
+    const store = workbench();
+    store.getState().selectStarter("storm-shock");
+    store
+      .getState()
+      .setPolicySource("return ops.policy { target = ops.min_max { min = 1, max = 2 } }");
+    store.getState().setSeed(7);
+    const id = store.getState().saveExperiment("Storm buffer");
+    const policyId = store.getState().slots.policy;
+    expect(store.getState().items[id]).toMatchObject({ kind: "experiment", name: "Storm buffer" });
+
+    store.getState().selectStarter("relay");
+    store.getState().setSeed(2);
+    store.getState().setPolicySource("-- changed after saving\nreturn {}");
+    store.getState().openExperiment(id);
+    const opened = store.getState();
+    expect(opened.slots.scenario).toBe("builtin:scenario:storm-shock");
+    expect(opened.policy.source).toContain("ops.min_max");
+    expect(opened.seed).toBe(7);
+    expect(opened.run.status).toBe("idle");
+    // The Mine policy was edited since, so the experiment's own copy fills the slot.
+    expect(opened.slots.policy).toBe(`experiment:${id}/policy`);
+
+    // Editing that part copies it to Mine and leaves the experiment as it was.
+    store.getState().setPolicySource("-- tweaked\nreturn {}");
+    const after = store.getState();
+    expect(after.slots.policy).toMatch(/^mine:policy:/);
+    expect(after.slots.policy).not.toBe(policyId);
+    const experiment = after.items[id];
+    expect(experiment?.kind === "experiment" && experiment.content.policy.content).toContain(
+      "ops.min_max",
+    );
+
+    store.getState().updateExperiment(id);
+    const updated = store.getState().items[id];
+    expect(updated?.kind === "experiment" && updated.content.policy.content).toBe(
+      "-- tweaked\nreturn {}",
+    );
+  });
+
+  it("opens an experiment of a classic problem with the shipped items it still matches", () => {
+    const store = workbench();
+    const experiment = classicExperiment("classic.newsvendor");
+    store.getState().addItem(experiment);
+    store.getState().openExperiment(experiment.id);
+    expect(store.getState().slots).toMatchObject({
+      scenario: "classic:scenario:classic.newsvendor",
+      policy: "classic:policy:classic.newsvendor",
+    });
+  });
+
+  it("applies a scenario's suggested fix or its reference policy for the current parameters", () => {
+    const store = workbench();
+    store.getState().selectStarter("storm-shock");
+    store.getState().applySuggestedFix();
+    expect(store.getState().slots.policy).toBe(
+      "example:policy:docs/failure-modes/disruption-recovery#1",
+    );
+    store.getState().applyBaseline();
+    expect(store.getState().slots.policy).toBe("builtin:policy:naive");
+
+    store.getState().setPolicySource("-- mine\nreturn {}");
+    store.getState().compareFixWithBaseline();
+    const comparing = store.getState();
+    expect(comparing.slots).toMatchObject({
+      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+      compare: "builtin:policy:naive",
+    });
+    expect(comparing.view).toBe("batch");
+    expect(comparing.batch).toMatchObject({ compare: true, status: "idle" });
+
+    const newsvendor = classicTemplates.find((t) => t.name === "classic.newsvendor");
+    if (!newsvendor) throw new Error("newsvendor missing");
+    store.getState().fillSlot("scenario", "classic:scenario:classic.newsvendor");
+    store.getState().setTemplateParams({ lost_cost: 9 });
+    store.getState().applyReferencePolicy();
+    const params = { ...newsvendor.defaults, lost_cost: 9 };
+    expect(store.getState().policy.source).toBe(newsvendor.reference(params).policy);
+    store.getState().setTemplateParams({ lost_cost: 11 });
+    expect(store.getState().policy.source).toBe(
+      newsvendor.reference({ ...params, lost_cost: 11 }).policy,
+    );
+  });
+
+  it("opens a documentation example without changing the player's work", () => {
+    const store = workbench();
+    store.getState().setPolicySource("-- mine\nreturn {}");
+    const mineId = store.getState().slots.policy;
+    store.getState().openExample("example:policy:docs/failure-modes/disruption-recovery#1");
+    const state = store.getState();
+    expect(state.slots).toMatchObject({
+      scenario: "builtin:scenario:storm-shock",
+      policy: "example:policy:docs/failure-modes/disruption-recovery#1",
+    });
+    expect(state.items[mineId]?.content).toBe("-- mine\nreturn {}");
+    store.getState().setPolicySource("-- edited example\nreturn {}");
+    const copy = store.getState().slots.policy;
+    expect(copy).toMatch(/^mine:policy:/);
+    expect(copy).not.toBe(mineId);
+    expect(store.getState().items[mineId]?.content).toBe("-- mine\nreturn {}");
+  });
+
+  it("adds imported items to Mine, where they can fill a slot", () => {
+    const store = workbench();
+    const imported = importFile(
+      "policy",
+      { name: "buffer.lua", bytes: new TextEncoder().encode("-- buffer\nreturn {}") },
+      [],
+      1,
+    );
+    if (!imported.ok) throw new Error(imported.message);
+    store.getState().addItem(imported.item);
+    store.getState().fillSlot("policy", imported.item.id);
+    expect(store.getState().policy).toEqual({ name: "buffer", source: "-- buffer\nreturn {}" });
+    store.getState().addItem({ ...imported.item, id: "builtin:policy:naive" });
+    expect(store.getState().itemById("builtin:policy:naive")?.name).toBe("naive");
   });
 
   it("runs the current policy and scenario", async () => {
