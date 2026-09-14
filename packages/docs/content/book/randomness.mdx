@@ -167,13 +167,14 @@ difference with a 95% confidence interval.
 
 <Check ref="test:compares two policies on the same seeds" />
 
-On unmet demand there is nothing to pair: the drain-and-fill rule meets all demand in every
-replication, so the difference is the baseline's own spread, and its interval, $28.0 \pm 0.6$,
-leaves out zero by a wide margin. Stalled production shows what pairing does. Both
-policies stall the mine more on a replication where the dome happens to use less, so their
-stalls rise and fall together, with a correlation of about 0.8. The paired differences
-spread 2.9 units against the 3.7 that independent runs would give, a fifth less, so the
-same precision needs about two thirds as many runs.
+Unmet demand does not show what pairing does, because the drain-and-fill rule leaves none
+in any replication: the paired difference is just the baseline's unmet demand, its
+interval is the baseline's own, $28.0 \pm 0.6$, and it leaves out zero by a wide margin.
+Stalled production does show it. Both policies stall the mine more in a replication where
+the dome happens to use less, so their stalls rise and fall together, with a correlation
+of about 0.8. The paired differences have a standard deviation of 2.9 units, against the
+3.7 that independent runs would give: a fifth less, so the same precision needs about two
+thirds as many runs.
 
 Pairing can also hurt. The two policies' empty running moves in opposite directions with
 demand: balancing runs emptier on a replication where the dome uses less, and the
