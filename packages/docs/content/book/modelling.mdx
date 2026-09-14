@@ -62,6 +62,29 @@ needs a rule. A policy maps what the vehicle observes at a stop, its cargo and t
 at the stations, to how much to load or unload. The simulator calls a policy at every
 stop, and the results measure the policy, not any one choice.
 
+### Writing a rule down
+
+The policies in this book are written with the `ops` library, which builds a policy from
+a few named parts. Every chapter uses them, so they are worth naming now. At each stop the
+policy looks at each *site*, one station and one resource it stores, and decides in
+stages:
+
+- **Classify** gives the site a role: `supply`, where the resource is made; `demand`,
+  where it is used; `relay`, where it only passes through; or `any`, when the policy does
+  not say. `ops.roles.manual` lists the roles by station.
+- **Target** says how much stock the site should hold when the train leaves. It is one
+  block for every site, or a block for each role. `ops.drain {}` targets nothing, so the
+  train takes all it can; `ops.fill {}` targets the site's capacity, so the train leaves
+  all it can; `ops.balance {}` targets the mean stock across the stations that store the
+  resource; and `ops.pass_through {}` names no target, so the site is left as it is.
+- The difference between the target and what the site holds is what the train loads or
+  unloads, as far as its cargo, its space and the station's room allow.
+
+A policy that gives only a target treats every site alike. One that classifies first can
+treat a supply site and a demand site differently, and that is the whole difference
+between the two rules in this chapter. The [ops reference](/docs/ops) lists every block,
+and a policy can always be plain Lua instead, for rules the blocks cannot express.
+
 ### The line
 
 The line in this chapter joins two stations 72,000 distance units apart. At one end is a
