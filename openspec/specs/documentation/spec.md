@@ -33,16 +33,22 @@ The documentation SHALL include:
 - metric definitions, scenario format reference and game mechanics assumptions;
 - About, with the licence and non-affiliation statement.
 
-A failure-mode explanation SHALL be a Book case study or a page in the Failure modes section. A classic
-template's page SHALL be a Book chapter or a page in the Classic problems section.
+A failure-mode explanation SHALL be a Book case study, or a page in the Failure modes section only while the
+part of the Book it belongs to is unwritten. A classic template's page SHALL be a Book chapter or a template
+reference page in the Reference section. The main text of a template reference page SHALL NOT name the game.
 
 #### Scenario: Failure-mode page per scenario
 - **WHEN** the starter scenarios are listed
-- **THEN** each links to an existing failure-mode page or Book case study
+- **THEN** each links to an existing Book case study, or to a Failure modes page for a failure mode whose part
+  is unwritten
 
 #### Scenario: Page per classic template
 - **WHEN** the classic problem templates are listed
-- **THEN** each links to an existing documentation page or Book chapter
+- **THEN** each links to an existing Book chapter or template reference page
+
+#### Scenario: Template page without the game
+- **WHEN** a reader opens the fixed-route delivery reference page
+- **THEN** its main text describes the problem in operations research terms without naming the game
 
 ### Requirement: Complete reference
 Every member of the Policy API, every `ops` block and block parameter, and every scenario construct and
@@ -120,3 +126,17 @@ No game assets SHALL appear in the application or documentation.
 #### Scenario: Notice on a page
 - **WHEN** any documentation page or application view is displayed
 - **THEN** the non-affiliation notice is visible in its footer
+
+### Requirement: Entry into the book
+The documentation index SHALL lead with Getting started and the Book, SHALL list each starter scenario's
+lesson under the chapter that tells it, and SHALL name any lesson that waits for a later part. Getting started
+SHALL use the book's unit of time, day, and SHALL say once that the game calls it a sol.
+
+#### Scenario: Index lists lessons by chapter
+- **WHEN** a reader opens the documentation index
+- **THEN** half capacity, dead stock, double dispatch and storm shock are listed under their chapters, and
+  ping-pong is listed as waiting for Part III
+
+#### Scenario: Getting started in days
+- **WHEN** a reader follows Getting started
+- **THEN** run lengths are given in days, with sol explained once
