@@ -23,7 +23,7 @@ export const BOOK: readonly BookPart[] = [
     part: 1,
     title: "Foundations",
     chapters: [
-      { chapter: 1, title: "Modelling operations" },
+      { chapter: 1, title: "Modelling operations", slug: "book/modelling" },
       { chapter: 2, title: "Randomness and simulation" },
     ],
   },

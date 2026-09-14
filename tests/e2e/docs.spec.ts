@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { docPaths } from "../../packages/docs/src/content.ts";
+import { MOVED_PAGES } from "../../packages/docs/src/moved.ts";
 import { expectSlot, hoverText, openWorkbench, run, setEditorText } from "./helpers.ts";
 
 const NOTICE = "not affiliated with or endorsed by Paradox Interactive or Haemimont Games";
@@ -20,7 +21,9 @@ test.describe("documentation pages", () => {
   test("every documentation page shows the non-affiliation notice", async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
-    for (const path of docPaths()) {
+    // Redirects left by moved pages send the browser on at once, so only real pages are visited.
+    const moved = new Set(Object.keys(MOVED_PAGES).map((slug) => `/docs/${slug}`));
+    for (const path of docPaths().filter((p) => !moved.has(p))) {
       const response = await page.goto(path);
       expect(response?.status(), path).toBe(200);
       await expect(page.locator("footer"), path).toContainText(NOTICE);
@@ -95,15 +98,16 @@ test.describe("documentation panel", () => {
     await setEditorText(page, "policy-editor", "-- still here\nreturn {}\n");
     await page.getByTestId("scenario-docs").click();
     const panel = page.getByTestId("docs-panel");
-    await expect(panel.locator("h1")).toHaveText("Half capacity");
+    await expect(panel.locator("h1")).toHaveText("Modelling operations");
+    await expect(panel.locator("#case-study-half-capacity")).toBeInViewport();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId("policy-editor")).toContainText("-- still here");
 
-    await panel.getByRole("link", { name: "unmet demand", exact: true }).click();
+    await panel.getByRole("link", { name: "empty distance", exact: true }).click();
     await expect(panel.locator("h1")).toHaveText("Metrics");
-    await expect(panel.locator("#unmet-demand")).toBeInViewport();
+    await expect(panel.locator("#empty-distance-share")).toBeInViewport();
     await panel.getByTestId("docs-back").click();
-    await expect(panel.locator("h1")).toHaveText("Half capacity");
+    await expect(panel.locator("h1")).toHaveText("Modelling operations");
 
     await panel.getByTestId("open-example").click();
     await expect(page.getByTestId("policy-editor")).toContainText("ops.drain");
@@ -168,6 +172,12 @@ test.describe("the book", () => {
     expect(await check.innerHTML()).toContain('expect_equal("best-order", best, 15);');
     await expect(article.getByTestId("game-note")).toBeVisible();
     await context.close();
+  });
+
+  test("an old failure-mode page sends readers to its case study", async ({ page }) => {
+    await page.goto("/docs/failure-modes/half-capacity");
+    await expect(page).toHaveURL(/\/docs\/book\/modelling#case-study-half-capacity$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText("Modelling operations");
   });
 
   test("the old newsvendor page sends readers to its chapter", async ({ page }) => {

@@ -20,7 +20,7 @@
 ## 4. Moved pages, fixes and redirects
 
 - [ ] 4.1 Add `MOVED_PAGES`. Emit redirect pages at old addresses in the prerender, carrying anchors, and leave them out of search. Make the link check fail on internal links to old slugs. Resolve old targets in the docs panel's `openDocs`. Verify an e2e test that opens `/docs/failure-modes/double-dispatch` and lands on the chapter 3 case study, a panel test for an old target, and a link-check unit test.
-- [ ] 4.2 Add the `fix` code-fence flag to runnable examples and the examples index. Pick starter fixes by the flag, and require exactly one per starter in the docs check. Add catalogue aliases from old fix ids to new items. Verify catalogue tests that every starter has its fix, and that an old fix id resolves, plus a docs check test for a starter with no marked fix.
+- [x] 4.2 Add the `fix` code-fence flag to runnable examples and the examples index. Pick starter fixes by the flag, and require exactly one per starter in the docs check. Add catalogue aliases from old fix ids to new items. Verify catalogue tests that every starter has its fix, and that an old fix id resolves, plus a docs check test for a starter with no marked fix.
 
 ## 5. Chapter 4 as the first full chapter
 
@@ -29,7 +29,7 @@
 
 ## 6. Chapters 1, 2, 3 and 5
 
-- [ ] 6.1 Write chapter 1, Modelling operations, on `two-station`, with the half capacity case study moved in, the fix marked, and the starter's `docs` field updated. Verify `docs:check`, `docs:claims` and the link check pass, and the library's Why the baseline fails for `two-station` opens the case study.
+- [x] 6.1 Write chapter 1, Modelling operations, on `two-station`, with the half capacity case study moved in, the fix marked, and the starter's `docs` field updated. Verify `docs:check`, `docs:claims` and the link check pass, and the library's Why the baseline fails for `two-station` opens the case study.
 - [ ] 6.2 Write chapter 2, Randomness and simulation. Use `classic.reorder { random = true }` compared over many seeds. Check the Poisson mean and variance, the standard error's square-root law and a confidence interval in Maxima or Python. Verify `docs:check` and `docs:claims` pass.
 - [ ] 6.3 Write chapter 3, Reviews, lead times and base-stock, on `classic.reorder`, absorbing the base-stock part of `classic/reorder` and the double dispatch case study. Update the `two-trains` `docs` field. Verify `docs:check`, `docs:claims` and the link check pass, and Why the baseline fails for `two-trains` opens the case study.
 - [ ] 6.4 Write chapter 5, Order quantities: EOQ and (s, S), on `classic.reorder`, absorbing the rest of `classic/reorder`. Point the `reorder` construct's docs at the chapters, and redirect `classic/reorder`. Verify `docs:check`, `docs:claims` and the link check pass, and the template's About this problem link opens a Book chapter.

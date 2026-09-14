@@ -1,0 +1,221 @@
+---
+title: Modelling operations
+description: Decisions, objectives, constraints, and a policy as a rule that turns what it sees into what it does.
+section: Book
+part: 1
+chapter: 1
+---
+
+## What you will learn
+
+- To describe an operation as a model: the decisions to make, the objective that
+  judges them, and the constraints they must respect.
+- To see a policy as a rule that turns what a decision-maker observes into what it
+  does, and to see why a sensible-sounding rule can still fail.
+- To work out, with a little algebra, why balancing stock between two stations delivers
+  too little, and to confirm it by running the simulator.
+
+## The problem
+
+Operations research studies systems that run by rules. A warehouse reorders stock, a
+hospital schedules theatres, a railway decides what each train carries. In each, a
+decision is made again and again, and the quality of the operation depends less on any
+single decision than on the rule that makes them all.
+
+Building a model is the first step. A model leaves out almost everything about the real
+system and keeps what the decision depends on. Good models are small enough to reason
+about and faithful enough that their conclusions survive contact with the real thing
+(Taha, 2017; Eiselt and Sandblom, 2022).
+
+This chapter builds a model of the smallest interesting freight line: a supply station
+that produces a resource, a demand station that consumes it, and one vehicle that runs
+back and forth between them.
+
+## The model
+
+### Decisions, objectives and constraints
+
+Every model in this book has the same three parts.
+
+- **Decisions.** What the operator controls. Here, how much the vehicle loads or unloads
+  each time it stops.
+- **Objective.** How decisions are judged. Here, first, how much demand goes unmet at the
+  demand station, and second, how much production stalls because the supply station is
+  full.
+- **Constraints.** What any decision must respect. Stock never goes below zero or above
+  the station's storage, cargo never exceeds the vehicle's capacity, and every unit that
+  leaves one place arrives in another.
+
+The last constraint, conservation, is worth writing down. Over any stretch of time, a
+station's stock changes by what was produced, consumed, loaded and unloaded there:
+
+$$
+s(t_2) = s(t_1) + \text{produced} - \text{consumed} - \text{loaded} + \text{unloaded}.
+$$
+
+<Check ref="test:conserves resources and keeps stock and cargo within bounds at every event" />
+
+### A policy is a rule
+
+A decision made once can be optimised directly. A decision made at every stop, for ever,
+needs a rule. A policy maps what the vehicle observes at a stop, its cargo and the stock
+at the stations, to how much to load or unload. The simulator calls a policy at every
+stop, and the results measure the policy, not any one choice.
+
+### The line in numbers
+
+In the `two-station` scenario the stations are 72,000 distance units apart and the
+vehicle travels at 5 units a second, so each leg takes 14,400 seconds, four hours.
+
+<Check ref="maxima:leg-time" />
+
+A stop takes 600 seconds plus 60 seconds for each unit moved. The slowest round trip,
+moving a full load of 30 units at both ends, takes $28/3$ hours. Even then the vehicle
+makes $18/7$ trips a sol (a day of 24 hours), and could carry
+
+$$
+30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a sol},
+$$
+
+<Check ref="maxima:capacity-bound" />
+
+more than twice the 36 units a sol the demand station consumes. Capacity is not the
+problem.
+
+### Balancing
+
+A natural rule is to balance: at each stop, move stock so that the stations hold similar
+amounts. With two stations holding $m$ and $d$, the average is $(m + d)/2$, so a stop at
+the fuller station loads
+
+$$
+m - \frac{m + d}{2} = \frac{m - d}{2},
+$$
+
+<Check ref="maxima:half-difference" />
+
+half the difference, however much room the vehicle has.
+
+Suppose the line settles into a steady cycle, where each trip delivers what the demand
+station uses during one round trip. Call the load $L$ and the round trip $T$. The dome
+uses $36\,T$ units in a trip lasting $T$ sols, and the trip lasts the travel time plus two
+stops moving $L$ units each. Solving the two together gives
+
+$$
+T = \frac{600\,000}{19} \text{ s} \approx 8.77 \text{ h}, \qquad L = \frac{250}{19} \approx 13.16 \text{ units}.
+$$
+
+<Check ref="maxima:steady-load" />
+
+Balancing loads half the difference, so to load $L$ the supply station must hold $2L$
+more than the demand station:
+
+$$
+2L = \frac{500}{19} \approx 26.3 \text{ units},
+$$
+
+<Check ref="maxima:required-gap" />
+
+nearly 88% of a 30-unit station. To move enough, the supply end must sit close to full
+and the demand end close to empty. Any disturbance then pushes one end over the edge: the
+supply station fills and production stalls, or the demand station empties and demand
+goes unmet.
+
+## In the simulator
+
+The `two-station` starter is this line. The supply station produces 45 units a sol, the
+demand station consumes 36 units a sol, varying by up to 20% either way, and the run
+lasts 10 sols. The baseline policy balances stock.
+
+<Scenario starter="two-station" />
+
+Run the baseline and open **Metrics**. On every one of seeds 1 to 20, demand goes unmet
+at the demand station while production stalls at the supply station.
+
+<Check ref="test:on two-station the naive baseline leaves demand unmet while the mine's production stalls, on each of 20 seeds" />
+
+## Case study: half capacity
+
+The model says the fault is in the rule, not the line. A rule that treats the stations
+by their role instead of their stock takes everything it can at the supply end and leaves
+everything at the demand end. The vehicle then carries full loads when there is stock to
+carry, and the gap between the stations stops mattering.
+
+```lua runnable fix
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}
+```
+
+This policy meets all demand on every one of seeds 1 to 20.
+
+<Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand on each of 20 seeds" />
+
+Production still stalls under it. The supply station makes 9 units a sol more than the
+demand station uses, so once the demand station is full the surplus has nowhere to go.
+That is a fact about the line, not a failure of the policy.
+
+<Check ref="maxima:surplus" />
+
+Compare the two policies in **Batch** to see the difference over many seeds, and what the
+role-based rule costs in [empty distance](/docs/metrics#empty-distance-share): the vehicle
+now always returns empty.
+
+## Where the simulator differs
+
+- **Stops take longer with more cargo.** The simple model above treats the steady cycle
+  as exact. In the simulator, demand varies, so loads and trip times vary from trip to
+  trip around the steady values.
+- **Stock is measured in thousandths of a unit.** Policies see and move amounts in
+  milli-units, so 30 units is `30000`.
+- **The balancing rule is an assumption.** The baseline implements balancing as the
+  model describes it. How closely it matches any real system is recorded, with its
+  evidence, in [game mechanics](/docs/game-mechanics#station-balancing).
+
+## Exercises
+
+1. At the top of its variability the demand station uses 20% more, 43.2 units a sol.
+   Under balancing, what gap between the stations does a steady cycle need, and can a
+   30-unit station provide it?
+
+<Answer>
+
+The steady load becomes $750/47 \approx 15.96$ units, so the gap is $1500/47 \approx 31.91$
+units. That is more than a 30-unit station can hold, so at peak demand balancing cannot
+keep up however the stocks start.
+
+<Check ref="maxima:exercise-peak-demand" />
+
+</Answer>
+
+2. A faster vehicle travels at 10 units a second. What load and gap does the steady cycle
+   need under balancing?
+
+<Answer>
+
+Each leg takes two hours. The steady load is $130/19 \approx 6.84$ units, so the gap is
+about 13.68 units. Faster trips need smaller loads, so balancing copes better, but the
+stations still have to hold very different amounts.
+
+<Check ref="maxima:exercise-faster-train" />
+
+</Answer>
+
+<GameNote>
+
+In the rail game, trains appear to balance stock across the stations on a line, which is
+the rule this chapter models. A mine at one end of a long line and a dome at the other is
+exactly the two-station case: the dome runs short and the mine's extractors stop, even
+with a train that could carry far more.
+
+<Evidence level="observed" />
+
+</GameNote>
+
+## References
+
+- Eiselt, H.A. and Sandblom, C.-L. (2022) *Operations research: a model-based approach*.
+  3rd edn. Cham: Springer.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
+  Education.

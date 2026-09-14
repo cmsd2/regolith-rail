@@ -18,7 +18,10 @@ describe("format 1 upgrade", () => {
       expect(upgraded.ok ? [] : upgraded.errors, starter.id).toEqual([]);
       const current = validateScenario(starterScenarios.find((s) => s.id === starter.id)?.document);
       if (!upgraded.ok || !current.ok) throw new Error(`${starter.id} should validate`);
-      expect(upgraded.scenario, starter.id).toEqual(current.scenario);
+      // Documentation pages move between releases; everything that affects a run is identical.
+      expect({ ...upgraded.scenario, docs: current.scenario.docs }, starter.id).toEqual(
+        current.scenario,
+      );
     }
   });
 

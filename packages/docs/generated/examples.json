@@ -1,5 +1,15 @@
 [
   {
+    "id": "book/modelling#1",
+    "page": "book/modelling",
+    "name": "Modelling operations",
+    "script": false,
+    "fix": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
+  },
+  {
     "id": "book/newsvendor#1",
     "page": "book/newsvendor",
     "name": "One period under uncertainty: the newsvendor (example 1)",
@@ -100,16 +110,6 @@
     "scenario": "two-trains",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Factory = \"demand\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
-  },
-  {
-    "id": "failure-modes/half-capacity#1",
-    "page": "failure-modes/half-capacity",
-    "name": "Half capacity",
-    "script": false,
-    "fix": true,
-    "scenario": "two-station",
-    "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
   },
   {
     "id": "failure-modes/ping-pong#1",

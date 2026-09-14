@@ -164,7 +164,9 @@ const byId = new Map(catalogue.map((item) => [item.id, item]));
  * Ids that shipped items had before their documentation page moved, with their ids now, so
  * saved copies still know what they were copied from.
  */
-export const MOVED_ITEMS: Readonly<Record<ItemId, ItemId>> = {};
+export const MOVED_ITEMS: Readonly<Record<ItemId, ItemId>> = {
+  "example:policy:docs/failure-modes/half-capacity#1": "example:policy:docs/book/modelling#1",
+};
 
 /** A shipped item by id, following ids of items whose page has moved. */
 export const catalogueItem = (id: ItemId): LibraryItem | undefined =>

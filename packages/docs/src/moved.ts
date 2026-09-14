@@ -4,6 +4,7 @@
  */
 export const MOVED_PAGES: Readonly<Record<string, string>> = {
   "classic/newsvendor": "book/newsvendor",
+  "failure-modes/half-capacity": "book/modelling#case-study-half-capacity",
 };
 
 /** Where a documentation target such as `failure-modes/double-dispatch` lives now. */

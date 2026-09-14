@@ -15,9 +15,10 @@ const unresolved = (targets: string[]) =>
   targets.map((target) => unresolvedTarget(anchors, target)).filter(Boolean);
 
 describe("documentation links from the application", () => {
-  it("every starter scenario links to an existing failure-mode page", () => {
+  it("every starter scenario links to an existing failure-mode page or book case study", () => {
     const targets = starterScenarios.map((s) => (s.document as { docs?: string }).docs ?? "");
-    expect(targets.every((t) => t.startsWith("failure-modes/"))).toBe(true);
+    for (const target of targets)
+      expect(target).toMatch(/^(failure-modes\/[\w-]+|book\/[\w-]+#case-study-[\w-]+)$/);
     expect(unresolved(targets)).toEqual([]);
   });
 
