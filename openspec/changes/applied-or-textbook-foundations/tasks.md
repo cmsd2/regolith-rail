@@ -48,5 +48,5 @@
 
 ## 9. Integration
 
-- [ ] 9.1 Update the docs home page, Getting started and the library guide to point at the Book. Update the roadmap's M7 status and §8 entries for the techniques now covered. Verify the link check passes.
+- [x] 9.1 Update the docs home page, Getting started and the library guide to point at the Book. Update the roadmap's M7 status and §8 entries for the techniques now covered. Verify the link check passes.
 - [ ] 9.2 Run the full check, `docs:check`, `docs:claims`, determinism tests and end-to-end tests locally, and in CI on a pull request. Verify every blocking job passes and golden hashes are unchanged.
