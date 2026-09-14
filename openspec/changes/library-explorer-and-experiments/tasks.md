@@ -35,12 +35,12 @@
 
 ## 7. Explorer and This run panel
 
-- [ ] 7.1 Replace the built-in experiments in the catalogue with scenario lessons: each starter records its failure-mode page and suggested fix, and each classic scenario its page and reference policy. Verify catalogue unit tests find a lesson for every starter and template, and list no built-in experiments.
-- [ ] 7.2 Build the explorer lists: Scenarios by source, Policies by fit, and Saved runs, one shown at a time in a tab list, each an ARIA tree. Grouping, empty-group omission and keyboard moves are pure functions. Verify their unit tests.
-- [ ] 7.3 Judge policy fit from each policy's hooks and the scenario's vehicles and reviews, using the checker worker and caching by source hash, and group For this scenario, Built in, Mine, Shared and Other examples. Verify unit tests for grouping around `storm-shock` and `classic.reorder`, and for dimming an `on_review`-only policy on `two-station`.
-- [ ] 7.4 Build the This run panel with Scenario, Policy and batch-only Compare slots, origin labels, the scenario's lesson phrased against the naive baseline (Why the baseline fails, Use the baseline, Use the suggested fix, Compare fix with baseline), folded template parameters and Use the reference policy, and slot choosing, which shows the matching list and can start from the batch view. Clicking an item selects it; double-click, Enter or Use fills its slot. Verify end-to-end tests for selecting without changing the run, using an item, each lesson action, and choosing and cancelling a slot.
-- [ ] 7.5 Add item actions (rename, duplicate, delete, export) in a fixed-height details area, and list actions (import, save as experiment, update experiment). Verify end-to-end tests for each action's effect on the library.
-- [ ] 7.6 Remove the toolbar scenario picker, the saved-work drawer and the batch view's policy B selector. Verify no remaining references in the app and the full check passes.
+- [x] 7.1 Replace the built-in experiments in the catalogue with scenario lessons: each starter records its failure-mode page and suggested fix, and each classic scenario its page and reference policy. Verify catalogue unit tests find a lesson for every starter and template, and list no built-in experiments.
+- [x] 7.2 Build the explorer lists: Scenarios by source, Policies by fit, and Saved runs, one shown at a time in a tab list, each an ARIA tree. Grouping, empty-group omission and keyboard moves are pure functions. Verify their unit tests.
+- [x] 7.3 Judge policy fit from each policy's hooks and the scenario's vehicles and reviews, using the checker worker and caching by source hash, and group For this scenario, Built in, Mine, Shared and Other examples. Verify unit tests for grouping around `storm-shock` and `classic.reorder`, and for dimming an `on_review`-only policy on `two-station`.
+- [x] 7.4 Build the This run panel with Scenario, Policy and batch-only Compare slots, origin labels, the scenario's lesson phrased against the naive baseline (Why the baseline fails, Use the baseline, Use the suggested fix, Compare fix with baseline), folded template parameters and Use the reference policy, and slot choosing, which shows the matching list and can start from the batch view. Clicking an item selects it; double-click, Enter or Use fills its slot. Verify end-to-end tests for selecting without changing the run, using an item, each lesson action, and choosing and cancelling a slot.
+- [x] 7.5 Add item actions (rename, duplicate, delete, export) in a fixed-height details area, and list actions (import, save as experiment, update experiment). Verify end-to-end tests for each action's effect on the library.
+- [x] 7.6 Remove the toolbar scenario picker, the saved-work drawer and the batch view's policy B selector. Verify no remaining references in the app and the full check passes.
 
 ## 8. Layout
 
@@ -54,8 +54,8 @@
 
 ## 10. End-to-end tests and verification
 
-- [ ] 10.1 Replace the `scenario-picker` and saved-work helpers in the end-to-end tests with explorer helpers, and update affected tests. Verify the full end-to-end suite passes on Chromium, Firefox and WebKit.
-- [ ] 10.2 Add end-to-end tests for the spec scenarios. Verify they pass on Chromium, Firefox and WebKit:
+- [x] 10.1 Replace the `scenario-picker` and saved-work helpers in the end-to-end tests with explorer helpers, and update affected tests. Verify the full end-to-end suite passes on Chromium, Firefox and WebKit.
+- [x] 10.2 Add end-to-end tests for the spec scenarios. Verify they pass on Chromium, Firefox and WebKit:
   - built-in content listed, and keyboard navigation;
   - use a policy, and run a built-in policy;
   - choose a comparison policy;
