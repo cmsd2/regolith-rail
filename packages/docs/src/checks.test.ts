@@ -282,4 +282,21 @@ describe("link check", () => {
       { page: "index.html", href: "/rr/docs/metrics#nope", reason: "no anchor #nope" },
     ]);
   });
+
+  it("lists links to moved pages, except from the redirect left behind", () => {
+    site({
+      "index.html":
+        '<a href="/rr/docs/classic/newsvendor">old</a><a href="/rr/docs/book/newsvendor">new</a>',
+      "docs/classic/newsvendor/index.html":
+        '<meta http-equiv="refresh" content="0; url=/rr/docs/book/newsvendor"><a href="/rr/docs/book/newsvendor">moved</a>',
+      "docs/book/newsvendor/index.html": "<h1>The newsvendor</h1>",
+    });
+    expect(checkLinks(root, "/rr/", { "classic/newsvendor": "book/newsvendor" })).toEqual([
+      {
+        page: "index.html",
+        href: "/rr/docs/classic/newsvendor",
+        reason: "moved to /docs/book/newsvendor",
+      },
+    ]);
+  });
 });

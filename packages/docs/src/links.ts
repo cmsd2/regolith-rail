@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { Parser } from "htmlparser2";
+import { MOVED_PAGES } from "./moved.ts";
 
 export interface BrokenLink {
   /** Page the link is on, relative to the build folder. */
@@ -12,6 +13,8 @@ export interface BrokenLink {
 interface ParsedPage {
   ids: Set<string>;
   hrefs: string[];
+  /** Whether the page is a redirect left behind by a moved page. */
+  redirect: boolean;
 }
 
 function htmlFiles(dir: string): string[] {
@@ -23,10 +26,13 @@ function htmlFiles(dir: string): string[] {
 }
 
 function parse(html: string): ParsedPage {
-  const page: ParsedPage = { ids: new Set(), hrefs: [] };
+  const page: ParsedPage = { ids: new Set(), hrefs: [], redirect: false };
   const parser = new Parser({
     onopentag(name, attributes) {
       if (attributes.id) page.ids.add(attributes.id);
+      if (name === "meta" && attributes["http-equiv"]?.toLowerCase() === "refresh") {
+        page.redirect = true;
+      }
       if (name === "a" && attributes.name) page.ids.add(attributes.name);
       if (name === "a" && attributes.href !== undefined) page.hrefs.push(attributes.href);
     },
@@ -40,7 +46,11 @@ function parse(html: string): ParsedPage {
  * Checks every link between pages of a static build, including anchors, the
  * way a plain static host would resolve them.
  */
-export function checkLinks(root: string, basePath = "/"): BrokenLink[] {
+export function checkLinks(
+  root: string,
+  basePath = "/",
+  moved: Readonly<Record<string, string>> = MOVED_PAGES,
+): BrokenLink[] {
   const base = basePath.endsWith("/") ? basePath : `${basePath}/`;
   const origin = "http://site.invalid";
   const cache = new Map<string, ParsedPage>();
@@ -77,6 +87,12 @@ export function checkLinks(root: string, basePath = "/"): BrokenLink[] {
         continue;
       }
       const path = decodeURIComponent(url.pathname.slice(base.length)).replace(/\/$/, "");
+      const old = path.startsWith("docs/") ? moved[path.slice("docs/".length)] : undefined;
+      // Redirect pages link on to the new page themselves, and are the only pages that may.
+      if (old !== undefined && !read(file).redirect) {
+        broken.push({ page, href, reason: `moved to /docs/${old}` });
+        continue;
+      }
       const target = resolveFile(path);
       if (!target) {
         broken.push({ page, href, reason: "no such page" });

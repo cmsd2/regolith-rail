@@ -1,3 +1,4 @@
+import { movedTarget } from "@regolith-rail/docs";
 import { useEffect, useRef } from "react";
 import { DocArticle } from "../docs/DocArticle.tsx";
 import { DocsMode } from "../docs/DocLink.tsx";
@@ -9,7 +10,8 @@ import { useWorkbench } from "../state/instance.ts";
 
 /** Documentation beside the editor, so reading it never loses work in progress. */
 export default function DocsPanel() {
-  const target = useWorkbench((s) => s.docs.at(-1) ?? "");
+  // Old targets, such as a lesson saved before its page moved, open where the page lives now.
+  const target = movedTarget(useWorkbench((s) => s.docs.at(-1) ?? ""));
   const canGoBack = useWorkbench((s) => s.docs.length > 1);
   const back = useWorkbench((s) => s.docsBack);
   const close = useWorkbench((s) => s.closeDocs);

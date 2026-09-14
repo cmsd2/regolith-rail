@@ -1,17 +1,28 @@
-import { BOOK, BOOK_CONTENTS, isWritten, partNumeral } from "@regolith-rail/docs";
-import { NavLink, useLocation } from "react-router";
+import { BOOK, BOOK_CONTENTS, isWritten, movedTarget, partNumeral } from "@regolith-rail/docs";
+import { useEffect } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import { Page } from "../components/Page.tsx";
 import { DocArticle } from "../docs/DocArticle.tsx";
 import { DocsSearch } from "../docs/DocsSearch.tsx";
 import styles from "../docs/docs.module.css";
 import { docSections, findDoc } from "../docs/registry.ts";
+import { docsHref } from "../lib/format.ts";
 import type { Route } from "./+types/docs";
 
 /** The page slug from a path such as `/docs/ops/min-max`; the path excludes the base path. */
 const slugFrom = (pathname: string) => pathname.replace(/^\/docs\/?/, "").replace(/\/+$/, "");
 
 export function meta({ location }: Route.MetaArgs) {
-  const entry = findDoc(slugFrom(location.pathname));
+  const slug = slugFrom(location.pathname);
+  const moved = movedTarget(slug);
+  if (moved !== slug) {
+    return [
+      { title: "Moved · Regolith Rail documentation" },
+      { httpEquiv: "refresh", content: `0; url=${docsHref(moved)}` },
+      { tagName: "link", rel: "canonical", href: docsHref(moved) },
+    ];
+  }
+  const entry = findDoc(slug);
   if (!entry) return [{ title: "Not found · Regolith Rail" }];
   return [
     { title: `${entry.title} · Regolith Rail documentation` },
@@ -78,8 +89,26 @@ function DocsNav() {
   );
 }
 
+/** What a moved page's old address shows while it sends the reader on. */
+function Moved({ to }: { to: string }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate(`/docs/${to}`, { replace: true });
+  }, [navigate, to]);
+  return (
+    <article className={styles.article} data-testid="doc-moved">
+      <h1>This page has moved</h1>
+      <p>
+        <a href={docsHref(to)}>Go to its new address</a>.
+      </p>
+    </article>
+  );
+}
+
 export default function Docs() {
-  const entry = findDoc(slugFrom(useLocation().pathname));
+  const slug = slugFrom(useLocation().pathname);
+  const moved = movedTarget(slug);
+  const entry = moved === slug ? findDoc(slug) : undefined;
   return (
     <Page>
       <div className={styles.layout}>
@@ -87,7 +116,9 @@ export default function Docs() {
           <DocsSearch />
           <DocsNav />
         </aside>
-        {entry ? (
+        {moved !== slug ? (
+          <Moved to={moved} />
+        ) : entry ? (
           <DocArticle entry={entry} />
         ) : (
           <article className={styles.article} data-testid="doc-not-found">
