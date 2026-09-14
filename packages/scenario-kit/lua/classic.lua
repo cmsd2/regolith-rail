@@ -147,6 +147,77 @@ classic.reorder = construct("classic.reorder", {
   })
 end)
 
+-- The shortest and longest of a fixed or discrete lead time, in milliseconds.
+local function lead_time_range(name, value)
+  if type(value) == "number" then
+    return value, value
+  end
+  if kit.kind_of(value) ~= "discrete" then
+    fail(name, "lead_time must be a duration or discrete { ... } of durations")
+  end
+  local low, high
+  for _, entry in ipairs(value.discrete) do
+    low = (low == nil or entry.value < low) and entry.value or low
+    high = (high == nil or entry.value > high) and entry.value or high
+  end
+  return low, high
+end
+
+classic.safety_stock = construct("classic.safety_stock", {
+  demand = "number",
+  lead_time = "duration|discrete",
+  review_period = "duration",
+  target_service = "number",
+  holding_cost = "integer",
+  backorder_cost = "integer",
+  initial = "number",
+  duration = "duration",
+  seed = "integer",
+}, {}, function(p, name)
+  local review_period = p.review_period or weeks(1)
+  local lead_time = p.lead_time or discrete({ { days(1), 1 }, { days(3), 1 } })
+  local low, high = lead_time_range(name, lead_time)
+  if high - low >= review_period then
+    fail(name, "lead times must differ by less than the review period, so that orders never overtake each other")
+  end
+  local target = p.target_service or 0.95
+  if type(target) ~= "number" or target <= 0 or target >= 1 then
+    fail(name, "target_service must be a number between 0 and 1, such as 0.95")
+  end
+  return scenario({
+    id = "safety-stock",
+    title = "Safety stock",
+    description = "A store reviewed on a schedule faces random demand and a supplier whose lead time varies. Stock above the average demand protects against running short before the next delivery, and the target service level says how often a cycle may end with customers waiting.",
+    docs = "book/safety-stock",
+    information = "local",
+    duration = p.duration or weeks(10),
+    seed = p.seed,
+    stations = {
+      station({
+        id = "Shop",
+        resources = {
+          store({
+            resource = "Goods",
+            capacity = "unlimited",
+            initial = p.initial or 0,
+            holding_cost = p.holding_cost or 1,
+          }),
+        },
+        consumers = {
+          consumer({
+            resource = "Goods",
+            poisson = poisson({ per_sol = p.demand or 10, size = 1 }),
+            unmet = "backorder",
+            backorder_cost = p.backorder_cost or 10,
+          }),
+        },
+        suppliers = { supplier({ resource = "Goods", lead_time = lead_time, order_cost = 0 }) },
+        review = review({ period = review_period, offset = minutes(1) }),
+      }),
+    },
+  })
+end)
+
 classic.serial_chain = construct("classic.serial_chain", {
   stages = "integer",
   lead_time = "duration",

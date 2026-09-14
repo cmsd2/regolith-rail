@@ -130,6 +130,16 @@ test.describe("library explorer", () => {
     await expectSlot(page, "policy", "classic:policy:classic.reorder");
   });
 
+  test("lists the safety stock template under classic problems with its reference policy", async ({
+    page,
+  }) => {
+    await openWorkbench(page);
+    await expect(libraryRow(page, "classic:scenario:classic.safety_stock")).toBeVisible();
+    await openItem(page, "classic:scenario:classic.safety_stock");
+    await page.getByTestId("slot-reference").click();
+    await expectSlot(page, "policy", "classic:policy:classic.safety_stock");
+  });
+
   test("groups policies by fit to the scenario and marks those that cannot act", async ({
     page,
   }) => {

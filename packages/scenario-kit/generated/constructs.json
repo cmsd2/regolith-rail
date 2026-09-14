@@ -1691,6 +1691,85 @@
       "href": "book/order-quantities#classic-reorder"
     },
     {
+      "name": "classic.safety_stock",
+      "library": "classic",
+      "kind": "template",
+      "summary": "One store reviewed on a schedule, facing Poisson demand with backorders and a supplier whose lead time may vary, with a target cycle service level for its reference policy.",
+      "returns": "scenario document",
+      "params": [
+        {
+          "name": "demand",
+          "type": "number",
+          "summary": "Average demand per day, arriving one unit at a time.",
+          "required": false,
+          "default": "10",
+          "unit": "units per day"
+        },
+        {
+          "name": "lead_time",
+          "type": "integer|discrete",
+          "summary": "Time from order to delivery, fixed or drawn for each order. The longest and shortest must differ by less than the review period.",
+          "required": false,
+          "default": "discrete { { days(1), 1 }, { days(3), 1 } }",
+          "unit": "ms"
+        },
+        {
+          "name": "review_period",
+          "type": "integer",
+          "summary": "Time between reviews.",
+          "required": false,
+          "default": "weeks(1)",
+          "unit": "ms"
+        },
+        {
+          "name": "target_service",
+          "type": "number",
+          "summary": "Chance that a review cycle ends with no customers waiting, which the reference policy's order-up-to level aims for.",
+          "required": false,
+          "default": "0.95"
+        },
+        {
+          "name": "holding_cost",
+          "type": "integer",
+          "summary": "Cost per unit held per day.",
+          "required": false,
+          "default": "1"
+        },
+        {
+          "name": "backorder_cost",
+          "type": "integer",
+          "summary": "Cost per unit backordered per day.",
+          "required": false,
+          "default": "10"
+        },
+        {
+          "name": "initial",
+          "type": "number",
+          "summary": "Stock at the start of a run.",
+          "required": false,
+          "default": "0",
+          "unit": "units"
+        },
+        {
+          "name": "duration",
+          "type": "integer",
+          "summary": "Length of a run.",
+          "required": false,
+          "default": "weeks(10)",
+          "unit": "ms"
+        },
+        {
+          "name": "seed",
+          "type": "integer",
+          "summary": "Base seed for random demand.",
+          "required": false,
+          "default": "1"
+        }
+      ],
+      "docs": "book/safety-stock",
+      "href": "book/safety-stock#classic-safety_stock"
+    },
+    {
       "name": "classic.serial_chain",
       "library": "classic",
       "kind": "template",

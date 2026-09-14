@@ -89,7 +89,12 @@ describe("construct reference check", () => {
 
 describe("classic template pages", () => {
   it("name a template without a page", () => {
-    const pages = new Set(["book/newsvendor", "book/order-quantities", "classic/serial-chain"]);
+    const pages = new Set([
+      "book/newsvendor",
+      "book/order-quantities",
+      "book/safety-stock",
+      "classic/serial-chain",
+    ]);
     expect(checkTemplatePages(constructs, pages)).toEqual([
       "classic.fixed_route_delivery has no page at classic/fixed-route-delivery",
     ]);

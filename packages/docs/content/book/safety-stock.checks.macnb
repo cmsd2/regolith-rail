@@ -1,0 +1,83 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "code",
+   "source": "/* prelude: shared by every checks notebook. Keep in sync with packages/docs/checks/prelude.mac. */\nexpect_equal(name, got, want) :=\n  if is(equal(radcan(ratsimp(got - want)), 0)) then true\n  else error(\"check failed:\", name, \"got\", got, \"want\", want)$\nexpect_close(name, got, want, tol) :=\n  if is(abs(float(got - want)) <= tol) then true\n  else error(\"check failed:\", name, \"got\", float(got), \"want\", float(want), \"tolerance\", tol)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* Poisson demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal chance. */\nload(distrib)$\nrate: 10$\nreview: 7$\nleads: [1, 3]$\nlead_probs: [1/2, 1/2]$\ncsl(s) := sum(lead_probs[i] * cdf_poisson(s, rate * (review + leads[i])), i, 1, 2)$\nlevel_for(target) := block([s: 0], while csl(s) < target do s: s + 1, s)$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: cycle-means */\nexpect_equal(\"cover-short-lead\", rate * (review + 1), 80);\nexpect_equal(\"cover-long-lead\", rate * (review + 3), 100);\nexpect_equal(\"cover-mean\", sum(lead_probs[i] * rate * (review + leads[i]), i, 1, 2), 90);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: service-level */\nexpect_equal(\"level-95\", level_for(0.95), 113);\nexpect_close(\"csl-at-113\", csl(113), 0.9546, 0.00005);\nexpect_equal(\"below-at-112\", is(csl(112) < 0.95), true);\nexpect_equal(\"safety-stock\", 113 - 90, 23);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: interval-variance */\n/* Poisson demand over a random interval T: variance = rate E[T] + rate^2 Var(T). */\nmean_t: sum(lead_probs[i] * (review + leads[i]), i, 1, 2)$\nvar_t: sum(lead_probs[i] * (review + leads[i])^2, i, 1, 2) - mean_t^2$\nexpect_equal(\"mean-interval\", mean_t, 9);\nexpect_equal(\"var-interval\", var_t, 1);\nexpect_equal(\"demand-variance\", rate * mean_t + rate^2 * var_t, 190);\nexpect_close(\"demand-sd\", sqrt(190), 13.78, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: normal-approximation */\nz95: quantile_normal(0.95, 0, 1)$\nexpect_close(\"z-95\", z95, 1.645, 0.0005);\nexpect_close(\"normal-safety-stock\", z95 * sqrt(190), 22.67, 0.005);\nexpect_close(\"fixed-lead-safety-stock\", z95 * sqrt(90), 15.60, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: fixed-lead-level */\n/* The same average lead time of 2 days, always. */\nfixed_level: block([s: 0], while cdf_poisson(s, 90) < 0.95 do s: s + 1, s)$\nexpect_equal(\"fixed-level\", fixed_level, 106);\nexpect_equal(\"variability-cost\", 113 - fixed_level, 7);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: fill-rate */\n/* Expected units short at the end of a cycle, over a week's demand: an approximation to the fill rate. */\nshort(s, m) := m - s + sum((s - n) * pdf_poisson(n, m), n, 0, s)$\nexpected_short: sum(lead_probs[i] * short(113, rate * (review + leads[i])), i, 1, 2)$\nfill: 1 - expected_short / (rate * review)$\nexpect_close(\"expected-short\", expected_short, 0.246, 0.0005);\nexpect_close(\"fill-rate\", fill, 0.996, 0.0005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: higher-target */\nexpect_equal(\"level-99\", level_for(0.99), 121);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: twice-weekly */\nreview: 7/2$\nexpect_equal(\"twice-weekly-short-mean\", rate * (review + 1), 45);\nexpect_equal(\"twice-weekly-long-mean\", rate * (review + 3), 65);\nexpect_equal(\"twice-weekly-level\", level_for(0.95), 75);\nreview: 7$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  }
+ ]
+}

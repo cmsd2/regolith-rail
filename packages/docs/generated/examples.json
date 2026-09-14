@@ -91,6 +91,24 @@
     "source": "return ops.policy { review = { target = ops.order_up_to { level = 15000 } } }"
   },
   {
+    "id": "book/safety-stock#1",
+    "page": "book/safety-stock",
+    "name": "Safety stock and service levels (example 1)",
+    "script": true,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return classic.safety_stock { lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }"
+  },
+  {
+    "id": "book/safety-stock#2",
+    "page": "book/safety-stock",
+    "name": "Safety stock and service levels (example 2)",
+    "script": false,
+    "scenario": "classic.safety_stock",
+    "seed": 1,
+    "source": "return ops.policy { review = { target = ops.order_up_to { level = 113000 } } }"
+  },
+  {
     "id": "classic/fixed-route-delivery#1",
     "page": "classic/fixed-route-delivery",
     "name": "Fixed-route delivery (example 1)",

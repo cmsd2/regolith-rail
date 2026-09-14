@@ -235,6 +235,74 @@ const reorder: ClassicTemplate = {
 };
 
 /**
+ * Cycle service level of an order-up-to level with Poisson demand: the chance that demand over a
+ * review period and the lead time of the next order stays within the level, averaged over the
+ * lead times the supplier draws from.
+ */
+export function cycleServiceLevel(
+  demandPerDay: number,
+  reviewPeriodMs: number,
+  leadTimes: { value: number; p: number }[],
+  level: number,
+): number {
+  return leadTimes.reduce((sum, { value, p }) => {
+    const mean = (demandPerDay * (reviewPeriodMs + value)) / DAY;
+    const covered = poissonProbabilities(mean)
+      .slice(0, level + 1)
+      .reduce((a, b) => a + b, 0);
+    return sum + p * covered;
+  }, 0);
+}
+
+const safetyStock: ClassicTemplate = {
+  name: "classic.safety_stock",
+  title: "Safety stock",
+  defaults: {
+    demand: 10,
+    lead_time: {
+      discrete: [
+        [DAY, 1],
+        [3 * DAY, 1],
+      ],
+    },
+    review_period: 7 * DAY,
+    target_service: 0.95,
+    holding_cost: 1,
+    backorder_cost: 10,
+    initial: 0,
+    duration: 70 * DAY,
+    seed: 1,
+  },
+  reference(input) {
+    const params = withDefaults(this, input);
+    const demand = num(params, "demand");
+    const period = num(params, "review_period");
+    const target = num(params, "target_service");
+    const leadTimes = probabilities(params.lead_time as TemplateValue);
+    // The smallest order-up-to level whose cycle service level reaches the target.
+    let level = 0;
+    while (cycleServiceLevel(demand, period, leadTimes, level) < target) level++;
+    const meanCover = leadTimes.reduce(
+      (sum, { value, p }) => sum + (p * demand * (period + value)) / DAY,
+      0,
+    );
+    return {
+      policyName: "Order up to the service level",
+      summary: `Order up to ${level} units at each review: the lowest level at which a cycle ends without backorders with probability at least ${target}.`,
+      policy: `-- Safety stock: order up to the level that meets the target cycle service level.
+return ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }
+`,
+      values: {
+        level,
+        cycleServiceLevel: cycleServiceLevel(demand, period, leadTimes, level),
+        meanCover,
+        safetyStock: level - meanCover,
+      },
+    };
+  },
+};
+
+/**
  * Expected cost per day of a base-stock policy with Poisson demand and backorders, tick by tick
  * as the engine runs it: reviews one minute into each period, deliveries before the tick at their
  * arrival time, and costs on the stock or backlog left after each tick.
@@ -352,6 +420,7 @@ const fixedRouteDelivery: ClassicTemplate = {
 export const classicTemplates: ClassicTemplate[] = [
   newsvendor,
   reorder,
+  safetyStock,
   serialChain,
   fixedRouteDelivery,
 ];

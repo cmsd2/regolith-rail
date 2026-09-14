@@ -749,6 +749,38 @@ export const classicConstructs: Construct[] = [
     ],
   ),
   template(
+    "safety_stock",
+    "book/safety-stock",
+    "One store reviewed on a schedule, facing Poisson demand with backorders and a supplier whose lead time may vary, with a target cycle service level for its reference policy.",
+    [
+      param("demand", "number", "Average demand per day, arriving one unit at a time.", {
+        default: "10",
+        unit: "units per day",
+      }),
+      param(
+        "lead_time",
+        "integer|discrete",
+        "Time from order to delivery, fixed or drawn for each order. The longest and shortest must differ by less than the review period.",
+        { default: "discrete { { days(1), 1 }, { days(3), 1 } }", unit: "ms" },
+      ),
+      param("review_period", "integer", "Time between reviews.", {
+        default: "weeks(1)",
+        unit: "ms",
+      }),
+      param(
+        "target_service",
+        "number",
+        "Chance that a review cycle ends with no customers waiting, which the reference policy's order-up-to level aims for.",
+        { default: "0.95" },
+      ),
+      param("holding_cost", "integer", "Cost per unit held per day.", { default: "1" }),
+      param("backorder_cost", "integer", "Cost per unit backordered per day.", { default: "10" }),
+      param("initial", "number", "Stock at the start of a run.", { default: "0", unit: "units" }),
+      param("duration", "integer", "Length of a run.", { default: "weeks(10)", unit: "ms" }),
+      seedParam,
+    ],
+  ),
+  template(
     "serial_chain",
     "classic/serial-chain",
     "Stages in series, each ordering from the one before it with a shipping lead time, and customer demand with backorders at the last stage, in the style of the beer game.",

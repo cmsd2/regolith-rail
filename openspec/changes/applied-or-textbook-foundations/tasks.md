@@ -36,9 +36,9 @@
 
 ## 7. Safety stock
 
-- [ ] 7.1 Add the `classic.safety_stock` construct, its Lua template and TS defaults. Reject lead-time spreads of a review period or more. Verify the defaults-description test, the random lead time scenario test and a rejection test with its message.
-- [ ] 7.2 Add the reference policy and the analytic cycle service level as a mixture of Poisson CDFs, and choose the order-up-to level for `target_service`. Verify the analytic value in the chapter's Maxima notebook, and a `lua-runtime` test that the simulated share of cycles without backorders over 400 seeds contains the analytic value in its 99% confidence interval.
-- [ ] 7.3 Write chapter 6, Safety stock and service levels, on `classic.safety_stock`, covering cycle service level against fill rate and variable lead times. Verify `docs:check`, `docs:claims` and the link check pass, and the library lists the template under Classic problems with its reference policy.
+- [x] 7.1 Add the `classic.safety_stock` construct, its Lua template and TS defaults. Reject lead-time spreads of a review period or more. Verify the defaults-description test, the random lead time scenario test and a rejection test with its message.
+- [x] 7.2 Add the reference policy and the analytic cycle service level as a mixture of Poisson CDFs, and choose the order-up-to level for `target_service`. Verify the analytic value in the chapter's Maxima notebook, and a `lua-runtime` test that the simulated share of cycles without backorders over 400 seeds contains the analytic value in its 99% confidence interval.
+- [x] 7.3 Write chapter 6, Safety stock and service levels, on `classic.safety_stock`, covering cycle service level against fill rate and variable lead times. Verify `docs:check`, `docs:claims` and the link check pass, and the library lists the template under Classic problems with its reference policy.
 
 ## 8. Forecasting
 

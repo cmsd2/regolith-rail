@@ -464,6 +464,22 @@ function classic.newsvendor(p) end
 ---@return table
 function classic.reorder(p) end
 
+---@class ClassicSafetyStockParams
+---@field demand? number Average demand per day, arriving one unit at a time. In units per day. Default 10.
+---@field lead_time? integer|discrete Time from order to delivery, fixed or drawn for each order. The longest and shortest must differ by less than the review period. In ms. Default discrete { { days(1), 1 }, { days(3), 1 } }.
+---@field review_period? integer Time between reviews. In ms. Default weeks(1).
+---@field target_service? number Chance that a review cycle ends with no customers waiting, which the reference policy's order-up-to level aims for. Default 0.95.
+---@field holding_cost? integer Cost per unit held per day. Default 1.
+---@field backorder_cost? integer Cost per unit backordered per day. Default 10.
+---@field initial? number Stock at the start of a run. In units. Default 0.
+---@field duration? integer Length of a run. In ms. Default weeks(10).
+---@field seed? integer Base seed for random demand. Default 1.
+
+--- One store reviewed on a schedule, facing Poisson demand with backorders and a supplier whose lead time may vary, with a target cycle service level for its reference policy.
+---@param p ClassicSafetyStockParams
+---@return table
+function classic.safety_stock(p) end
+
 ---@class ClassicSerialChainParams
 ---@field stages? integer Number of stages, from 2 to 10. Default 4.
 ---@field lead_time? integer Shipping time into each stage. In ms. Default days(2).

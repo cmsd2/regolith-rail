@@ -1,6 +1,7 @@
 export {
   type ClassicTemplate,
   classicTemplates,
+  cycleServiceLevel,
   poissonProbabilities,
   type ReferenceResult,
   type TemplateParams,

@@ -103,6 +103,56 @@ describe("newsvendor", () => {
   }, 120_000);
 });
 
+describe("safety stock", () => {
+  it("describes a store with Poisson demand, backorders and lead times of one and three days with equal weights", () => {
+    const scenario = load(
+      "return classic.safety_stock { lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }",
+    );
+    const shop = scenario.stations[0];
+    expect(shop?.consumers[0]).toMatchObject({ unmet: "backorder" });
+    expect(shop?.consumers[0]?.poisson?.arrivalsPerSol).toBe(10_000);
+    expect(shop?.suppliers[0]?.leadTime).toEqual({
+      kind: "discrete",
+      values: [
+        { value: DAY, weight: 1 },
+        { value: 3 * DAY, weight: 1 },
+      ],
+    });
+  });
+
+  it("rejects lead times that differ by a review period or more", () => {
+    const result = runtime.loadScript(
+      "return classic.safety_stock { review_period = days(2), lead_time = discrete { { days(1), 1 }, { days(3), 1 } } }",
+    );
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.errors[0]?.message).toContain(
+      "lead times must differ by less than the review period, so that orders never overtake each other",
+    );
+  });
+
+  it("meets the analytic cycle service level of its reference level over 400 seeds", () => {
+    const reference = template("classic.safety_stock").reference({});
+    expect(reference.values.level).toBe(113);
+    const scenario = load("return classic.safety_stock {}");
+    const policy = referencePolicy("classic.safety_stock", {});
+    const shares = Array.from({ length: 400 }, (_, i) => {
+      const out = runSimulation(scenario, policy, { seed: i + 1, detail: "full" });
+      const site = out.sites.findIndex((s) => s.station === "Shop" && s.resource === "Goods");
+      // The first delivery ends the start-up cycle, which began with no stock.
+      const deliveries = ofKind(out.events, "delivery").slice(1);
+      const backorders = out.backorders as Int32Array;
+      // A row holds the state after every event at its time, so the one before a delivery's time
+      // is the state just before the delivery.
+      const met = deliveries.filter(
+        (d) => backorders[(d.t / out.tickMs - 1) * out.sites.length + site] === 0,
+      ).length;
+      return met / deliveries.length;
+    });
+    const { mean, half } = interval(shares);
+    expect(Math.abs(mean - (reference.values.cycleServiceLevel as number))).toBeLessThan(half);
+  }, 300_000);
+});
+
 describe("reorder", () => {
   it("costs the economic order quantity's analytic cost with steady demand and no lead time", () => {
     const params = { review_period: 60_000 };
