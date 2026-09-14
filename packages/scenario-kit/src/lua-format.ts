@@ -26,8 +26,14 @@ export function formatLua(stylua: StyLuaModule, source: string): string {
     config.call_parentheses = stylua.CallParenType.Input;
     return stylua.formatCode(code, config, undefined, stylua.OutputVerification.None);
   };
+  let formatted: string;
+  try {
+    formatted = once(source);
+  } catch (error) {
+    // StyLua throws its parse errors as strings.
+    throw error instanceof Error ? error : new Error(String(error));
+  }
   // StyLua can need a second pass to settle a wrapped call, so format until nothing changes.
-  let formatted = once(source);
   for (let pass = 0; pass < 3; pass++) {
     const again = once(formatted);
     if (again === formatted) break;

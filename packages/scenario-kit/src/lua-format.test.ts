@@ -33,6 +33,6 @@ describe("Lua formatting", () => {
   });
 
   it("throws on Lua that does not parse", () => {
-    expect(() => formatted("return {")).toThrow();
+    expect(() => formatted("return {")).toThrow(/unexpected token/);
   });
 });

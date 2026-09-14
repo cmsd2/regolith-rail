@@ -1,5 +1,6 @@
 import { json } from "@codemirror/lang-json";
 import { useMemo, useState } from "react";
+import { formatSource } from "../editor/format.ts";
 import { scenarioExtensions } from "../editor/json.ts";
 import { luaPolicyExtensions } from "../editor/lua.ts";
 import { scenarioScriptExtensions } from "../editor/scenario-script.ts";
@@ -133,6 +134,51 @@ function ScenarioToolbar({
   );
 }
 
+/** Formats the Lua in the open editor, and says why when it cannot. */
+function FormatButton({ evaluated }: { evaluated: boolean }) {
+  const tab = useWorkbench((s) => s.editorTab);
+  const kind = useWorkbench((s) => s.scenario.kind);
+  const [state, setState] = useState<{ busy: boolean; message: string | null }>({
+    busy: false,
+    message: null,
+  });
+  const lua = tab === "policy" || (kind === "script" && !evaluated);
+  async function format() {
+    setState({ busy: true, message: null });
+    const current = workbench.getState();
+    const source = tab === "policy" ? current.policy.source : current.scenario.source;
+    const result = await formatSource(source);
+    if (result.ok && result.source !== source) {
+      // Apply it only if nothing was typed while the formatter loaded.
+      const latest = workbench.getState();
+      if (tab === "policy" && latest.policy.source === source)
+        latest.setPolicySource(result.source);
+      if (tab === "scenario" && latest.scenario.source === source) {
+        latest.setScenarioSource(result.source);
+      }
+    }
+    setState({ busy: false, message: result.ok ? null : result.message });
+  }
+  return (
+    <span className={styles.format}>
+      {state.message && (
+        <span className={styles.formatError} role="status" data-testid="format-error">
+          {state.message}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={format}
+        disabled={!lua || state.busy}
+        title={lua ? "Lay out the Lua at 80 columns with StyLua" : "Only Lua can be formatted"}
+        data-testid="format-lua"
+      >
+        {state.busy ? "Formatting…" : "Format"}
+      </button>
+    </span>
+  );
+}
+
 function ScenarioErrors() {
   const errors = useWorkbench((s) => s.scenario.errors);
   if (errors.length === 0) return null;
@@ -177,6 +223,7 @@ export default function EditorPanel() {
         >
           Scenario {errorCount > 0 && <span className={styles.badge}>{errorCount}</span>}
         </button>
+        <FormatButton key={tab} evaluated={showEvaluated} />
       </div>
       <div className={styles.body} hidden={tab !== "policy"}>
         <PolicyEditor />

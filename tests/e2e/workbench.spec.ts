@@ -36,6 +36,24 @@ test.describe("policy editor", () => {
     );
   });
 
+  test("formats Lua with StyLua, and says why when it does not parse", async ({ page }) => {
+    await openWorkbench(page);
+    await setEditorText(page, "policy-editor", "return {on_stop=function(ctx) ctx.log('a') end}\n");
+    await page.getByTestId("format-lua").click();
+    const content = page.getByTestId("policy-editor").locator(".cm-content");
+    await expect(content).toContainText('ctx.log("a")', { timeout: 30_000 });
+    await expect(content.locator(".cm-line").nth(1)).toHaveText("  on_stop = function(ctx)");
+
+    await setEditorText(page, "policy-editor", "return {\n");
+    await page.getByTestId("format-lua").click();
+    await expect(page.getByTestId("format-error")).toContainText("unexpected");
+    await expect(content.locator(".cm-line").first()).toHaveText("return {");
+
+    await page.getByTestId("tab-scenario").click();
+    await page.getByTestId("scenario-kind-json").click();
+    await expect(page.getByTestId("format-lua")).toBeDisabled();
+  });
+
   test("shows hover help for ops blocks with a documentation link", async ({ page }) => {
     await openWorkbench(page);
     await setEditorText(
