@@ -5,6 +5,7 @@ import { constructs } from "@regolith-rail/scenario-kit";
 import {
   checkBook,
   checkChapterStandard,
+  checkClaims,
   checkConstructs,
   checkExampleIndex,
   checkFrontmatter,
@@ -32,6 +33,7 @@ const problems = [
   ...checkFrontmatter(pages),
   ...checkBook(pages),
   ...checkChapterStandard(pages),
+  ...checkClaims(pages),
   ...checkExampleIndex(committedExamples, exampleIndex(pages)),
 ];
 

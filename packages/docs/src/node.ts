@@ -2,6 +2,7 @@
 export * from "./book.ts";
 export * from "./chapters.ts";
 export * from "./claims.ts";
+export * from "./claims-lint.ts";
 export * from "./content.ts";
 export * from "./examples.ts";
 export * from "./links.ts";

@@ -396,3 +396,15 @@
   color: var(--bad);
   font-size: 13px;
 }
+
+.answer {
+  margin: 0.25rem 0 1rem;
+  padding: 0.25rem 0.75rem;
+  border-left: 3px solid var(--border);
+}
+
+.answer summary {
+  width: fit-content;
+  color: var(--accent);
+  cursor: pointer;
+}

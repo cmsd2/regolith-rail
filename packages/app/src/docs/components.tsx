@@ -155,6 +155,16 @@ export function Check({
   );
 }
 
+/** An exercise's answer, hidden until the reader asks for it. */
+export function Answer({ children }: { children: ReactNode }) {
+  return (
+    <details className={styles.answer} data-testid="answer">
+      <summary>Answer</summary>
+      {children}
+    </details>
+  );
+}
+
 /** A chapter's side note connecting its topic to rail lines in the game, set apart from the main text. */
 export function GameNote({ children }: { children: ReactNode }) {
   return (
@@ -194,6 +204,7 @@ export function BookContents() {
 
 export const mdxComponents: MDXComponents = {
   a: DocLink,
+  Answer,
   BookContents,
   BuildInfo,
   Check,
