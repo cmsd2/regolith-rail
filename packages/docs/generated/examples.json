@@ -46,6 +46,16 @@
     "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Factory = \"demand\",\n    Dome = \"demand\",\n  },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n  plan = ops.lookahead {},\n}"
   },
   {
+    "id": "book/flows#1",
+    "page": "book/flows",
+    "name": "Flows, rates and Little's law",
+    "script": false,
+    "fix": true,
+    "scenario": "relay",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Junction = \"relay\",\n    Dome = \"demand\",\n  },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n}"
+  },
+  {
     "id": "book/forecasting#1",
     "page": "book/forecasting",
     "name": "Forecasting (example 1)",
@@ -171,16 +181,6 @@
     "scenario": "two-station",
     "seed": 1,
     "source": "return classic.serial_chain {}"
-  },
-  {
-    "id": "failure-modes/dead-stock#1",
-    "page": "failure-modes/dead-stock",
-    "name": "Dead stock",
-    "script": false,
-    "fix": true,
-    "scenario": "relay",
-    "seed": 1,
-    "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Junction = \"relay\",\n    Dome = \"demand\",\n  },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n  plan = ops.lookahead {},\n}"
   },
   {
     "id": "failure-modes/disruption-recovery#1",

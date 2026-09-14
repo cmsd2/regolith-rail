@@ -31,7 +31,7 @@
         {
           "name": "docs",
           "type": "string",
-          "summary": "Documentation page explaining the scenario, such as failure-modes/relay.",
+          "summary": "Documentation page explaining the scenario, such as book/flows#case-study-dead-stock.",
           "required": false
         },
         {

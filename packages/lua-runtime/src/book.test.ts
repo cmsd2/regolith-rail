@@ -47,6 +47,102 @@ describe("chapter 1, modelling operations", () => {
 
 const DAY = 86_400_000;
 
+/** A run's average stock at each station, its average cargo, and its metrics, over seeds. */
+function stockOver(scenarioId: string, source: string, seeds: number) {
+  const result = validateScenario(starterScenarios.find((s) => s.id === scenarioId)?.document);
+  if (!result.ok) throw new Error(`invalid starter ${scenarioId}`);
+  const policy = runtime.createPolicy(source);
+  try {
+    return Array.from({ length: seeds }, (_, i) => {
+      const out = runSimulation(result.scenario, policy, { seed: i + 1, detail: "full" });
+      const stock = out.stock as Int32Array;
+      const rows = stock.length / out.sites.length;
+      const stations: Record<string, number> = {};
+      out.sites.forEach((site, s) => {
+        let sum = 0;
+        for (let r = 0; r < rows; r++) sum += stock[r * out.sites.length + s] as number;
+        stations[site.station] = sum / rows / 1000;
+      });
+      const cargo = (out.cargo as Int32Array).reduce((a, b) => a + b, 0) / rows / 1000;
+      return { stations, cargo, metrics: out.metrics, days: out.durationMs / DAY };
+    });
+  } finally {
+    policy.close();
+  }
+}
+
+const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
+
+describe("chapter 2, flows, rates and Little's law", () => {
+  const ROLES = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Junction = "relay", Dome = "demand" },
+  target = { supply = ops.drain {}, relay = ops.pass_through {}, demand = ops.fill {} },
+}`;
+
+  it("on relay over seeds 1 to 20 the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short on every seed", () => {
+    const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
+    const junction = mean(runs.map((r) => r.stations.Junction as number));
+    expect(junction).toBeGreaterThan(12.5);
+    expect(junction).toBeLessThan(14.5);
+    const line = mean(
+      runs.map((r) => Object.values(r.stations).reduce((a, b) => a + b, 0) + r.cargo),
+    );
+    expect(line).toBeGreaterThan(50);
+    expect(line).toBeLessThan(54);
+    for (const run of runs) {
+      const stations = Object.values(run.stations).reduce((a, b) => a + b, 0);
+      expect((run.stations.Junction as number) / stations).toBeGreaterThan(0.29);
+      expect(run.metrics.unmetDemand).toBeGreaterThan(0);
+    }
+  }, 300_000);
+
+  it("on relay over seeds 1 to 20 the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction", () => {
+    const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
+    const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
+    expect(perDay).toBeGreaterThan(32);
+    expect(perDay).toBeLessThan(33);
+    const line = mean(
+      runs.map((r) => Object.values(r.stations).reduce((a, b) => a + b, 0) + r.cargo),
+    );
+    const hours = (line / perDay) * 24;
+    expect(hours).toBeGreaterThan(37);
+    expect(hours).toBeLessThan(40);
+    const junctionHours = (mean(runs.map((r) => r.stations.Junction as number)) / perDay) * 24;
+    expect(junctionHours).toBeGreaterThan(9);
+    expect(junctionHours).toBeLessThan(11);
+  }, 300_000);
+
+  it("on relay over seeds 1 to 20 giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use", () => {
+    const runs = stockOver("relay", ROLES, 20);
+    for (const run of runs) {
+      expect(run.stations.Junction).toBe(0);
+      expect(run.metrics.unmetDemand).toBe(0);
+      expect(run.metrics.policyErrors).toBe(0);
+    }
+    const dome = mean(runs.map((r) => r.stations.Dome as number));
+    expect(dome).toBeGreaterThan(22);
+    expect(dome).toBeLessThan(24);
+    const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
+    expect((dome / perDay) * 24).toBeGreaterThan(15);
+    expect((dome / perDay) * 24).toBeLessThan(17);
+  }, 300_000);
+
+  it("on relay over seeds 1 to 20 giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met", () => {
+    const runs = stockOver(
+      "relay",
+      `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {}, any = ops.balance {} },
+}`,
+      20,
+    );
+    const junction = mean(runs.map((r) => r.stations.Junction as number));
+    expect(junction).toBeGreaterThan(19);
+    expect(junction).toBeLessThan(21);
+    for (const run of runs) expect(run.metrics.unmetDemand).toBe(0);
+  }, 300_000);
+});
+
 /** Mean and sample standard deviation. */
 function spread(values: number[]) {
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
@@ -54,7 +150,7 @@ function spread(values: number[]) {
   return { mean, sd: Math.sqrt(variance) };
 }
 
-describe("chapter 2, randomness and simulation", () => {
+describe("chapter 3, randomness and simulation", () => {
   it("comparing base-stock levels 13 and 15 on the same 100 seeds, paired differences spread less than half as much as independent runs, and level 15 costs more", () => {
     const params = {
       random: true,
@@ -92,7 +188,7 @@ describe("chapter 2, randomness and simulation", () => {
   }, 300_000);
 });
 
-describe("chapter 3, reviews, lead times and base-stock", () => {
+describe("chapter 6, reviews, lead times and base-stock", () => {
   const params = {
     random: true,
     demand: 4,
@@ -134,7 +230,7 @@ end }`);
   }, 300_000);
 });
 
-describe("chapter 3, the double dispatch case study", () => {
+describe("chapter 6, the double dispatch case study", () => {
   const ROLES = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Factory = "demand", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
@@ -166,7 +262,7 @@ describe("chapter 3, the double dispatch case study", () => {
   }, 600_000);
 });
 
-describe("chapter 5, order quantities", () => {
+describe("chapter 4, order quantities", () => {
   it("on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit", () => {
     const loaded = runtime.loadScript(templateCall("classic.reorder", { review_period: 60_000 }));
     if (!loaded.ok) throw new Error("the template should evaluate");
@@ -189,7 +285,7 @@ describe("chapter 5, order quantities", () => {
   }, 120_000);
 });
 
-describe("chapter 7, forecasting", () => {
+describe("chapter 8, forecasting", () => {
   it("on classic.forecasting the smoothing policy leaves customers waiting on every day from 40 to 59 with 17 units of safety stock, and on none of them with 18", () => {
     const reference = (safety: number) =>
       classicTemplates.find((t) => t.name === "classic.forecasting")?.reference({ safety })

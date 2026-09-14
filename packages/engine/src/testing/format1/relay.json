@@ -3,7 +3,7 @@
   "id": "relay",
   "title": "Relay station",
   "description": "A junction station with no producers or consumers sits between a mine and a dome. Balancing fills it to the line average, tying up stock the dome needs.",
-  "docs": "failure-modes/dead-stock",
+  "docs": "book/flows#case-study-dead-stock",
   "durationMs": 864000000,
   "seed": 1,
   "informationLevel": "line",

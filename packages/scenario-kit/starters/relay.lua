@@ -6,7 +6,7 @@ return mars.line {
   description = "A junction station with no producers or consumers sits "
     .. "between a mine and a dome. Balancing fills it to the line average, "
     .. "tying up stock the dome needs.",
-  docs = "failure-modes/dead-stock",
+  docs = "book/flows#case-study-dead-stock",
   duration = sols(10),
   stations = {
     mars.small_station {

@@ -190,6 +190,14 @@ test.describe("the book", () => {
     await expect(page.getByTestId("doc-article").locator("h1")).toHaveText("Modelling operations");
   });
 
+  test("dead stock's old page sends readers to chapter 2's case study", async ({ page }) => {
+    await page.goto("/docs/failure-modes/dead-stock");
+    await expect(page).toHaveURL(/\/docs\/book\/flows#case-study-dead-stock$/);
+    await expect(page.getByTestId("doc-article").locator("h1")).toHaveText(
+      "Flows, rates and Little's law",
+    );
+  });
+
   test("double dispatch's old page sends readers to its case study, in a page or the panel", async ({
     page,
   }) => {
