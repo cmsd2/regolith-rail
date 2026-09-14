@@ -220,7 +220,7 @@ describe("chapter 3, randomness and simulation", () => {
     return cov / (x.length - 1) / (a.sd * b.sd);
   };
 
-  it("on two-station over 100 replications balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication", () => {
+  it("on two-station over 100 replications the sample mean of unmet demand under balancing is 28 units with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100).map(
       (m) => m.unmetDemand / 1000,
     );

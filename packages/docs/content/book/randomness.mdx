@@ -1,6 +1,6 @@
 ---
 title: Randomness and simulation
-description: Random arrivals, estimating averages by simulation, and telling a real difference from luck.
+description: Random arrivals, estimating means by simulation, and telling a real difference from luck.
 section: Book
 part: 1
 chapter: 3
@@ -23,7 +23,8 @@ single run of a simulation is one draw from that noise. It can make a poor polic
 good, or a good one look poor.
 
 The remedy is to treat a simulation as an experiment. Run it many times with different
-random numbers, average the results, and measure how much the average could still move.
+random numbers, take the mean of the results, and measure how much that mean could still
+move.
 When comparing two policies, run both on the same random numbers so the comparison sees
 their difference and not the luck of the draw (Law, 2015; Wasserman, 2004).
 
@@ -31,7 +32,7 @@ their difference and not the luck of the draw (Law, 2015; Wasserman, 2004).
 
 ### Random arrivals
 
-When arrivals are independent and happen at a steady average rate $\lambda$, the number
+When arrivals are independent and happen at a steady mean rate $\lambda$, the number
 that occur in a time $t$ follows the Poisson distribution with mean $m = \lambda t$:
 
 $$
@@ -39,7 +40,7 @@ P(N = k) = \frac{e^{-m} m^k}{k!}, \qquad k = 0, 1, 2, \ldots
 $$
 
 Its mean and its variance are both $m$, so the standard deviation is $\sqrt{m}$. Demand
-that averages 9 units over a stretch of time typically lands within 3 units of that.
+with a mean of 9 units over a stretch of time typically lands within 3 units of that.
 
 <Check ref="maxima:poisson-mean-variance" />
 
@@ -55,10 +56,10 @@ so the gaps between arrivals are exponential, with mean $1/\lambda$.
 
 ### Estimating by simulation
 
-Run a simulation $n$ times, each replication with fresh random numbers, and average the
-costs. The average
-$\bar{X}$ estimates the expected cost. If one run's cost has standard deviation
-$\sigma$, the average of $n$ independent runs has standard deviation
+Run a simulation $n$ times, each replication with fresh random numbers, and take the
+sample mean of the costs. The sample mean $\bar{X}$ estimates the expected cost. If one
+run's cost has standard deviation $\sigma$, the mean of $n$ independent runs has standard
+deviation
 
 $$
 \operatorname{SE}(\bar{X}) = \frac{\sigma}{\sqrt{n}},
@@ -87,7 +88,7 @@ and $s = 1.4$, the interval is $7.9 \pm 0.28$, from 7.62 to 8.18.
 
 <Check ref="python:interval-example" />
 
-The same idea estimates any average. The share of random points in a square that land
+The same idea estimates any mean. The share of random points in a square that land
 inside a quarter circle estimates $\pi/4$, and with 400,000 points its standard error, as
 an estimate of $\pi$, is about 0.0026.
 
@@ -143,11 +144,13 @@ draw.
 <Scenario starter="two-station" />
 
 Switch to **Batch**, keep the seed at 1, and run `balance-stock` for 100 replications.
-Unmet demand averages 28.0 units with a sample standard deviation of 3.0, so the
-standard error of the mean is 0.30 and the 95% interval runs from about 27.4 to 28.6. The single runs range over more than
-ten units, so a single run can sit ten units from the average.
+The batch reports a mean and a median for each metric; the mean is the one the rest of
+this chapter works with. The sample mean of unmet demand is 28.0 units, with a sample
+standard deviation of 3.0, so its standard error is 0.30 and the 95% interval runs from
+about 27.4 to 28.6. The single runs range over more than ten units, so a single run can
+sit ten units from the mean.
 
-<Check ref="test:on two-station over 100 replications balancing leaves 28 units unmet on average with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication" />
+<Check ref="test:on two-station over 100 replications the sample mean of unmet demand under balancing is 28 units with a standard error of 0.3, single runs range over more than 10 units, and the obvious rule meets all demand in every replication" />
 
 Now tick **Compare**, choose the obvious rule from chapter 1 as the second policy, and
 run again.
