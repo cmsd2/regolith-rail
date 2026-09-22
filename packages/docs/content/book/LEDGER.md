@@ -6,21 +6,6 @@ Not published. Lists, per chapter, the terms, results, notation, and `ops` block
 
 Line numbers match the chapter files at commit ba71068. Check labels render on the page, so the chapter 1 and 2 entries include them; other entries cite prose only. "Forward pointer" marks a sentence that names a later chapter's term and defers to that chapter.
 
-- ch 2: uses `ops.pass_through` and the `"relay"` role, which chapter 1 introduced in its first edition and no longer does. Chapter 2's rewrite introduces them.
-- ch 2 line 128: "Over 20 replications the junction holds about 13 units on average" uses replication and a mean over replications, introduced in ch 3.
-- ch 2 line 129: "the dome goes short in every replication" uses replication, introduced in ch 3.
-- ch 2 line 131 (Check label): "on relay over 20 replications the balancing baseline keeps about 13" uses replication and a mean over replications, introduced in ch 3.
-- ch 2 line 139: "On seed 1 the dome's row reads 6.4 units" uses seed, introduced in ch 3 (the seed 1 figures run to line 147).
-- ch 2 line 150 (Check label): "on relay seed 1 under balancing" uses seed, introduced in ch 3.
-- ch 2 line 170: "in every one of 20 replications" uses replication, and line 171 "about 23 units on average" a mean over replications, introduced in ch 3.
-- ch 2 line 175 (Check label): "on relay over 20 replications giving the junction the relay role" uses replication, introduced in ch 3.
-- ch 2 line 177: "Compare the two in **Batch** over 100 replications" uses Batch comparison and replication, introduced in ch 3.
-- ch 2 line 178: "[empty distance] share falls too" uses the empty distance share metric, never introduced.
-- ch 2 line 190: "Over 20 replications the balancing baseline delivers about 32.5 units a day" uses replication and means over replications (figures run to line 194), introduced in ch 3.
-- ch 2 line 196 (Check label): "on relay over 20 replications the balancing baseline delivers about 32.5" uses replication, introduced in ch 3.
-- ch 2 line 198: "about 64 units" uses a mean over 20 replications without saying so (figures run to line 204), introduced in ch 3.
-- ch 2 line 256: "About 20 units, more than under the baseline" uses a mean over 20 replications without saying so (see line 261), introduced in ch 3.
-- ch 2 line 261 (Check label): "on relay over 20 replications giving the junction the any role" uses replication, introduced in ch 3.
 - ch 3 line 180: "The two policies' empty running moves in opposite directions" uses empty running (ch 1 and 2 call it empty distance), never introduced.
 - ch 3 line 189: "Chapter 6 compares two order-up-to levels" uses order-up-to level, introduced in ch 4 (forward pointer).
 - ch 4 line 114: "chapter 6 works it out as the protection interval" uses protection interval, introduced in ch 6 (forward pointer).
@@ -47,16 +32,17 @@ Rewritten 2026-09-22.
 
 ## Chapter 2: Flows, rates and Little's law
 
+Rewritten 2026-09-22.
+
 **Introduces**
-- Terms: flow, rate, rates in equal rates out at steady stock, capacity as a bound on flow, Little's law, cover (stock read as a length of time), stock that protects against stock that waits, relay station (neither makes nor uses the resource), junction, stock in transit, dead stock, first in first out, long-run average, transient (finite-run effect), roles policy (the drain, pass-through and fill policy by name).
-- Results: rate form of conservation, (s(t₂) − s(t₁))/(t₂ − t₁) = production − consumption − loading + unloading; a demand station with steady stock is supplied at its consumption rate whatever the policy; capacity bound between 540/7 ≈ 77.1 and 432/5 = 86.4 units a day (round trips of 28/3 h and 25/3 h); Little's law L = λW, and W = L/λ; cover 30/36 day = 20 h, 21.2 h at 34 a day; Little's law for a whole line (about 38 h under balancing, 10 of them at the junction; about 45 h under roles); exercises: W = 12/36 day = 8 h, stock in transit L = 40 × 2/24 = 10/3.
-- Notation: L average stock (ch 1: load; ch 6, 7: lead time); λ average flow (ch 3, 7: arrival or demand rate); W average time a unit spends inside.
-- ops and simulator: `relay` starter; line map; stock chart; run view; long-run averages table below Metrics (L, flow in and out a day, **Stock ÷ out**, **Waited**, units followed first in first out); first runs of `ops.pass_through`, the `"relay"` role and, in ex 3, the `"any"` role with an `ops.balance` target.
+- Terms: flow, rate in, rate out, flow balance, greatest flow a vehicle can carry, utilisation, Little's law, average number present, arrival rate, effective arrival rate, average time in a place, cover, balanced line (production equal to demand), sawtooth stock at a drained station, time aboard, dead stock, long-run averages table (Stock, In a day, Out a day, Stock ÷ out, Waited, the line's row with cargo).
+- Results: (x(T) − x(0))/T = λ_in − λ_out, at most x̄/T in size; λ_max = 24κ/T_max = 540/7, ρ = 7/15; a four-unit sample path with L = 1.5, λ = 0.5, W = 3; the counting argument ∫N dt = ΣW_i and L = λW; on the balanced line, 30 units and 20 hours a unit, mine and train λT/2 = 125/19 each, dome 30 − λT = 320/19, and at speed 10, 65/19 each and 440/19; relay under roles ā = 4420/343, dome 30 − ā/2 = 8080/343, cover 16.63 h; relay readings (37.5 h and 45.3 h on the line, 9.7 h at the junction).
+- Notation: λ, λ_in, λ_out, λ_max, ρ, L, W, N(t), A(T), W_i, T_max, L_mine, L_train, L_dome.
+- ops and simulator: the `"relay"` role, `ops.pass_through`; the `relay` starter; `speed` on `mars.train`; the mine's extractor `rate`; Metrics' long-run averages table.
 
 **Uses from earlier chapters**
-- ch 1: conservation equation, two-station line and its round-trip time 28/3 h, surplus, stalls, unmet demand, policy, site, role, classify, target, `ops.policy`, `ops.roles.manual`, `ops.drain`, `ops.fill`, `ops.pass_through`, `ops.balance`, balancing baseline `balance-stock`, starter, Metrics.
-- From later chapters or never introduced: replication, seed, mean over replications, Batch comparison (ch 3); empty distance share (never).
-- Note: line 216 calls the figures "averages over the whole run"; most are also means over 20 replications.
+- ch 1: state equation and its account, κ, x̄, τ, t₀, t₁, T, ā and the needed-load result, T_max, the drain-and-fill rule, balancing, roles, `ops.roles.manual`, `ops.drain`, `ops.fill`, `ops.balance`, scenario script edits, seeds, stalled production, unmet demand.
+- No replications, confidence intervals or batch comparisons.
 
 ## Chapter 3: Randomness and simulation
 

@@ -1,6 +1,6 @@
 ---
 title: Flows, rates and Little's law
-description: Rates in and out, what a vehicle can carry as a bound on flow, and stock as flow multiplied by time.
+description: Rates in and out, what a vehicle can carry as a bound on flow, and stock read as time with Little's law.
 section: Book
 part: 1
 chapter: 2
@@ -8,149 +8,153 @@ chapter: 2
 
 ## What you will learn
 
-- To describe an operation by its flows: the rates at which stock enters and leaves each
-  place, and why steady stock means the rates balance.
-- To read a vehicle's capacity as a bound on the flow it can carry, and to check a line
-  against that bound before any policy is written.
-- To use Little's law, stock equals flow times time, to turn the stock a place holds into
-  the time each unit spends there, and to tell stock that protects from stock that only
-  waits.
+- To describe a place by the rates at which units enter and leave it, and to see why bounded stock makes
+  those rates agree over a long run.
+- To bound the flow a vehicle can carry, and to measure how close a line runs to that bound.
+- To state Little's law, $L = \lambda W$, and to follow the counting argument behind it.
+- To read stock as time: how long a unit waits in each place on a line, and what that time does for the
+  station that uses the unit.
 
 ## The problem
 
-Chapter 1 wrote down a line and asked whether one train could serve it. The answer came
-from counting: units a day made, units a day used, trips a day the train can make. That
-kind of counting is the first tool of operations research, and it works before anything
-about randomness or policy has been decided. A flow is a rate: units a day into a place,
-units a day out of it. Stock is the difference between what has flowed in and what has
-flowed out.
+Chapter 1 answered its first question by counting units a day: what the mine made and the dome used,
+against what the train could carry. This chapter turns that counting into relations between rates and stock that hold
+whatever policy runs the line. The main one is Little's law. It says that the average number of units in
+a place equals the rate at which they arrive multiplied by the average time each one stays, and it holds
+for a queue at a counter, a warehouse, a train or a whole line (Little, 1961; Eiselt and Sandblom, 2022,
+p. 461).
 
-Flows and stock are tied together by one relation that holds for any system in which
-things enter, wait and leave: the average stock is the average flow multiplied by the
-average time each unit spends inside. It is Little's law, and it is exact under
-conditions so mild that it applies to a warehouse, a queue at a counter, a railway line
-and a hospital ward (Little, 1961; Taha, 2017, pp. 667–668). This chapter uses it to
-read a stock level as a length of time, and to tell stock that protects a station from
-stock that merely waits.
+Its use here is in reading a line. A stock level on its own says little. Divided by the flow through the
+station, it says how long a unit waits there, and that time either protects a consumer from running short
+or does nothing for anyone.
 
 ## The model
 
 ### Rates in and out
 
-Chapter 1's conservation equation counted what a station's stock gained and lost over a
-stretch of time. Divide it by the length of that stretch and it becomes a statement
-about rates: the stock changes at the rate things are produced and unloaded there, less
-the rate they are consumed and loaded. When stock is steady over a long enough period,
-the change is zero and the rates in equal the rates out.
+Chapter 1's state equation kept an account of a station's stock. Over a stretch of $T$ days the stock
+changes by what came in less what went out. Dividing by $T$ turns the account into average rates:
 
 $$
-\frac{s(t_2) - s(t_1)}{t_2 - t_1} = \text{production} - \text{consumption} - \text{loading} + \text{unloading}.
+\frac{x(T) - x(0)}{T} = \lambda_{\text{in}} - \lambda_{\text{out}},
 $$
 
-At a station that only consumes, steady stock means deliveries arrive, on average, at the
-rate the station uses them. That has a consequence worth stating:
-a demand station whose stock is steady is being supplied at exactly its consumption rate,
-whatever the policy is doing at each stop. Policies change how much stock the station
-holds and how often it runs dry; they cannot change the long-run flow, which the
-consumers set. On the two-station line the mine makes 9 units a day more than the dome
-uses, and no policy can carry the surplus anywhere, so the mine stalls at that rate
-whatever the train does.
+where $\lambda_{\text{in}}$ is the average rate at which units were produced or unloaded there, and
+$\lambda_{\text{out}}$ the average rate at which they were used or loaded. A station's stock stays between
+0 and its capacity $\bar x$, so the left side is at most $\bar x / T$ in size: for a 30-unit station, 3 a
+day over 10 days and 0.3 a day over 100. Over a long run the rates in and out of every station agree. This
+is **flow balance**.
 
 <Check ref="maxima:flow-balance" />
 
-### Capacity as a bound on flow
+A consumer whose demand is met receives, over a long run, what it uses. A policy decides how much stock
+sits at the consumer and when it runs short, and the consumer sets the flow. On the two-station line the
+mine makes 9 units a day more than the dome uses. Flow balance at the mine means its production has to
+stop for that 9 a day on average, as chapter 1 found.
 
-The most a vehicle can move in a day is its capacity multiplied by the number of round
-trips it can make in a day. On the two-station line a round trip with a full 30-unit load
-and full stops at both ends takes $28/3$ hours, and an empty round trip with the shortest
-stops takes $25/3$ hours, so the train can carry between
+### Capacity and utilisation
 
-$$
-30 \times \frac{24}{28/3} = \frac{540}{7} \approx 77.1
-\quad\text{and}\quad
-30 \times \frac{24}{25/3} = \frac{432}{5} = 86.4 \text{ units a day}.
-$$
-
-Either way it is more than twice the 36 units a day the dome uses. The bound is the first
-thing to check about any line: if the flow it must carry lies above the bound, no policy
-can save it, and if the flow lies well below, the question is not capacity but where the
-stock sits.
-
-<Check ref="maxima:flow-bound" />
-
-### Stock as time: Little's law
-
-Let $L$ be the average stock held in some part of a system, $\lambda$ the average flow
-through it, and $W$ the average time a unit spends inside. Then
+The most a vehicle can carry in a day is its capacity multiplied by the trips it can make. Taking the
+slowest round trip, which moves a full load at both stops, gives a flow the vehicle can always reach,
+$\lambda_{\max}$. The **utilisation** $\rho$ is the share of that flow the demand $\lambda$ uses. For the
+two-station line, with chapter 1's slowest round trip,
 
 $$
-L = \lambda W.
+\lambda_{\max} = \frac{24\,\kappa}{T_{\max}} = \frac{540}{7} \approx 77.1\ \text{units a day}, \qquad
+\rho = \frac{\lambda}{\lambda_{\max}} = \frac{36}{540/7} = \frac{7}{15} \approx 0.47.
 $$
 
-The units make it plausible: stock is units, flow is units a day, so time is days. The
-proof is a counting argument over a long period, and it needs no assumption about how
-arrivals or departures are distributed, only that what enters eventually leaves and the
-averages exist. The relation is most useful turned round, $W = L / \lambda$: the stock a
-place holds, divided by the flow through it, is how long each unit waits there.
+<Check ref="maxima:capacity-utilisation" />
 
-At a station that uses 36 units a day, 30 units of stock is $30/36$ of a day, 20 hours.
-That is the time the station could run with no deliveries, its *cover*, and it is the
-first way to read a stock level: not as an amount but as a length of time. A full
-30-unit station on the relay line, which uses 34 a day, holds about 21.2 hours.
+A line with a utilisation above 1 cannot keep up under any policy. Below 1 it can, and chapter 1 showed
+that a policy can still fail to use the room it has. The question then is where the stock sits.
 
-<Check ref="maxima:cover" />
+### Little's law
 
-The same reading applies to a whole line. Add up the stock at every station and on every
-vehicle, divide by the rate at which the line delivers, and the result is the average time
-a unit takes from being produced to being used. Every place that holds stock adds its
-share of that time. At the consumer, the time is protection: it is how long the station
-can go without a delivery. In transit, it is the trip. At a station that neither makes
-nor uses the resource, the time is pure waiting: the unit is no nearer to being used
-when it leaves than when it arrived.
+Take any place that units enter and later leave, such as a station or a train. Start with four
+units that arrive at hours 0, 1, 2 and 5 and leave at hours 3, 4, 6 and 7. Count $N(t)$, the units present
+at time $t$, hour by hour over the 8 hours, and add up the area under it. Each unit adds one for every hour
+it is present, so the area is the total time the units spend inside, $3 + 3 + 4 + 2 = 12$ unit-hours. On
+average $L = 12/8 = 1.5$ units are present, units arrive at $\lambda = 4/8 = 0.5$ an hour, and each stays
+$W = 12/4 = 3$ hours. And $1.5 = 0.5 \times 3$.
+
+The same count works for any record. Let $A(T)$ be the number of units that arrive by time $T$ and $W_i$
+the time unit $i$ stays. If the place is empty at the start and the end,
+
+$$
+\int_0^T N(t)\,dt = \sum_{i=1}^{A(T)} W_i,
+\qquad\text{so}\qquad
+\underbrace{\frac{1}{T}\int_0^T N(t)\,dt}_{L} =
+\underbrace{\frac{A(T)}{T}}_{\lambda} \cdot \underbrace{\frac{1}{A(T)} \sum_{i=1}^{A(T)} W_i}_{W}.
+$$
+
+The left side is the average number present, $L$. The first factor on the right is the arrival rate,
+$\lambda$, and the second the average time a unit stays, $W$. So $L = \lambda W$.
 
 <Check ref="maxima:littles-law" />
 
+This is **Little's law**. The argument assumes nothing about how units arrive or in what order they leave.
+Over a long run the units present at the start and the end matter less and less, and the law holds for
+the long-run averages whenever they exist (Little, 1961). The rate is the rate at which units actually
+get in: where some demand is lost or some production stops, it is what gets through, which Taha (2017,
+p. 667) calls the effective arrival rate.
+
+### Reading stock as time
+
+Turned round, $W = L / \lambda$: the stock in a place divided by the flow through it is how long a unit
+stays. Axsäter (2015, p. 52) reads a store's stock this way, as the average time a unit waits to be used.
+On a line there are three kinds of place a unit can wait, and the time means something different in each:
+
+- at a consumer, the time is **cover**, how long the consumer could go on without a delivery;
+- aboard a vehicle, the time is the trip;
+- at a station that neither makes nor uses the resource, the unit waits and comes no nearer to being used.
+
+Take the two-station line with one change: the mine makes 36 units a day, what the dome uses, and demand
+is steady. Under the drain-and-fill rule no production stops and no demand goes unmet, so the line keeps
+the 30 units it starts with, 15 at each station. Little's law for the whole line gives each unit
+$W = 30 / \lambda = 20$ hours from being mined to being used, with $\lambda = 3/2$ units an hour. The
+policy and the train decide where those 20 hours are spent.
+
+- **The mine.** Its stock rises from zero at $\lambda$ after each visit and the train drains it every round
+  trip $T$, so it averages $\lambda T / 2$.
+- **The train.** A unit is aboard from loading at the mine to unloading on arrival at the dome, which is
+  the mine stop and one leg, $t_0 + t_1 \bar a + \tau = T/2$. So it carries $\lambda T / 2$ on average.
+- **The dome.** It has the rest, $30 - \lambda T$.
+
+With chapter 1's round trip $T = 500/57 \approx 8.77$ hours,
+
+$$
+L_{\text{mine}} = L_{\text{train}} = \frac{\lambda T}{2} = \frac{125}{19} \approx 6.58, \qquad
+L_{\text{dome}} = 30 - \lambda T = \frac{320}{19} \approx 16.84.
+$$
+
+A unit spends $T/2 \approx 4.39$ hours at the mine, as long again aboard, and $640/57 \approx 11.23$ hours at
+the dome, 20 hours in all.
+
+<Check ref="maxima:balanced-line" />
+
+A train at speed 10 halves each leg. The round trip falls to $260/57 \approx 4.56$ hours, the mine and the
+train each average $65/19 \approx 3.42$ units, and the dome has $440/19 \approx 23.16$, which lasts
+$15.44$ hours. The line still keeps each unit 20 hours. A faster train moves stock off the train and the
+mine's station onto the dome's, where it covers the dome's demand.
+
+<Check ref="maxima:balanced-line-fast" />
+
 ## In the simulator
 
-The `relay` starter has a station of that last kind. Its line runs from a mine making 45
-units a day, through a junction with no producers or consumers of its own, to a dome
-using 34 a day, sometimes up to 20% more or less. The legs are 36,000 units long, so each
-takes the train two hours, and a round trip travels for eight. So the line has all three
-places a unit can spend time, the consumer, the train and the junction, and the stock
-chart shows how much sits in each. It opens with the balancing baseline.
+The run view's **Metrics** shows a table of
+[long-run averages](/docs/metrics#long-run-averages). For each station it gives the average stock $L$ and
+the flows in and out a day. Two more columns give times. **Stock ÷ out** is $L / \lambda$, the law's reading of the stock.
+**Waited** is $W$ measured without the law, by following each unit from its arrival to its departure,
+first in, first out. The line's row adds the cargo aboard the train to the stock at the stations, so the
+cargo is the line's stock less the stations'.
 
-<Check ref="maxima:relay-legs" />
+The `relay` starter has all three kinds of place. Its line runs from a mine making 45 units a day, through
+a junction with no producers or consumers, to a dome using 34 a day. Each leg takes two hours. The starter
+opens with balancing, and the case study below reads what it does. The drain-and-fill rule extends to the
+junction with a third role:
 
 <Scenario starter="relay" />
-
-Run `balance-stock` and watch the junction on the line map. Its station fills within the
-first day and stays about a third full for the rest of the run, while the dome runs short.
-Over 20 replications the junction holds about 13 units on average, three tenths of the stock
-at the stations, and the dome goes short in every replication.
-
-<Check ref="test:on relay over 20 replications the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short in every replication" />
-
-This run can also show Little's law holding, because all three of its quantities can be
-measured separately, and the run view does. Open **Metrics** and look below the metrics
-at the table of [long-run averages](/docs/metrics#long-run-averages). For each station it
-gives $L$, the average stock over the run; the flow in and out a day, so $\lambda$; and
-two times. **Stock ÷ out** is $L / \lambda$. **Waited** is $W$ measured without any
-formula: each unit is followed from the stop that unloaded it, first in, first out, to
-the minute it was used, and the waits are averaged. On seed 1 the dome's row reads 6.4
-units, 32.3 a day out, and a wait of 4.7 hours. Multiplied out, $\lambda W$ is 6.3 units,
-within 3% of $L$. The shortfall is the units still on the shelf when the run ends, whose
-waits are never finished and so never counted.
-
-The junction's row shows the other side of that. A unit unloaded there waits about 54
-hours before a train takes it on again, more than two days, so in a 10-day run a good
-part of what arrives is still there at the end, and $\lambda W$ comes to only four fifths
-of the 13.5 units in the stock column. Little's law is a statement about long-run averages, and a
-place that turns over slowly needs a long run to show it.
-
-<Check ref="test:on relay seed 1 under balancing, following each unit first in first out, the dome holds 6.4 units, uses 32.3 a day and a unit waits 4.7 hours there, so lambda W is within 3% of L, while at the junction a unit waits about 54 hours and lambda W comes to four fifths of L, and under roles a unit waits 15 hours at the dome" />
-
-Now give each station its role. The mine is drained, the dome is filled, and the
-junction is passed through: the train neither leaves stock there nor takes any.
 
 ```lua runnable scenario=relay fix
 return ops.policy {
@@ -167,108 +171,158 @@ return ops.policy {
 }
 ```
 
-Run it and the junction stays empty, the dome meets all its demand in every one of 20
-replications, and the dome's station holds about 23 units on average, 16 hours of use. Followed
-unit by unit, a unit now waits 15 hours at the dome before it is used: the same figure,
-read as time instead of stock.
+The `"relay"` role marks a station that passes stock on, and `ops.pass_through {}` sets no target for it,
+so the train neither leaves stock at the junction nor takes any. With steady demand the dome is filled to
+30 at every stop and uses the load $\bar a$ before the next, so it averages $30 - \bar a / 2$. A round trip
+here has four legs and four stops, two of which move the load, so $\bar a = uT$ with
+$T = 4 \times 2 + 4 t_0 + 2 t_1 \bar a$ and $u = 34/24$ an hour. That gives $\bar a = 4420/343 \approx 12.89$
+units and a dome averaging $8080/343 \approx 23.56$, which covers $16.63$ hours.
 
-<Check ref="test:on relay over 20 replications giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use" />
+<Check ref="maxima:relay-roles" />
 
-Compare the two in **Batch** over 100 replications. Unmet demand falls to nothing, and the
-[empty distance](/docs/metrics#empty-distance-share) share falls too, since the train no
-longer runs back and forth topping up a station that uses nothing.
+Set the dome's variability to 0 and run it. The junction stays empty. The dome averages 23.00 units over
+10 days, 16.24 hours of use: it starts at 15 units, below its steady range, which pulls a short run's
+average down. Over 20 days it averages 23.28.
+
+<Check ref="test:on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line holds 64.12 units, delivers 34 a day and meets all demand" />
+
+<Scenario starter="two-station" />
+
+Back on the two-station line, open the drain-and-fill rule from chapter 1:
+
+```lua runnable scenario=two-station
+return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}
+```
+
+In the scenario script, change the mine's extractor to `rate = 36`, the dome's variability to 0 and the
+duration to `sols(20)`, and run. Then add `speed = 10` to the train, as
+`mars.train { id = "T1", start = "Mine", speed = 10 }`, and run again. The table sets the stock the
+model section predicts in each place beside the run's long-run averages.
+
+<Predicted>
+
+| Mine making 36 a day, 20 days | Model | Simulator |
+| --- | --- | --- |
+| Speed 5: stock at the mine | 6.58 | 6.57 |
+| Speed 5: cargo aboard | 6.58 | 6.63 |
+| Speed 5: stock at the dome | 16.84 | 16.80 |
+| Speed 10: stock at the mine | 3.42 | 3.43 |
+| Speed 10: cargo aboard | 3.42 | 3.47 |
+| Speed 10: stock at the dome | 23.16 | 23.10 |
+| Either speed: line's stock, and hours a unit | 30, 20 | 30.00, 20.00 |
+
+<Check refs="
+  test:on two-station with the mine making 36 a day and steady demand, drain-and-fill keeps 30 units on the line, 20 hours a unit, with about 6.6 at the mine, 6.6 aboard and 16.8 at the dome over 20 days, whatever the seed
+  test:on two-station with the mine making 36 a day, steady demand and the train at speed 10, drain-and-fill keeps 30 units on the line, 20 hours a unit, with about 3.4 at the mine, 3.5 aboard and 23.1 at the dome over 20 days
+" />
+
+</Predicted>
+
+The run starts with the train empty and 15 units at each station, which differs from the steady cycle for
+its first trips. That start accounts for the gap in the second decimal.
 
 ## Case study: dead stock
 
-Under balancing, the train has the same target at every stop: the mean of the stock held
-at the three stations. The junction stores metal, so it counts as one of the three, and
-the train unloads there whenever the junction holds less than the mean and loads there
-whenever it holds more. Nothing is consumed at the junction, so its stock settles at the
-mean and stays there, and about a third of what the stations hold sits at the one place
-that cannot use it. This is dead stock: stock that is held but never moves on to use.
+Under balancing the train aims every site at the average stock of the stations that store metal. The
+junction stores metal, so it is one of the three. Nothing is used at the junction, so nothing drains it
+between visits, and each time the train passes it moves the junction's stock towards the average of the
+three. With the mine's station nearly full and the dome's nearly empty, that average sits well above zero.
+Stock that is held where nothing uses it, and that seldom moves on, is **dead stock**.
 
-Little's law puts a time on it. Over 20 replications the balancing baseline delivers
-about 32.5 units a day and holds about 52 units on the line, 24.6 at the mine, 13.5 at
-the junction, 6.5 at the dome and 7.2 on the train. Each unit therefore spends about 38
-hours between being mined and being used, and about 10 of those hours parked at the
-junction.
+With the relay line's demand steady, the 10-day run under balancing shows the size of it. The junction
+averages 13.29 units and the dome 6.27. The stations hold 44.11 units and the train 7.25, 51.36 in all, and
+the line delivers 32.86 a day, so by Little's law a unit spends
 
-<Check ref="test:on relay over 20 replications the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction" />
+$$
+\frac{51.36}{32.86} \times 24 \approx 37.5\ \text{hours}
+$$
 
-Under the roles policy the line holds more stock, not less: about 64 units, since the
-train carries a full load most of the way and the dome's station stays near 23. Each unit
-spends about 45 hours on the line. The difference is where the hours are spent. Under
-balancing, 10 of 38 hours are at a station that uses nothing and the dome, at 6.5 units,
-has under five hours of cover. Under roles, none of the time is wasted and the dome holds
-16 hours of cover. The roles policy holds more stock than balancing and serves the dome
-better, because none of its stock sits where it cannot be used.
+on the line. Of those, $13.29 / 32.86 \times 24 \approx 9.7$ hours are at the junction, while the dome's
+stock covers $4.6$ hours, and the dome runs short. Under the drain-and-fill rule, with the junction as a
+relay, the line holds more, 64.12 units, and a unit spends $45.3$ hours on it. None of those hours is at the junction, and the dome's stock covers
+$16.2$ hours.
 
-Little's law is only an identity, and it says nothing about whether a policy is good. Its
-use is in reading a line: it turns the stock chart into a statement about time, and it
-shows at once where stock is waiting without protecting anyone. Later chapters set how
-much time a demand station should hold. This one only says that a relay should hold
-none.
+<Check refs="
+  maxima:relay-reading
+  test:on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line holds 51.36 units and delivers 32.86 a day, and the dome goes short
+" />
+
+The table's **Waited** column checks the law against a direct measurement. At the dome a unit waits 4.53
+hours, and $\lambda W = 32.86 \times 4.53 / 24 = 6.20$, within 2% of the 6.27 units there. At the junction
+a unit waits 62.9 hours, but only 4.11 units a day leave it, and the units still there when the run ends
+are left out of the measured waits. Over 10 days $\lambda W$ comes to 81% of the junction's stock. A place
+that turns over slowly needs a long run before its averages settle.
 
 ## Where the simulator differs
 
-- **Averages over a finite run.** Little's law is exact for long-run averages. A 10-day
-  run starts with 30 units on the line and ends with whatever the policy left, so its
-  averages carry a small transient. The figures above are averages over the whole run.
-- **Rates vary from hour to hour.** The dome's consumption varies by up to 20% around 34
-  a day, so its long-run flow is the average of those rates, and a single day's flow can
-  differ.
-- **Cargo counts as stock on the line.** The figures include what the train carries. A
-  policy that keeps the train full holds a full load's worth of time in transit at all
-  times.
+- **Finite runs.** Little's law holds for long-run averages. A run starts from given stock and stops after
+  a set number of days, so its averages include the start and leave out the waits still under way at the
+  end.
+- **Units move at the start of a stop.** The train loads or unloads when it arrives, then waits out the
+  stop's time before it leaves. The model of the time aboard uses this.
+- **Waited follows units in order.** The measured wait takes units first in, first out. Little's law needs
+  no order, so the stock ÷ out column is the same whatever order the station uses.
+- **Cargo is stock on the line.** The line's row counts what the train carries, so a policy that keeps the
+  train loaded keeps that much stock, and time, in transit.
 
 ## Exercises
 
-1. A depot holds 12 units of a part on average, and 36 units a day pass through it. How
-   long does a part wait at the depot on average?
+Exercises 2 and 3 use the two-station line of the model section: the mine making 36 a day, steady demand,
+drain-and-fill, and chapter 1's parameters otherwise.
+
+1. A depot holds 12 units of a part on average, and 36 units a day pass through it. How long does a part
+   wait at the depot on average?
 
 <Answer>
 
-By Little's law, $W = L / \lambda = 12 / 36$ of a day, 8 hours.
+$W = L / \lambda = 12/36$ of a day, 8 hours.
 
 <Check ref="maxima:exercise-waiting-time" />
 
 </Answer>
 
-2. A train carries 40 units a day across a leg that takes two hours. How much cargo is in
-   transit on that leg on average?
+2. Give the train `speed = 2`, so each leg takes $\tau = 10$ hours. Find the slowest round trip
+   $T_{\max}$, the greatest flow $\lambda_{\max}$ and the utilisation $\rho$. Can any policy keep the dome
+   supplied? Run the line for 10 days and compare the dome's **Out a day** with $\lambda_{\max}$.
 
 <Answer>
 
-$L = \lambda W = 40 \times 2/24 = 10/3$, about 3.33 units. Little's law works for the leg
-as it does for a station: the leg is a place that units enter, spend two hours in and
-leave.
+$T_{\max} = 2 \times 10 + 2\,(\tfrac16 + \tfrac{30}{60}) = 64/3$ hours, so
+$\lambda_{\max} = 30 \times 24 / (64/3) = 33.75$ units a day and $\rho = 36/33.75 = 16/15 \approx 1.07$.
+No policy can keep up. The run delivers 32.48 units a day, under the bound, and the dome goes short.
 
-<Check ref="maxima:exercise-in-transit" />
+<Check refs="
+  maxima:exercise-slow-train
+  test:on two-station with the mine making 36 a day, steady demand and the train at speed 2, drain-and-fill delivers 32.48 units a day, under the bound of 33.75, and the dome goes short
+" />
 
 </Answer>
 
-3. On `relay`, give the mine and the dome their roles but leave the junction with no role,
-   so that it takes the `any` role and a `balance` target. How much stock does the junction
-   hold now, and does the dome still go short?
+3. Start both stations with 10 units, by changing both `stock = { Metals = 15 }` to 10. Predict how long a
+   unit spends on the line and the dome's average stock, then run for 10 days.
 
 <Answer>
 
-About 20 units, more than under the baseline: the mine is drained onto the train, the
-dome is filled to its capacity, and the junction is balanced towards the average of a
-line that now holds more. The dome meets all its demand, because its own role fills it,
-but a third of the line's stock still waits where nothing uses it.
+The line keeps 20 units, so a unit spends $20 / 1.5 = 13.33$ hours on it. The mine and the train hold
+$\lambda T = 250/19 \approx 13.16$ between them whatever the stock, so the dome averages
+$20 - 13.16 = 6.84$. The run shows 20 units on the line, 13.33 hours a unit, and 6.86 at the dome.
 
-<Check ref="test:on relay over 20 replications giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met" />
+<Check refs="
+  maxima:exercise-less-stock
+  test:on two-station with the mine making 36 a day and steady demand, starting with 10 units at each station, drain-and-fill keeps 20 units on the line, 13.33 hours a unit, with about 6.9 at the dome
+" />
 
 </Answer>
 
 <GameNote>
 
-In the rail game, a line through a station with nothing attached to it, a junction or a
-station whose buildings have been removed, is common, and trains balance stock into it
-like any other. On a long line, the stock parked at such a station is stock the domes at
-the ends of the line are waiting for. Watching how full an idle station stays is the
-quickest way to see how much of a line's stock is doing nothing.
+In the rail game, a line often passes through a station with nothing attached to it, a junction or a
+station whose buildings have been removed, and trains balance stock into it like any other. On a long
+line, the stock parked there is stock the domes at the ends are waiting for. How full an idle station
+stays, read against the line's flow, says how many hours of it are doing nothing.
 
 <Evidence level="observed" />
 
@@ -276,7 +330,9 @@ quickest way to see how much of a line's stock is doing nothing.
 
 ## References
 
-- Little, J.D.C. (1961) 'A proof for the queuing formula: $L = \lambda W$', *Operations
-  Research*, 9(3), pp. 383–387.
-- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
-  Education.
+- Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
+- Eiselt, H.A. and Sandblom, C.-L. (2022) *Operations research: a model-based approach*. 3rd edn. Cham:
+  Springer.
+- Little, J.D.C. (1961) 'A proof for the queuing formula: $L = \lambda W$', *Operations Research*, 9(3),
+  pp. 383–387.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson Education.

@@ -18,56 +18,77 @@
   },
   {
    "cell_type": "code",
-   "source": "/* The two-station and relay lines, in seconds and units. */\nday: 86400$\nspeed: 5$\ndwell_base: 600$\ndwell_per_unit: 60$\ntrain_capacity: 30$\nstation_capacity: 30$\n/* Two stations 72,000 apart: the mine makes 45 a day, the dome uses 36. */\ndistance: 72000$\nproduction_per_day: 45$\nconsumption_per_day: 36$\n/* The relay line: two legs of 36,000, the mine making 45 a day and the dome using 34. */\nrelay_leg: 36000$\nrelay_consumption: 34$",
+   "source": "/* The two-station line from chapter 1, in hours and units. */\ntau: 4$  t0: 1/6$  t1: 1/60$  kappa: 30$  xbar: 30$\nlam: 36/24$            /* the dome's use, 36 a day, as units an hour */",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: flow-balance */\n/* Over a period T a station's stock changes by what flows in less what flows out, so the average rates balance when stock is steady. */\nchange: (production - consumption - loaded + unloaded) * T$\nexpect_equal(\"net-rate\", change / T, production - consumption - loaded + unloaded);\n/* At the dome nothing is produced or loaded, so steady stock means deliveries arrive at the rate the dome uses. */\nexpect_equal(\"steady-deliveries\", rhs(first(solve(0 = unloaded - consumption, unloaded))), consumption);\n/* On the two-station line the mine's surplus over the dome's use has nowhere to go: 9 units a day. */\nexpect_equal(\"surplus-rate\", production_per_day - consumption_per_day, 9);",
+   "source": "/* check: flow-balance */\n/* Over a stretch of length T, stock changes by what came in less what went out, so the average\n   rates in and out differ by the change in stock over T. Bounded stock makes that difference vanish. */\nkill(xT, x0, T, rin, rout)$\nexpect_equal(\"rates-from-stock\", (x0 + rin * T - rout * T - x0) / T, rin - rout);\n/* With stock between 0 and 30, the rates can differ by at most 30 / T: 3 a day over 10 days. */\nexpect_equal(\"gap-over-10-days\", xbar / 10, 3);\nexpect_equal(\"gap-over-100-days\", xbar / 100, 3/10);\nexpect_equal(\"surplus-per-day\", 45 - 36, 9);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: flow-bound */\n/* The train bounds the flow between the stations: trips a day times a full load. */\nleg: distance / speed$\nslowest_trip: 2 * leg + 2 * (dwell_base + dwell_per_unit * train_capacity)$\nfastest_trip: 2 * leg + 2 * dwell_base$\nexpect_equal(\"slowest-trip-hours\", slowest_trip / 3600, 28/3);\nexpect_equal(\"fastest-trip-hours\", fastest_trip / 3600, 25/3);\nlower_bound: train_capacity * day / slowest_trip$\nupper_bound: train_capacity * day / fastest_trip$\nexpect_equal(\"lower-bound\", lower_bound, 540/7);\nexpect_close(\"lower-bound-decimal\", lower_bound, 77.1, 0.05);\nexpect_equal(\"upper-bound\", upper_bound, 432/5);\nexpect_close(\"upper-bound-decimal\", upper_bound, 86.4, 0.05);\nexpect_equal(\"bound-covers-demand\", is(lower_bound > consumption_per_day), true);",
+   "source": "/* check: capacity-utilisation */\nTmax: 2 * tau + 2 * (t0 + kappa * t1)$\nlam_max: kappa * 24 / Tmax$\nexpect_equal(\"slowest-trip\", Tmax, 28/3);\nexpect_equal(\"greatest-flow\", lam_max, 540/7);\nexpect_equal(\"utilisation\", 36 / lam_max, 7/15);\nexpect_close(\"utilisation-decimal\", 36 / lam_max, 0.47, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: cover */\n/* Stock divided by the rate it is used at is the time it lasts: 30 units at 36 a day is 20 hours. */\ncover_hours(stock, per_day) := stock / per_day * 24$\nexpect_equal(\"two-station-cover\", cover_hours(station_capacity, consumption_per_day), 20);\nexpect_close(\"relay-cover\", cover_hours(station_capacity, relay_consumption), 21.18, 0.005);",
+   "source": "/* check: littles-law */\n/* A sample path: four units arrive at times a and leave at times d, in hours, over a window of 8. */\na: [0, 1, 2, 5]$  d: [3, 4, 6, 7]$  window: 8$\nN(t) := length(sublist(makelist(i, i, 1, 4), lambda([i], a[i] <= t and t < d[i])))$\n/* The area under N(t), hour by hour, is the total time the units spend inside. */\narea: sum(N(k + 1/2), k, 0, window - 1)$\nexpect_equal(\"area-is-total-time\", area, sum(d[i] - a[i], i, 1, 4));\nL_avg: area / window$  lam_avg: 4 / window$  W_avg: area / 4$\nexpect_equal(\"average-number\", L_avg, 3/2);\nexpect_equal(\"arrival-rate\", lam_avg, 1/2);\nexpect_equal(\"average-time\", W_avg, 3);\nexpect_equal(\"little\", L_avg, lam_avg * W_avg);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: littles-law */\n/* Little's law: average stock L, throughput lambda and average time in the system W satisfy L = lambda W, so W = L / lambda. */\nassume(lambda > 0)$\nexpect_equal(\"time-from-stock\", rhs(first(solve(L = lambda * W, W))), L / lambda);\n/* On the relay line under balancing, over 20 replications: 24.6 at the mine, 13.5 at the junction, 6.5 at the dome and 7.2 on the train, with the dome using 32.5 a day. */\nstock_balancing: 24.6 + 13.5 + 6.5 + 7.2$\nexpect_close(\"balancing-stock\", stock_balancing, 51.8, 0.05);\nexpect_close(\"balancing-time-hours\", stock_balancing / 32.5 * 24, 38.3, 0.1);\nexpect_close(\"junction-time-hours\", 13.5 / 32.5 * 24, 10.0, 0.05);\n/* Under roles: 20.0 at the mine, none at the junction, 23.0 at the dome and 21.2 on the train, with the dome using 34.0 a day. */\nstock_roles: 20.0 + 0 + 23.0 + 21.2$\nexpect_close(\"roles-stock\", stock_roles, 64.2, 0.05);\nexpect_close(\"roles-time-hours\", stock_roles / 34.0 * 24, 45.3, 0.1);\nexpect_close(\"dome-cover-hours\", 23.0 / 34.0 * 24, 16.2, 0.05);",
+   "source": "/* check: balanced-line */\n/* The mine makes what the dome uses, 3/2 an hour, and the line starts with 15 + 15 units. */\nabar: 250/19$  T: 2 * tau + 2 * (t0 + t1 * abar)$\nexpect_equal(\"round-trip\", T, 500/57);\nexpect_equal(\"load-is-trip-demand\", abar, lam * T);\n/* The mine's stock rises from 0 at lam and is drained every T: a sawtooth averaging lam T / 2. */\nmine: lam * T / 2$\nexpect_equal(\"mine-stock\", mine, 125/19);\nexpect_close(\"mine-stock-decimal\", mine, 6.58, 0.005);\nexpect_close(\"mine-wait\", mine / lam, 4.39, 0.005);\n/* A unit is aboard from loading at the mine stop to unloading on arrival at the dome. */\naboard_time: t0 + t1 * abar + tau$\nexpect_equal(\"aboard-time-is-half-trip\", aboard_time, T / 2);\nexpect_equal(\"aboard\", lam * aboard_time, 125/19);\n/* The dome has what is left of the 30. */\ndome: 30 - mine - lam * aboard_time$\nexpect_equal(\"dome-stock\", dome, 320/19);\nexpect_close(\"dome-stock-decimal\", dome, 16.84, 0.005);\nexpect_equal(\"dome-wait\", dome / lam, 640/57);\nexpect_close(\"dome-wait-decimal\", dome / lam, 11.23, 0.005);\nexpect_equal(\"line-wait\", 30 / lam, 20);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: relay-legs */\n/* Each leg of the relay line takes two hours, so a round trip travels for eight. */\nrelay_leg_time: relay_leg / speed$\nexpect_equal(\"relay-leg-hours\", relay_leg_time / 3600, 2);\nexpect_equal(\"relay-round-trip-travel-hours\", 4 * relay_leg_time / 3600, 8);",
+   "source": "/* check: balanced-line-fast */\n/* The same line with the train at speed 10: two-hour legs. */\nkill(A, TT)$\nfast: solve([A = lam * TT, TT = 2 * 2 + 2 * (t0 + t1 * A)], [A, TT])[1]$\nAf: rhs(fast[1])$  Tf: rhs(fast[2])$\nexpect_equal(\"fast-load\", Af, 130/19);\nexpect_equal(\"fast-trip\", Tf, 260/57);\nexpect_equal(\"fast-mine\", lam * Tf / 2, 65/19);\nexpect_close(\"fast-mine-decimal\", lam * Tf / 2, 3.42, 0.005);\nexpect_equal(\"fast-dome\", 30 - lam * Tf, 440/19);\nexpect_close(\"fast-dome-decimal\", 30 - lam * Tf, 23.16, 0.005);\nexpect_close(\"fast-dome-wait\", (30 - lam * Tf) / lam, 15.44, 0.005);\nexpect_equal(\"fast-line-wait\", 30 / lam, 20);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: exercise-in-transit */\n/* 40 units a day cross a two-hour leg, so by Little's law 40 * 2/24 units are in transit on average. */\nexpect_equal(\"in-transit\", 40 * 2 / 24, 10/3);\nexpect_close(\"in-transit-decimal\", 40 * 2 / 24, 3.33, 0.005);",
+   "source": "/* check: relay-roles */\n/* The relay line: legs of 2 hours, four stops a round trip, two of them moving the load; the dome\n   uses 34 a day. Filled at every stop, the dome falls from 30 to 30 - abar and averages 30 - abar / 2. */\nu_r: 34/24$\nkill(A, TT)$\nrel: solve([A = u_r * TT, TT = 4 * 2 + 4 * t0 + 2 * t1 * A], [A, TT])[1]$\nAr: rhs(rel[1])$\nexpect_equal(\"relay-load\", Ar, 4420/343);\nexpect_close(\"relay-load-decimal\", Ar, 12.89, 0.005);\nexpect_close(\"relay-trip\", rhs(rel[2]), 9.10, 0.005);\nexpect_equal(\"relay-dome\", 30 - Ar / 2, 8080/343);\nexpect_close(\"relay-dome-decimal\", 30 - Ar / 2, 23.56, 0.005);\nexpect_close(\"relay-dome-cover\", (30 - Ar / 2) / u_r, 16.63, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: exercise-waiting-time */\n/* A store holding 12 units through which 36 a day pass keeps each unit for 12/36 of a day, 8 hours. */\nexpect_equal(\"waiting-hours\", 12 / 36 * 24, 8);",
+   "source": "/* check: relay-reading */\n/* Reading the 10-day runs with steady demand by Little's law. */\n/* Balancing: stations 44.11, aboard 7.25, delivering 32.86 a day; 13.29 at the junction, 6.27 at the dome. */\nexpect_close(\"balancing-line-stock\", 44.11 + 7.25, 51.36, 0.005);\nexpect_close(\"balancing-line-hours\", (44.11 + 7.25) / 32.86 * 24, 37.5, 0.05);\nexpect_close(\"balancing-junction-hours\", 13.29 / 32.86 * 24, 9.7, 0.05);\nexpect_close(\"balancing-dome-cover\", 6.27 / 32.86 * 24, 4.6, 0.05);\n/* At the dome, a measured wait of 4.53 hours gives lambda W within 2% of the stock. */\nexpect_close(\"dome-lambda-w\", 32.86 * 4.53 / 24, 6.20, 0.005);\nexpect_equal(\"dome-within-2-percent\", is(abs(32.86 * 4.53 / 24 / 6.27 - 1) < 0.02), true);\n/* At the junction, 4.11 a day and a measured wait of 62.9 hours. */\nexpect_close(\"junction-lambda-w-share\", 4.11 * 62.9 / 24 / 13.29, 0.81, 0.005);\n/* Roles: stations 42.98, aboard 21.14, delivering 34 a day; 23.00 at the dome. */\nexpect_close(\"roles-line-stock\", 42.98 + 21.14, 64.12, 0.005);\nexpect_close(\"roles-line-hours\", (42.98 + 21.14) / 34 * 24, 45.3, 0.05);\nexpect_close(\"roles-dome-cover\", 23.00 / 34 * 24, 16.2, 0.05);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-waiting-time */\nexpect_equal(\"waiting-hours\", 12 / 36 * 24, 8);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-slow-train */\n/* At speed 2 a leg takes 10 hours. */\nTslow: 2 * 10 + 2 * (t0 + kappa * t1)$\nexpect_equal(\"slow-slowest-trip\", Tslow, 64/3);\nexpect_equal(\"slow-greatest-flow\", kappa * 24 / Tslow, 135/4);\nexpect_equal(\"slow-utilisation\", 36 / (kappa * 24 / Tslow), 16/15);\nexpect_close(\"slow-utilisation-decimal\", 36 / (kappa * 24 / Tslow), 1.07, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-less-stock */\n/* Starting with 10 + 10 units on the balanced line. */\nexpect_equal(\"less-line-wait\", 20 / lam, 40/3);\nexpect_close(\"less-line-wait-decimal\", 20 / lam, 13.33, 0.005);\nexpect_equal(\"less-dome\", 20 - lam * T, 130/19);\nexpect_close(\"less-dome-decimal\", 20 - lam * T, 6.84, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

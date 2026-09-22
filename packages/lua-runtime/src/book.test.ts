@@ -125,142 +125,123 @@ describe("chapter 1, modelling operations", () => {
 
 const DAY = 86_400_000;
 
-/** A run's average stock at each station, its average cargo, and its metrics, over seeds. */
-function stockOver(scenarioId: string, source: string, seeds: number) {
-  const result = validateScenario(starterScenarios.find((s) => s.id === scenarioId)?.document);
-  if (!result.ok) throw new Error(`invalid starter ${scenarioId}`);
-  const policy = runtime.createPolicy(source);
-  try {
-    return Array.from({ length: seeds }, (_, i) => {
-      const out = runSimulation(result.scenario, policy, { seed: replication(i), detail: "full" });
-      const stock = out.stock as Int32Array;
-      const rows = stock.length / out.sites.length;
-      const stations: Record<string, number> = {};
-      out.sites.forEach((site, s) => {
-        let sum = 0;
-        for (let r = 0; r < rows; r++) sum += stock[r * out.sites.length + s] as number;
-        stations[site.station] = sum / rows / 1000;
-      });
-      const cargo = (out.cargo as Int32Array).reduce((a, b) => a + b, 0) / rows / 1000;
-      return { stations, cargo, metrics: out.metrics, days: out.durationMs / DAY };
-    });
-  } finally {
-    policy.close();
-  }
-}
-
 const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
 
 describe("chapter 2, flows, rates and Little's law", () => {
+  // Like chapter 1, each claim is about one run with steady demand, where the seed changes nothing.
+  const DRAIN_FILL = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}`;
   const ROLES = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Junction = "relay", Dome = "demand" },
   target = { supply = ops.drain {}, relay = ops.pass_through {}, demand = ops.fill {} },
 }`;
+  const BALANCED = (STARTER_SCRIPTS["two-station"] as string)
+    .replace("rate = 45", "rate = 36")
+    .replace("variability = 20", "variability = 0");
+  const RELAY = (STARTER_SCRIPTS.relay as string).replace("variability = 20", "variability = 0");
+  const withDays = (script: string, days: number) =>
+    script.replace("duration = sols(10)", `duration = sols(${days})`);
+  const withSpeed = (script: string, speed: number) =>
+    script.replace('start = "Mine" }', `start = "Mine", speed = ${speed} }`);
+  const withStock = (script: string, units: number) =>
+    script.replaceAll("stock = { Metals = 15 }", `stock = { Metals = ${units} }`);
 
-  /** Little's law at one station on relay, from the run view's long-run averages. */
-  function littleAt(source: string, seed: number, station: string) {
-    const result = validateScenario(starterScenarios.find((s) => s.id === "relay")?.document);
-    if (!result.ok) throw new Error("invalid starter relay");
+  /** One run's long-run averages, in units, units a day and hours, with its metrics. */
+  function averages(script: string, source: string, seed = 1) {
+    const loaded = runtime.loadScript(script);
+    if (!loaded.ok) throw new Error("the script should evaluate");
     const policy = runtime.createPolicy(source);
     try {
-      const out = runSimulation(result.scenario, policy, { seed, detail: "full" });
-      const site = runAverages(out).sites.find((s) => s.station === station);
-      if (!site) throw new Error(`no site at ${station}`);
-      const hours = site.waitedHours as number;
+      const out = runSimulation(loaded.scenario, policy, { seed, detail: "full" });
+      const av = runAverages(out);
+      const site = (station: string) => {
+        const s = av.sites.find((x) => x.station === station);
+        if (!s) throw new Error(`no site at ${station}`);
+        return {
+          L: s.stock / 1000,
+          outPerDay: s.outPerDay / 1000,
+          hours: s.hours as number,
+          waited: s.waitedHours as number,
+        };
+      };
+      const line = av.line[0] as (typeof av.line)[number];
       return {
-        L: site.stock / 1000,
-        lambda: site.outPerDay / 1000,
-        hours,
-        lambdaW: ((site.outPerDay / 1000) * hours) / 24,
+        site,
+        stations: line.atStations / 1000,
+        aboard: line.aboard / 1000,
+        linePerDay: line.consumedPerDay / 1000,
+        lineHours: line.hours as number,
+        metrics: out.metrics,
       };
     } finally {
       policy.close();
     }
   }
 
-  it("on relay seed 1 under balancing, following each unit first in first out, the dome holds 6.4 units, uses 32.3 a day and a unit waits 4.7 hours there, so lambda W is within 3% of L, while at the junction a unit waits about 54 hours and lambda W comes to four fifths of L, and under roles a unit waits 15 hours at the dome", () => {
-    const dome = littleAt(BUILT_IN_POLICIES["balance-stock"], 1, "Dome");
-    expect(dome.L).toBeGreaterThan(6.2);
-    expect(dome.L).toBeLessThan(6.7);
-    expect(dome.lambda).toBeGreaterThan(32);
-    expect(dome.lambda).toBeLessThan(32.6);
-    expect(dome.hours).toBeGreaterThan(4.5);
-    expect(dome.hours).toBeLessThan(4.9);
-    expect(dome.lambdaW / dome.L).toBeGreaterThan(0.97);
-    expect(dome.lambdaW / dome.L).toBeLessThan(1);
-    const junction = littleAt(BUILT_IN_POLICIES["balance-stock"], 1, "Junction");
-    expect(junction.hours).toBeGreaterThan(50);
-    expect(junction.hours).toBeLessThan(58);
-    expect(junction.lambdaW / junction.L).toBeGreaterThan(0.77);
-    expect(junction.lambdaW / junction.L).toBeLessThan(0.84);
-    const roles = littleAt(ROLES, 1, "Dome");
-    expect(roles.hours).toBeGreaterThan(14.5);
-    expect(roles.hours).toBeLessThan(15.5);
-    expect(roles.lambdaW / roles.L).toBeGreaterThan(0.94);
-  }, 120_000);
+  it("on two-station with the mine making 36 a day and steady demand, drain-and-fill keeps 30 units on the line, 20 hours a unit, with about 6.6 at the mine, 6.6 aboard and 16.8 at the dome over 20 days, whatever the seed", () => {
+    const run = averages(withDays(BALANCED, 20), DRAIN_FILL);
+    expect(run.metrics.unmetDemand).toBe(0);
+    expect(run.metrics.stalledProduction).toBe(0);
+    expect(run.stations + run.aboard).toBeCloseTo(30, 2);
+    expect(run.lineHours).toBeCloseTo(20, 1);
+    expect(run.site("Mine").L).toBeCloseTo(6.57, 2);
+    expect(run.aboard).toBeCloseTo(6.63, 2);
+    expect(run.site("Dome").L).toBeCloseTo(16.8, 2);
+    expect(averages(withDays(BALANCED, 20), DRAIN_FILL, 2).metrics).toEqual(run.metrics);
+  });
 
-  it("on relay over 20 replications the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short in every replication", () => {
-    const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
-    const junction = mean(runs.map((r) => r.stations.Junction as number));
-    expect(junction).toBeGreaterThan(12.5);
-    expect(junction).toBeLessThan(14.5);
-    const line = mean(
-      runs.map((r) => Object.values(r.stations).reduce((a, b) => a + b, 0) + r.cargo),
-    );
-    expect(line).toBeGreaterThan(50);
-    expect(line).toBeLessThan(54);
-    for (const run of runs) {
-      const stations = Object.values(run.stations).reduce((a, b) => a + b, 0);
-      expect((run.stations.Junction as number) / stations).toBeGreaterThan(0.29);
-      expect(run.metrics.unmetDemand).toBeGreaterThan(0);
-    }
-  }, 300_000);
+  it("on two-station with the mine making 36 a day, steady demand and the train at speed 10, drain-and-fill keeps 30 units on the line, 20 hours a unit, with about 3.4 at the mine, 3.5 aboard and 23.1 at the dome over 20 days", () => {
+    const run = averages(withSpeed(withDays(BALANCED, 20), 10), DRAIN_FILL);
+    expect(run.stations + run.aboard).toBeCloseTo(30, 2);
+    expect(run.lineHours).toBeCloseTo(20, 1);
+    expect(run.site("Mine").L).toBeCloseTo(3.43, 2);
+    expect(run.aboard).toBeCloseTo(3.47, 2);
+    expect(run.site("Dome").L).toBeCloseTo(23.1, 2);
+  });
 
-  it("on relay over 20 replications the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction", () => {
-    const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
-    const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
-    expect(perDay).toBeGreaterThan(32);
-    expect(perDay).toBeLessThan(33);
-    const line = mean(
-      runs.map((r) => Object.values(r.stations).reduce((a, b) => a + b, 0) + r.cargo),
-    );
-    const hours = (line / perDay) * 24;
-    expect(hours).toBeGreaterThan(37);
-    expect(hours).toBeLessThan(40);
-    const junctionHours = (mean(runs.map((r) => r.stations.Junction as number)) / perDay) * 24;
-    expect(junctionHours).toBeGreaterThan(9);
-    expect(junctionHours).toBeLessThan(11);
-  }, 300_000);
+  it("on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line holds 51.36 units and delivers 32.86 a day, and the dome goes short", () => {
+    const run = averages(RELAY, BUILT_IN_POLICIES["balance-stock"]);
+    const junction = run.site("Junction");
+    const dome = run.site("Dome");
+    expect(junction.L).toBeCloseTo(13.29, 2);
+    expect(junction.waited).toBeCloseTo(62.9, 1);
+    expect(junction.outPerDay).toBeCloseTo(4.11, 2);
+    expect(dome.L).toBeCloseTo(6.27, 2);
+    expect(dome.waited).toBeCloseTo(4.53, 2);
+    expect(run.stations).toBeCloseTo(44.11, 2);
+    expect(run.aboard).toBeCloseTo(7.25, 2);
+    expect(run.linePerDay).toBeCloseTo(32.86, 2);
+    expect(run.metrics.unmetDemand).toBeGreaterThan(0);
+  });
 
-  it("on relay over 20 replications giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use", () => {
-    const runs = stockOver("relay", ROLES, 20);
-    for (const run of runs) {
-      expect(run.stations.Junction).toBe(0);
-      expect(run.metrics.unmetDemand).toBe(0);
-      expect(run.metrics.policyErrors).toBe(0);
-    }
-    const dome = mean(runs.map((r) => r.stations.Dome as number));
-    expect(dome).toBeGreaterThan(22);
-    expect(dome).toBeLessThan(24);
-    const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
-    expect((dome / perDay) * 24).toBeGreaterThan(15);
-    expect((dome / perDay) * 24).toBeLessThan(17);
-  }, 300_000);
+  it("on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line holds 64.12 units, delivers 34 a day and meets all demand", () => {
+    const run = averages(RELAY, ROLES);
+    expect(run.site("Junction").L).toBe(0);
+    expect(run.site("Dome").L).toBeCloseTo(23.0, 2);
+    expect(run.site("Dome").hours).toBeCloseTo(16.24, 2);
+    expect(averages(withDays(RELAY, 20), ROLES).site("Dome").L).toBeCloseTo(23.28, 2);
+    expect(run.stations).toBeCloseTo(42.98, 2);
+    expect(run.aboard).toBeCloseTo(21.14, 2);
+    expect(run.linePerDay).toBeCloseTo(34, 2);
+    expect(run.metrics.unmetDemand).toBe(0);
+  });
 
-  it("on relay over 20 replications giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met", () => {
-    const runs = stockOver(
-      "relay",
-      `return ops.policy {
-  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
-  target = { supply = ops.drain {}, demand = ops.fill {}, any = ops.balance {} },
-}`,
-      20,
-    );
-    const junction = mean(runs.map((r) => r.stations.Junction as number));
-    expect(junction).toBeGreaterThan(19);
-    expect(junction).toBeLessThan(21);
-    for (const run of runs) expect(run.metrics.unmetDemand).toBe(0);
-  }, 300_000);
+  it("on two-station with the mine making 36 a day, steady demand and the train at speed 2, drain-and-fill delivers 32.48 units a day, under the bound of 33.75, and the dome goes short", () => {
+    const run = averages(withSpeed(BALANCED, 2), DRAIN_FILL);
+    expect(run.linePerDay).toBeCloseTo(32.48, 2);
+    expect(run.linePerDay).toBeLessThan(33.75);
+    expect(run.metrics.unmetDemand).toBeGreaterThan(0);
+  });
+
+  it("on two-station with the mine making 36 a day and steady demand, starting with 10 units at each station, drain-and-fill keeps 20 units on the line, 13.33 hours a unit, with about 6.9 at the dome", () => {
+    const run = averages(withStock(BALANCED, 10), DRAIN_FILL);
+    expect(run.metrics.unmetDemand).toBe(0);
+    expect(run.stations + run.aboard).toBeCloseTo(20, 2);
+    expect(run.lineHours).toBeCloseTo(13.33, 2);
+    expect(run.site("Dome").L).toBeCloseTo(6.86, 2);
+  });
 });
 
 /** Mean and sample standard deviation. */

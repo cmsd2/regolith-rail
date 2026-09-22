@@ -57,12 +57,21 @@
   {
     "id": "book/flows#1",
     "page": "book/flows",
-    "name": "Flows, rates and Little's law",
+    "name": "Flows, rates and Little's law (example 1)",
     "script": false,
     "fix": true,
     "scenario": "relay",
     "seed": 1,
     "source": "return ops.policy {\n  classify = ops.roles.manual {\n    Mine = \"supply\",\n    Junction = \"relay\",\n    Dome = \"demand\",\n  },\n  target = {\n    supply = ops.drain {},\n    relay = ops.pass_through {},\n    demand = ops.fill {},\n  },\n}"
+  },
+  {
+    "id": "book/flows#2",
+    "page": "book/flows",
+    "name": "Flows, rates and Little's law (example 2)",
+    "script": false,
+    "scenario": "two-station",
+    "seed": 1,
+    "source": "return ops.policy {\n  classify = ops.roles.manual { Mine = \"supply\", Dome = \"demand\" },\n  target = { supply = ops.drain {}, demand = ops.fill {} },\n}"
   },
   {
     "id": "book/forecasting#1",

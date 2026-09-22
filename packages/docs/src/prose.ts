@@ -59,7 +59,6 @@ export const PROSE_EXEMPTION = "prose-ok";
  * do not fail the check; each chapter leaves this list when it is rewritten.
  */
 export const PROSE_PENDING: ReadonlySet<string> = new Set([
-  "book/flows",
   "book/randomness",
   "book/order-quantities",
   "book/newsvendor",
