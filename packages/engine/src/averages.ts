@@ -70,7 +70,11 @@ function movements(output: RunOutput, siteIndex: Map<string, number>) {
     }
     const site = siteIndex.get(`${event.station}:${event.resource}`);
     if (site === undefined) continue;
-    const tick = Math.floor(event.t / output.tickMs);
+    // The row at a tick boundary is written after every event at that time, so an event at time t
+    // shows first in row ceil(t / tick) and belongs to the interval before it. Events at time 0
+    // are already in the first row.
+    const tick = Math.ceil(event.t / output.tickMs) - 1;
+    if (tick < 0) continue;
     if (event.kind === "transfer") {
       if (event.amount < 0) add(arrived, site, tick, -event.amount);
       else add(left, site, tick, event.amount);
