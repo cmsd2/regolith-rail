@@ -54,15 +54,17 @@ describe("book contents", () => {
 });
 
 describe("book check", () => {
+  const appendices = [{ letter: "A", title: "Notation", slug: "book/notation" }];
   const good = [
     page("book/modelling", "title: Modelling operations\nsection: Book\npart: 1\nchapter: 1"),
     page("book/base-stock", "title: Reviews\nsection: Book\npart: 2\nchapter: 3"),
     page("book/newsvendor", "title: The newsvendor\nsection: Book\npart: 2\nchapter: 4"),
     page("book", "title: The book\nsection: Book"),
+    page("book/notation", "title: Notation\nsection: Book"),
   ];
 
   it("passes when pages agree with the contents", () => {
-    expect(checkBook(good, book)).toEqual([]);
+    expect(checkBook(good, book, appendices)).toEqual([]);
   });
 
   it("names a chapter whose frontmatter disagrees with the contents", () => {
@@ -70,7 +72,7 @@ describe("book check", () => {
       ...good.slice(1),
       page("book/modelling", "title: Modelling\nsection: Book\npart: 2\nchapter: 3"),
     ];
-    expect(checkBook(pages, book)).toEqual([
+    expect(checkBook(pages, book, appendices)).toEqual([
       "book/modelling: part 2 but the contents says 1",
       "book/modelling: chapter 3 but the contents says 1",
       'book/modelling: title "Modelling" but the contents says "Modelling operations"',
@@ -82,9 +84,22 @@ describe("book check", () => {
       ...good.filter((p) => p.slug !== "book/newsvendor"),
       page("book/extra", "title: Extra\nsection: Book\npart: 1\nchapter: 9"),
     ];
-    expect(checkBook(pages, book)).toEqual([
+    expect(checkBook(pages, book, appendices)).toEqual([
       "book/extra: a Book page that the book's contents doesn't list",
       "book/newsvendor: listed in the book's contents but has no page",
+    ]);
+  });
+
+  it("names an appendix with the wrong title, and a listed appendix without a page", () => {
+    const retitled = good.map((p) =>
+      p.slug === "book/notation" ? page("book/notation", "title: Symbols\nsection: Book") : p,
+    );
+    expect(checkBook(retitled, book, appendices)).toEqual([
+      'book/notation: title "Symbols" but the contents says "Notation"',
+    ]);
+    const missing = good.filter((p) => p.slug !== "book/notation");
+    expect(checkBook(missing, book, appendices)).toEqual([
+      "book/notation: listed in the book's contents but has no page",
     ]);
   });
 });

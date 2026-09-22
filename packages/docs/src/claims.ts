@@ -185,7 +185,31 @@ export function resolveCheck(
 type CheckElement = Extract<Nodes, { type: "mdxJsxFlowElement" | "mdxJsxTextElement" }>;
 type MdxJsxAttribute = Extract<CheckElement["attributes"][number], { type: "mdxJsxAttribute" }>;
 
-/** Check elements in a page, with their reference and line. */
+/**
+ * The references a check element cites: one in `ref`, or several in `refs`, one to a line. Test
+ * titles contain spaces, so lines separate references.
+ */
+export function checkRefs(node: CheckElement): string[] {
+  const value = (name: string) => {
+    const a = node.attributes.find(
+      (a): a is MdxJsxAttribute => a.type === "mdxJsxAttribute" && a.name === name,
+    );
+    return typeof a?.value === "string" ? a.value : undefined;
+  };
+  const refs = value("refs");
+  if (refs !== undefined) {
+    return refs
+      .split("\n")
+      .map((r) => r.trim())
+      .filter(Boolean);
+  }
+  return [value("ref") ?? ""];
+}
+
+/**
+ * Check elements in a page, with their reference and line. A grouped check that cites several
+ * references appears once for each.
+ */
 export function checkElements(tree: Root): { node: CheckElement; ref: string; line: number }[] {
   const found: { node: CheckElement; ref: string; line: number }[] = [];
   visit(tree, (node) => {
@@ -193,14 +217,8 @@ export function checkElements(tree: Root): { node: CheckElement; ref: string; li
       (node.type === "mdxJsxFlowElement" || node.type === "mdxJsxTextElement") &&
       node.name === "Check"
     ) {
-      const attribute = node.attributes.find(
-        (a): a is MdxJsxAttribute => a.type === "mdxJsxAttribute" && a.name === "ref",
-      );
-      found.push({
-        node,
-        ref: typeof attribute?.value === "string" ? attribute.value : "",
-        line: node.position?.start.line ?? 0,
-      });
+      const line = node.position?.start.line ?? 0;
+      for (const ref of checkRefs(node)) found.push({ node, ref, line });
     }
   });
   return found;
@@ -214,23 +232,40 @@ const attribute = (name: string, value: string): MdxJsxAttribute => ({
 
 /**
  * Fills each `<Check ref="…" />` with what it refers to at build time, so pages show the working
- * without loading anything. Unresolved references render as such; the documentation check fails
- * on them.
+ * without loading anything. A grouped `<Check refs="…" />`, one reference to a line, gets the same for each reference, as
+ * JSON in a `checks` attribute. Unresolved references render as such; the documentation check
+ * fails on them.
  */
 export function remarkChecks() {
   return (tree: Root, file: { path?: string }) => {
     const pageFile = file.path;
     if (!pageFile) return;
-    if (checkElements(tree).length === 0) return;
+    const elements = checkElements(tree);
+    if (elements.length === 0) return;
     const context: CheckContext = { pageFile, tree, tests: workspaceTestTitles() };
-    for (const { node, ref } of checkElements(tree)) {
-      const result = resolveCheck(ref, context);
-      node.attributes = [attribute("ref", ref)];
-      if ("error" in result) {
-        node.attributes.push(attribute("error", result.error));
+    const nodes = [...new Set(elements.map((e) => e.node))];
+    for (const node of nodes) {
+      const refs = checkRefs(node);
+      const grouped = node.attributes.some(
+        (a) => a.type === "mdxJsxAttribute" && a.name === "refs",
+      );
+      const resolved = refs.map((ref) => {
+        const result = resolveCheck(ref, context);
+        return "error" in result ? { ref, error: result.error } : { ref, ...result.check };
+      });
+      if (grouped) {
+        node.attributes = [
+          attribute("refs", refs.join("\n")),
+          attribute("checks", JSON.stringify(resolved)),
+        ];
         continue;
       }
-      const { check } = result;
+      const [check] = resolved as [(typeof resolved)[number]];
+      node.attributes = [attribute("ref", check.ref)];
+      if ("error" in check) {
+        node.attributes.push(attribute("error", check.error));
+        continue;
+      }
       node.attributes.push(attribute("kind", check.kind), attribute("label", check.label));
       if (check.file) node.attributes.push(attribute("file", check.file));
       if (check.source) node.attributes.push(attribute("source", check.source));

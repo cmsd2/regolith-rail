@@ -26,17 +26,34 @@ function containsCheck(node: RootContent): boolean {
   return found;
 }
 
+/** How many references the checks inside a node cite. */
+function referencesIn(node: RootContent): number {
+  return checkElements({ type: "root", children: [node] }).length;
+}
+
 /**
- * Whether a check appears among the siblings after a displayed formula, before the next heading
- * or formula. A formula and the paragraph stating its worked numbers can then share one check.
+ * Displayed formulas that no check cites. Each formula waits for a check after it; a check citing
+ * n references covers the last n formulas still waiting, and a heading ends the wait. So a check
+ * after a formula's worked numbers covers it, and a grouped check can cover a derivation.
  */
-function checkedBeforeNext(children: RootContent[], from: number): boolean {
-  for (let i = from + 1; i < children.length; i++) {
-    const sibling = children[i] as RootContent;
-    if (sibling.type === "heading" || sibling.type === "math") return false;
-    if (containsCheck(sibling)) return true;
+function uncitedFormulas(children: RootContent[]): RootContent[] {
+  const uncited: RootContent[] = [];
+  let waiting: RootContent[] = [];
+  for (const child of children) {
+    if (child.type === "heading") {
+      uncited.push(...waiting);
+      waiting = [];
+    } else if (child.type === "math") {
+      waiting.push(child);
+    } else {
+      const n = referencesIn(child);
+      if (n > 0) {
+        uncited.push(...waiting.slice(0, Math.max(0, waiting.length - n)));
+        waiting = [];
+      }
+    }
   }
-  return false;
+  return [...uncited, ...waiting];
 }
 
 /**
@@ -61,13 +78,20 @@ export function checkClaims(pages: Page[], tests = workspaceTestTitles()): strin
     visit(page.tree, (node) => {
       if (!("children" in node)) return;
       const children = node.children as RootContent[];
-      children.forEach((child, i) => {
-        if (child.type === "math" && !checkedBeforeNext(children, i)) {
-          problems.push(
-            `${name} line ${lineOf(child)}: displayed mathematics has no <Check> before the next heading or formula`,
-          );
-        }
-      });
+      for (const formula of uncitedFormulas(children)) {
+        problems.push(
+          `${name} line ${lineOf(formula)}: displayed mathematics has no <Check> citing it before the next heading`,
+        );
+      }
+    });
+
+    // A table of predicted and simulated values carries the checks behind its numbers.
+    visit(page.tree, (node) => {
+      if (isElement(node as RootContent, "Predicted") && !containsCheck(node as RootContent)) {
+        problems.push(
+          `${name} line ${lineOf(node)}: <Predicted> needs a <Check> inside it for its numbers`,
+        );
+      }
     });
 
     // A check is cited once for a claim; answers may cite the same check as the text.

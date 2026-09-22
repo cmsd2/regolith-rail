@@ -787,6 +787,36 @@ visits is the review period, and the travel time for cargo is the lead time.
   (Sutton and Barto, 2015, pp. 32–33, 38–39, 64–65, 154–158, 226, 257–261; Albertos
   and Mareels, 2010, p. 274).
 
+### 8.8 Capabilities the book waits for
+
+Some of the book's examples need things the simulator cannot yet do. The chapter keeps the example and its
+checked mathematics, and shows a placeholder that links here. `PLACEHOLDERS` in `packages/docs/src` lists
+the same entries, and `pnpm docs:check` prints which chapters are waiting on which.
+
+#### mars-poisson-consumer
+
+Poisson demand for consumers in the `mars` pack, as the core format already offers. Chapter 3 uses it to
+estimate the chance a dome runs out during a round trip, a probability with a known answer.
+
+#### mars-dispatch-interval
+
+Timetable routes and a fixed cost per trip in the `mars` pack. Chapter 4 uses them to show the order-quantity
+trade-off on a line: running the train less often saves trips and holds more stock.
+
+#### normal-per-period-demand
+
+Normally distributed per-period demand. Chapter 5 needs it only if a discretised table built in a scenario
+script proves unworkable.
+
+#### service-level-metrics
+
+Cycle service level and fill rate as run and batch metrics. Chapter 7 compares both with their models.
+
+#### smooth-seasonal-demand
+
+A seasonal demand profile smoother than two flat halves. Chapter 8 needs it only if the current profile
+cannot show seasonal indices.
+
 ## 9. Out of scope
 
 - Backend services, accounts and a shared leaderboard. Verify links provide

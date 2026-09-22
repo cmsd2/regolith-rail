@@ -12,9 +12,12 @@ import {
   checkExampleIndex,
   checkExampleWidth,
   checkFrontmatter,
+  checkPlaceholders,
+  checkProse,
   checkReference,
   checkStarterFixes,
   checkTemplatePages,
+  describePlaceholders,
   exampleIndex,
   extractExamples,
   readContentPages,
@@ -52,6 +55,11 @@ const problems = [
   ),
 ];
 
+const prose = checkProse(pages);
+problems.push(...prose.problems);
+const placeholders = checkPlaceholders(pages);
+problems.push(...placeholders.problems);
+
 const examples = pages.flatMap((page) => extractExamples(page.slug, page.tree));
 problems.push(...checkExampleWidth(examples));
 for (const example of examples) problems.push(...runExample(runtime, example));
@@ -60,5 +68,13 @@ if (problems.length > 0) {
   console.error(`documentation check failed with ${problems.length} problem(s):`);
   for (const problem of problems) console.error(`- ${problem}`);
   process.exit(1);
+}
+if (prose.pending.size > 0) {
+  const counts = [...prose.pending].map(([slug, n]) => `${slug} ${n}`).join(", ");
+  console.log(`prose findings in chapters awaiting their rewrite: ${counts}`);
+}
+if (placeholders.open.length > 0) {
+  console.log("chapters waiting for simulator capabilities:");
+  for (const line of describePlaceholders(placeholders.open)) console.log(`- ${line}`);
 }
 console.log(`documentation check passed: ${pages.length} pages, ${examples.length} examples`);

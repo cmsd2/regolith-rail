@@ -1,4 +1,11 @@
-import { BOOK, BOOK_CONTENTS, isWritten, movedTarget, partNumeral } from "@regolith-rail/docs";
+import {
+  APPENDICES,
+  BOOK,
+  BOOK_CONTENTS,
+  isWritten,
+  movedTarget,
+  partNumeral,
+} from "@regolith-rail/docs";
 import { useEffect } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
 import { Page } from "../components/Page.tsx";
@@ -60,6 +67,18 @@ function BookNav() {
           </ul>
         </div>
       ))}
+      <div className={styles.navPart}>
+        <h3>Appendices</h3>
+        <ul>
+          {APPENDICES.map((a) => (
+            <li key={a.letter}>
+              <NavLink to={`/docs/${a.slug}`} end>
+                {a.letter}. {a.title}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </div>
     </>
   );
 }

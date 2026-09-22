@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  checkElements,
   maximaChecks,
   parseCheckRef,
   pythonChecks,
+  remarkChecks,
   resolveCheck,
   testTitles,
   workspaceTestTitles,
@@ -115,6 +117,44 @@ describe("check references", () => {
   it("find this file's tests among the workspace's", () => {
     expect(workspaceTestTitles().get("find this file's tests among the workspace's")).toEqual([
       "packages/docs/src/claims.test.ts",
+    ]);
+  });
+});
+
+describe("grouped checks", () => {
+  const source = [
+    "$$\nq = 1\n$$",
+    "",
+    '<Check refs="',
+    "  test:find this file's tests among the workspace's",
+    "  maxima:missing",
+    '" />',
+  ].join("\n");
+
+  it("cite each reference on its own line", () => {
+    expect(checkElements(parseMdx(source)).map((c) => c.ref)).toEqual([
+      "test:find this file's tests among the workspace's",
+      "maxima:missing",
+    ]);
+  });
+
+  it("are filled at build time with what each reference resolves to", () => {
+    const tree = parseMdx(source);
+    remarkChecks()(tree, { path: "/nowhere/book/x.mdx" });
+    const [first] = checkElements(tree);
+    const attribute = first?.node.attributes.find(
+      (a) => a.type === "mdxJsxAttribute" && a.name === "checks",
+    );
+    const checks = JSON.parse(typeof attribute?.value === "string" ? attribute.value : "[]");
+    expect(checks).toEqual([
+      {
+        ref: "test:find this file's tests among the workspace's",
+        kind: "test",
+        name: "find this file's tests among the workspace's",
+        label: "Test: find this file's tests among the workspace's",
+        file: "packages/docs/src/claims.test.ts",
+      },
+      { ref: "maxima:missing", error: "maxima:missing: no /nowhere/book/x.checks.macnb" },
     ]);
   });
 });

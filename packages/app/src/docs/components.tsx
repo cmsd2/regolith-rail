@@ -1,11 +1,14 @@
 import {
+  APPENDICES,
   BOOK,
+  capability,
   EVIDENCE_LEVELS,
   GAME,
   GAME_VERSION,
   isEvidenceLevel,
   isWritten,
   partNumeral,
+  roadmapLink,
 } from "@regolith-rail/docs";
 import { POLICY_API_VERSION, starterScenarios } from "@regolith-rail/engine";
 import { classicTemplates } from "@regolith-rail/scenario-kit";
@@ -112,35 +115,27 @@ export function BuildInfo() {
   );
 }
 
-/**
- * The check behind a claim, filled in at build time: what it is, where it lives and, for Maxima
- * and Python checks, the code that verifies it.
- */
-export function Check({
-  ref: reference,
-  kind,
-  label,
-  file,
-  source,
-  error,
-}: {
+interface ResolvedCheck {
   ref: string;
   kind?: string;
   label?: string;
   file?: string;
   source?: string;
   error?: string;
+}
+
+/** What one check is, where it lives and, for Maxima and Python checks, the code. */
+function CheckBody({
+  label,
+  file,
+  source,
+}: {
+  label?: string | undefined;
+  file?: string | undefined;
+  source?: string | undefined;
 }) {
-  if (error) {
-    return (
-      <p className={styles.checkError} data-testid="check" data-check={reference}>
-        Unresolved check: {error}
-      </p>
-    );
-  }
   return (
-    <details className={styles.check} data-testid="check" data-check={reference} data-kind={kind}>
-      <summary>Check</summary>
+    <>
       <p className={styles.checkLabel}>
         {label}
         {file && (
@@ -154,6 +149,75 @@ export function Check({
           <code>{source}</code>
         </pre>
       )}
+    </>
+  );
+}
+
+const parseChecks = (json: string): ResolvedCheck[] => {
+  try {
+    const parsed = JSON.parse(json) as unknown;
+    return Array.isArray(parsed) ? (parsed as ResolvedCheck[]) : [];
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * The check behind a claim, filled in at build time: what it is, where it lives and, for Maxima
+ * and Python checks, the code that verifies it. A grouped check, which covers a derivation, lists
+ * each of its checks under one disclosure.
+ */
+export function Check({
+  ref: reference,
+  refs,
+  checks,
+  kind,
+  label,
+  file,
+  source,
+  error,
+}: {
+  ref?: string;
+  refs?: string;
+  checks?: string;
+  kind?: string;
+  label?: string;
+  file?: string;
+  source?: string;
+  error?: string;
+}) {
+  if (refs !== undefined) {
+    const all = parseChecks(checks ?? "[]");
+    const failed = all.filter((c) => c.error);
+    if (failed.length > 0) {
+      return (
+        <p className={styles.checkError} data-testid="check" data-check={refs}>
+          Unresolved check: {failed.map((c) => c.error).join("; ")}
+        </p>
+      );
+    }
+    return (
+      <details className={styles.check} data-testid="check" data-check={refs} data-kind="group">
+        <summary>Checks ({all.length})</summary>
+        {all.map((c) => (
+          <div key={c.ref} data-check={c.ref} data-kind={c.kind}>
+            <CheckBody label={c.label} file={c.file} source={c.source} />
+          </div>
+        ))}
+      </details>
+    );
+  }
+  if (error) {
+    return (
+      <p className={styles.checkError} data-testid="check" data-check={reference}>
+        Unresolved check: {error}
+      </p>
+    );
+  }
+  return (
+    <details className={styles.check} data-testid="check" data-check={reference} data-kind={kind}>
+      <summary>Check</summary>
+      <CheckBody label={label} file={file} source={source} />
     </details>
   );
 }
@@ -258,6 +322,42 @@ export function GameNote({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * An example the simulator cannot run yet. It says what the run would show, and names the
+ * capability it waits for with a link to the roadmap.
+ */
+export function Placeholder({ needs, children }: { needs: string; children: ReactNode }) {
+  const known = capability(needs);
+  return (
+    <aside
+      className={styles.placeholder}
+      aria-label="Waiting for the simulator"
+      data-testid="placeholder"
+      data-needs={needs}
+    >
+      <p className={styles.gameNoteLabel}>Waiting for the simulator</p>
+      {children}
+      <p className={styles.placeholderNeeds}>
+        This run needs {known ? known.needs : `an unknown capability (${needs})`}. See the{" "}
+        <a href={roadmapLink(needs)}>roadmap</a>.
+      </p>
+    </aside>
+  );
+}
+
+/**
+ * What a chapter's model predicts beside what the simulator measured, as a table, with the checks
+ * that verify both.
+ */
+export function Predicted({ children }: { children: ReactNode }) {
+  return (
+    <figure className={styles.predicted} data-testid="predicted">
+      <figcaption className={styles.gameNoteLabel}>Model and simulation</figcaption>
+      {children}
+    </figure>
+  );
+}
+
 /** The book's parts and chapters, with chapters not yet written marked as coming later. */
 export function BookContents() {
   return (
@@ -281,6 +381,18 @@ export function BookContents() {
           </ol>
         </li>
       ))}
+      <li data-testid="book-appendices">
+        <h2>Appendices</h2>
+        <ol>
+          {APPENDICES.map((a) => (
+            <li key={a.letter} className={styles.appendix}>
+              <DocLink href={`/docs/${a.slug}`}>
+                {a.letter}. {a.title}
+              </DocLink>
+            </li>
+          ))}
+        </ol>
+      </li>
     </ol>
   );
 }
@@ -293,7 +405,9 @@ export const mdxComponents: MDXComponents = {
   Check,
   Example,
   GameNote,
+  Placeholder,
   PolicyLink,
+  Predicted,
   Scenario,
   ScenarioLink,
   Evidence,

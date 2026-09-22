@@ -368,6 +368,45 @@
   color: var(--muted);
 }
 
+.predicted {
+  margin: 1.5rem 0;
+  padding: 0.5rem 1rem 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.predicted table {
+  margin: 0.25rem 0 0.75rem;
+}
+
+.predicted td:not(:first-child),
+.predicted th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.appendix {
+  list-style: none;
+}
+
+.placeholder {
+  margin: 1.5rem 0;
+  padding: 0.5rem 1rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-left: 4px dashed var(--muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.placeholderNeeds {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .check {
   margin: -0.25rem 0 1rem;
   font-size: 13px;
