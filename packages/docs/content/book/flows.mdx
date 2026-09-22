@@ -226,11 +226,12 @@ its first trips. That start accounts for the gap in the second decimal.
 
 ## Case study: dead stock
 
-Under balancing the train aims every site at the average stock of the stations that store metal. The
-junction stores metal, so it is one of the three. Nothing is used at the junction, so nothing drains it
-between visits, and each time the train passes it moves the junction's stock towards the average of the
-three. With the mine's station nearly full and the dome's nearly empty, that average sits well above zero.
-Stock that is held where nothing uses it, and that seldom moves on, is **dead stock**.
+Balancing gives every site the same target: the average stock of the stations that store the resource.
+On the relay line three stations store metal, the junction among them. The junction has no producers or
+consumers, so its stock changes only when the train stops there, and at each stop the train moves it
+towards the current average of the three. The mine's station is usually close to full and the dome's close
+to empty, so that average, and with it the junction's stock, stays at about 13 units. Stock kept at a
+station that never uses it, and that the train seldom moves on, is **dead stock**.
 
 With the relay line's demand steady, the 10-day run under balancing shows the size of it. The junction
 averages 13.29 units and the dome 6.27. The stations have 44.11 units in stock on average and the train carries 7.25, 51.36 in all, and
