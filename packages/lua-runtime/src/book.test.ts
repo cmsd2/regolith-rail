@@ -201,7 +201,7 @@ describe("chapter 2, flows, rates and Little's law", () => {
     expect(run.site("Dome").L).toBeCloseTo(23.1, 2);
   });
 
-  it("on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line holds 51.36 units and delivers 32.86 a day, and the dome goes short", () => {
+  it("on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line has 51.36 units in stock and delivers 32.86 a day, and the dome goes short", () => {
     const run = averages(RELAY, BUILT_IN_POLICIES["balance-stock"]);
     const junction = run.site("Junction");
     const dome = run.site("Dome");
@@ -216,7 +216,7 @@ describe("chapter 2, flows, rates and Little's law", () => {
     expect(run.metrics.unmetDemand).toBeGreaterThan(0);
   });
 
-  it("on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line holds 64.12 units, delivers 34 a day and meets all demand", () => {
+  it("on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line has 64.12 units in stock, delivers 34 a day and meets all demand", () => {
     const run = averages(RELAY, ROLES);
     expect(run.site("Junction").L).toBe(0);
     expect(run.site("Dome").L).toBeCloseTo(23.0, 2);

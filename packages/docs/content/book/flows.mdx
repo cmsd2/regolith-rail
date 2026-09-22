@@ -18,8 +18,8 @@ chapter: 2
 ## The problem
 
 Chapter 1 answered its first question by counting units a day: what the mine made and the dome used,
-against what the train could carry. This chapter turns that counting into relations between rates and stock that hold
-whatever policy runs the line. The main one is Little's law. It says that the average number of units in
+against what the train could carry. This chapter turns that counting into relations between rates and
+stock that hold whatever policy runs the line. The main one is Little's law. It says that the average number of units in
 a place equals the rate at which they arrive multiplied by the average time each one stays, and it holds
 for a queue at a counter, a warehouse, a train or a whole line (Little, 1961; Eiselt and Sandblom, 2022,
 p. 461).
@@ -184,7 +184,7 @@ Set the dome's variability to 0 and run it. The junction stays empty. The dome a
 10 days, 16.24 hours of use: it starts at 15 units, below its steady range, which pulls a short run's
 average down. Over 20 days it averages 23.28.
 
-<Check ref="test:on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line holds 64.12 units, delivers 34 a day and meets all demand" />
+<Check ref="test:on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line has 64.12 units in stock, delivers 34 a day and meets all demand" />
 
 <Scenario starter="two-station" />
 
@@ -233,7 +233,7 @@ three. With the mine's station nearly full and the dome's nearly empty, that ave
 Stock that is held where nothing uses it, and that seldom moves on, is **dead stock**.
 
 With the relay line's demand steady, the 10-day run under balancing shows the size of it. The junction
-averages 13.29 units and the dome 6.27. The stations hold 44.11 units and the train 7.25, 51.36 in all, and
+averages 13.29 units and the dome 6.27. The stations have 44.11 units in stock on average and the train carries 7.25, 51.36 in all, and
 the line delivers 32.86 a day, so by Little's law a unit spends
 
 $$
@@ -242,12 +242,13 @@ $$
 
 on the line. Of those, $13.29 / 32.86 \times 24 \approx 9.7$ hours are at the junction, while the dome's
 stock covers $4.6$ hours, and the dome runs short. Under the drain-and-fill rule, with the junction as a
-relay, the line holds more, 64.12 units, and a unit spends $45.3$ hours on it. None of those hours is at the junction, and the dome's stock covers
+relay, the line has more in stock, 64.12 units, and a unit spends $45.3$ hours on it. None of those hours
+is at the junction, and the dome's stock covers
 $16.2$ hours.
 
 <Check refs="
   maxima:relay-reading
-  test:on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line holds 51.36 units and delivers 32.86 a day, and the dome goes short
+  test:on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line has 51.36 units in stock and delivers 32.86 a day, and the dome goes short
 " />
 
 The table's **Waited** column checks the law against a direct measurement. At the dome a unit waits 4.53
@@ -273,7 +274,7 @@ that turns over slowly needs a long run before its averages settle.
 Exercises 2 and 3 use the two-station line of the model section: the mine making 36 a day, steady demand,
 drain-and-fill, and chapter 1's parameters otherwise.
 
-1. A depot holds 12 units of a part on average, and 36 units a day pass through it. How long does a part
+1. A depot has 12 units of a part in stock on average, and 36 units a day pass through it. How long does a part
    wait at the depot on average?
 
 <Answer>
@@ -306,9 +307,9 @@ No policy can keep up. The run delivers 32.48 units a day, under the bound, and 
 
 <Answer>
 
-The line keeps 20 units, so a unit spends $20 / 1.5 = 13.33$ hours on it. The mine and the train hold
-$\lambda T = 250/19 \approx 13.16$ between them whatever the stock, so the dome averages
-$20 - 13.16 = 6.84$. The run shows 20 units on the line, 13.33 hours a unit, and 6.86 at the dome.
+The line keeps 20 units, so a unit spends $20 / 1.5 = 13.33$ hours on it. The mine's stock and the
+train's cargo average $\lambda T = 250/19 \approx 13.16$ between them whatever the line starts with, so the
+dome averages $20 - 13.16 = 6.84$. The run shows 20 units on the line, 13.33 hours a unit, and 6.86 at the dome.
 
 <Check refs="
   maxima:exercise-less-stock
