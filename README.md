@@ -15,9 +15,22 @@ Not affiliated with or endorsed by Paradox Interactive or Haemimont Games.
 
 Requires Node 24 and pnpm.
 
+Install dependencies, then start the dev server:
+
 ```bash
 pnpm install
 pnpm --filter @regolith-rail/app dev
+```
+
+The dev server builds the documentation search index, then serves the workbench at
+<http://localhost:5173/> and the documentation at <http://localhost:5173/docs>.
+
+To serve the production build the way GitHub Pages does, build it and start the
+static server, which listens on <http://localhost:4173/>:
+
+```bash
+pnpm build
+node tools/static-server.ts
 ```
 
 | Command | What it does |
