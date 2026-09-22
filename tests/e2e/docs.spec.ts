@@ -103,9 +103,9 @@ test.describe("documentation panel", () => {
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByTestId("policy-editor")).toContainText("-- still here");
 
-    await panel.getByRole("link", { name: "empty distance", exact: true }).click();
-    await expect(panel.locator("h1")).toHaveText("Metrics");
-    await expect(panel.locator("#empty-distance-share")).toBeInViewport();
+    await panel.getByRole("link", { name: "Game mechanics", exact: true }).click();
+    await expect(panel.locator("h1")).toHaveText("Game mechanics");
+    await expect(panel.locator("#station-balancing")).toBeInViewport();
     await panel.getByTestId("docs-back").click();
     await expect(panel.locator("h1")).toHaveText("Modelling operations");
 
@@ -182,6 +182,29 @@ test.describe("the book", () => {
     expect(await check.innerHTML()).toContain('expect_equal("best-order", best, 15);');
     await expect(article.getByTestId("game-note")).toBeVisible();
     await context.close();
+  });
+
+  test("chapter 1 sets its model's predictions beside the simulator's, with the checks behind them", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/docs/book/modelling");
+    const table = page.getByTestId("predicted");
+    await expect(table).toContainText("Model and simulation");
+    await expect(table.locator("table")).toContainText("12.18");
+    const group = table.locator('[data-kind="group"]');
+    await expect(group.locator("summary")).toHaveText("Checks (2)");
+    await expect(group.locator('[data-kind="test"]')).toHaveCount(2);
+    await context.close();
+  });
+
+  test("the contents lists the notation appendix, which says where it sits", async ({ page }) => {
+    await page.goto("/docs/book");
+    const appendices = page.getByTestId("book-appendices");
+    await appendices.getByRole("link", { name: "A. Notation" }).click();
+    await expect(page).toHaveURL(/\/docs\/book\/notation$/);
+    await expect(page.getByTestId("doc-article")).toContainText("Book · Appendix A");
   });
 
   test("an old failure-mode page sends readers to its case study", async ({ page }) => {

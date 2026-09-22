@@ -1,6 +1,6 @@
 ---
 title: Modelling operations
-description: Decisions, objectives, constraints, and a policy as a rule that turns what it sees into what it does.
+description: Decisions, parameters, constraints and objectives, a policy as a rule for repeated decisions, and the steady state a rule settles into.
 section: Book
 part: 1
 chapter: 1
@@ -8,284 +8,401 @@ chapter: 1
 
 ## What you will learn
 
-- To describe an operation as a model: the decisions to make, the objective that
-  judges them, and the constraints they must respect.
-- To see a policy as a rule that turns what a decision-maker observes into what it
-  does, and to see why a sensible-sounding rule can still fail.
-- To check with a little algebra whether a simple rule can work on a line, and to see why
-  a rule that ignores what each station does can deliver too little.
+- To write a decision as a model: the variable you choose, the parameters you are given, the constraints
+  that limit the choice and the objective that judges it.
+- To describe a decision made again and again as a system with a state equation, and a policy as the
+  rule that picks each action from what it observes.
+- To check whether any policy can work before comparing policies, and to find the steady state a
+  policy settles into.
+- To predict from that steady state what a simulation will show, and how the prediction moves when the
+  line changes.
 
 ## The problem
 
-Operations research studies systems that run by rules. A warehouse reorders stock, a
-hospital schedules theatres, a railway decides what each train carries. In each, a
-decision is made again and again, and the quality of the operation depends less on any
-single decision than on the rule that makes them all.
+Operations research studies decisions through models. A model describes an operation in simplified form.
+It includes the quantities a decision depends on and omits everything else. The omissions cost some
+accuracy, and in return the model can be solved and studied (Eiselt and Sandblom, 2022, pp. 4–5). The best
+solution to a model is the best plan for the operation only when the model represents the operation well
+(Taha, 2017, p. 34).
 
-Building a model is the first step. A model leaves out almost everything about the real
-system and keeps what the decision depends on. Good models are small enough to reason
-about and faithful enough that their conclusions survive contact with the real thing
-(Taha, 2017; Eiselt and Sandblom, 2022).
-
-This chapter builds a model of the smallest interesting freight line: a supply station
-that produces a resource, a demand station that consumes it, and one vehicle that runs
-back and forth between them.
+This chapter models the smallest freight line with something to decide. A mine at one end of the line
+produces metal into its station. A habitat dome at the other end uses metal from its station. One train
+runs back and forth between the two stations, and at every stop it decides how much to load or unload.
+The decision comes up at every stop for as long as the line runs, so the question is which rule should
+make it.
 
 ## The model
 
-### Decisions, objectives and constraints
+### One decision
 
-Every model in this book has the same three parts.
-
-- **Decisions.** What the operator controls. Here, how much the vehicle loads or unloads
-  each time it stops.
-- **Objective.** How decisions are judged. Here, first, how much demand goes unmet at the
-  demand station, and second, how much production stalls because the supply station is
-  full.
-- **Constraints.** What any decision must respect. Stock never goes below zero or above
-  the station's storage, cargo never exceeds the vehicle's capacity, and every unit that
-  leaves one place arrives in another.
-
-The last constraint, conservation, is worth writing down. Over any stretch of time, a
-station's stock changes by what was produced, consumed, loaded and unloaded there:
+Take a single stop first. The train is at the mine with nothing aboard, and has to choose how much metal
+to load. That amount, $a$, is the **decision variable**: the number the operator controls. The rest are
+**parameters**, numbers that are given (Eiselt and Sandblom, 2022, pp. 5–6). The mine's station has
+$m$ units in stock. The train can carry at most $\kappa = 30$. The dome's station has a capacity of
+$\bar x = 30$ and will have $d$ units in stock when the train gets there. The **constraints** say which choices are possible, and the
+**objective** says which possible choice is best. Moving as much as possible gives the model
 
 $$
-s(t_2) = s(t_1) + \text{produced} - \text{consumed} - \text{loaded} + \text{unloaded}.
+\begin{aligned}
+\text{maximise}\quad & a \\
+\text{subject to}\quad & a \le m, \quad a \le \kappa, \quad a \le \bar x - d, \quad a \ge 0,
+\end{aligned}
 $$
 
-<Check ref="test:conserves resources and keeps stock and cargo within bounds at every event" />
+whose solution is $a^* = \min(m, \kappa, \bar x - d)$. A choice that meets every constraint is
+**feasible**, and a feasible choice with the best objective is **optimal** (Taha, 2017, pp. 33–34). With
+20 units in stock at the mine ($m = 20$) and 12 at the dome when the train arrives ($d = 12$), the train
+loads 18. At that solution the dome's room constraint holds as an equation, $a = \bar x - d$, and the
+other two have **slack**: the mine has more in stock and the train could carry more. A constraint that
+holds as an equation at the optimal solution is a **binding constraint** (Taha, 2017, p. 119).
 
-### A policy is a rule
+<Check ref="maxima:one-stop" />
 
-A decision made once can be optimised directly. A decision made at every stop, for ever,
-needs a rule. A policy maps what the vehicle observes at a stop, its cargo and the stock
-at the stations, to how much to load or unload. The simulator calls a policy at every
-stop, and the results measure the policy, not any one choice.
+The operation wants the dome never to run short and the mine never to stop for lack of room. "Move as much
+as possible" stands in for those aims. It is a **proxy objective**, one that can be measured and
+optimised, and it says nothing about what happens after this stop (Eiselt and Sandblom, 2022, p. 5).
 
-### Writing a rule down
+### Repeated decisions
 
-The policies in this book are written with the `ops` library, which builds a policy from
-a few named parts. Every chapter uses them, so they are worth naming now. At each stop the
-policy looks at each *site*, one station and one resource it stores, and decides in
-stages:
+The train reaches the dome once every round trip. Let $x_k$ be the dome's stock when the train arrives
+for the $k$-th time, $a_k$ what the train unloads, and $\xi_k$ what the dome would use before the next
+arrival. Demand that finds the dome's station empty is lost. Writing $(y)^+$ for $\max(y, 0)$, the stock
+at the next arrival and the demand that goes unmet are
 
-- **Classify** gives the site a role: `"supply"`, where the resource is made; `"demand"`,
-  where it is used; `"relay"`, where it only passes through; or `"any"`, when the policy
-  does not say. `ops.roles.manual` lists the roles by station.
-- **Target** says how much stock the site should hold when the train leaves. It is one
-  block for every site, or a block for each role. `ops.drain {}` targets nothing, so the
-  train takes all it can; `ops.fill {}` targets the site's capacity, so the train leaves
-  all it can; `ops.balance {}` targets the mean stock across the stations that store the
-  resource; and `ops.pass_through {}` names no target, so the site is left as it is.
-- The difference between the target and what the site holds is what the train loads or
-  unloads, as far as its cargo, its space and the station's room allow.
+$$
+x_{k+1} = (x_k + a_k - \xi_k)^+, \qquad w_k = (\xi_k - x_k - a_k)^+,
+$$
 
-A policy that gives only a target treats every site alike. One that classifies first can
-treat a supply site and a demand site differently, and that is the whole difference
-between the two rules in this chapter. The [ops reference](/docs/ops) lists every block,
-and a policy can always be plain Lua instead, for rules the blocks cannot express.
+with the constraints that $a_k$ is at most what the train carries and $x_k + a_k \le \bar x$. This is a
+**state equation**. The stock is the state of the system, the amount unloaded is the action, and demand
+is a disturbance the operator does not control. Hernández-Lerma et al. (2023, p. 4) write a production
+and inventory system in this form. Nothing appears or disappears: the stock that was there plus what the train
+delivered equals what is left plus what the dome used, $x_{k+1} + \xi_k - w_k = x_k + a_k$.
+
+<Check ref="maxima:state-equation" />
+
+Choosing $a_k$ once is the problem of the previous section. Choosing it at every stop needs a
+**policy**, a rule $\pi$ that maps what the train observes to an action: the stock at each station and
+the cargo aboard. A policy that acts on the observed state is a feedback, or closed-loop, policy
+(Hernández-Lerma et al., 2023, p. 5). The objective becomes a property of the policy. This chapter uses
+$J(\pi) = \sum_k w_k$, the demand left unmet over a run, and reports the production the mine loses for
+lack of room beside it.
 
 ### The line
 
-The line in this chapter joins two stations 72,000 distance units apart. At one end is a
-mine, which produces metal at 45 units a day into its station. At the other is a habitat
-dome, which uses 36 units a day from its station, sometimes up to 20% more or less. Each
-station holds at most 30 units. One train runs back and forth between them. It carries up
-to 30 units and travels at 5 units a second, so each leg takes 14,400 seconds, four hours.
-A stop takes 10 minutes, plus a minute for each unit moved.
+The two stations are 72,000 distance units apart and the train travels at 5 a second, so a leg takes
+4 hours. A stop takes 10 minutes, plus a minute for every unit moved. The rest of the chapter, and its
+exercises, use these parameters unless they say otherwise:
+
+| Parameter | Symbol | Value |
+| --- | --- | --- |
+| Time for one leg | $\tau$ | 4 hours |
+| Time for a stop, before moving anything | $t_0$ | 10 minutes, $1/6$ hour |
+| Extra time for a stop, for each unit moved | $t_1$ | 1 minute, $1/60$ hour |
+| The train's capacity | $\kappa$ | 30 units |
+| Each station's capacity | $\bar x$ | 30 units |
+| The mine's production | | 45 units a day |
+| The dome's use, on average | $u$ | 36 units a day, $3/2$ an hour |
 
 <Check ref="maxima:leg-time" />
 
-In operations research terms, the mine's station is a supply point, the dome's station a
-demand point, and the train a vehicle on a fixed route.
+### Feasibility
 
-### Drain the mine, fill the dome
-
-Knowing which station makes metal and which uses it, the simplest rule that uses the
-roles is to load everything at the mine and unload everything at the dome: drain the
-supply site, fill the demand site. Does the train have
-the capacity for that? Each leg takes four hours, and a stop takes ten minutes plus a
-minute for every unit moved, so even the slowest round trip, moving a full load of 30 at
-both ends, takes $2 \times 4 + 2 \times (10 + 30)/60 = 28/3$ hours. In a day the train
-makes $24 \div 28/3 = 18/7$ such trips, and could carry
+A study checks that the operation can work at all before it asks what works best (Eiselt and Sandblom,
+2022, p. 7). The slowest round trip moves a full load at both stops, and even then the train carries
 
 $$
-30 \times \frac{18}{7} = \frac{540}{7} \approx 77.1 \text{ units a day},
+T_{\max} = 2\tau + 2(t_0 + \kappa t_1) = \tfrac{28}{3}\ \text{hours}, \qquad
+\frac{24\,\kappa}{T_{\max}} = \frac{540}{7} \approx 77.1\ \text{units a day},
 $$
+
+more than twice the 36 a day the dome uses.
 
 <Check ref="maxima:capacity-bound" />
 
-more than twice the 36 units a day the dome uses. Over that slowest trip the mine makes
-17.5 units, which fits in the train, and the dome uses 14. Every trip brings more than
-the dome used while the train was away.
-
-<Check ref="maxima:take-everything" />
-
-The rule has one limit it cannot avoid. The mine makes 9 units a day more than the dome
-uses, so once the dome's station is full the surplus has nowhere to go and the mine
-stalls. That is a fact about the line, not a failure of the rule.
+The mine makes 9 units a day more than the dome uses. No rule can move that surplus anywhere useful, so
+once the dome's station is full the mine stops for lack of room, on average 9 units a day.
 
 <Check ref="maxima:surplus" />
 
-### A rule for any line: balancing
+### Two rules
 
-The drain-and-fill rule depends on knowing which station supplies and which demands. A rule
-meant for every line, whatever its stations do, cannot assume that. A natural catch-all
-is to balance: at each stop, move stock so that the stations hold similar amounts. It
-needs no roles and copes with any number of stations. It is the built-in `balance-stock`
-policy, the baseline the workbench opens with, and in `ops` it is a single line:
+The policies in this book are written with the `ops` library. At every stop the policy looks at each
+*site*, one station and one resource it stores. It may first classify the site: `ops.roles.manual` gives
+each station a role by name, such as `"supply"` for the mine and `"demand"` for the dome. It then sets a
+target, the stock level the site should have when the train leaves, and the train loads or unloads the
+difference, as far as its cargo and the room available allow. `ops.drain {}` targets nothing, so
+the train takes all it can. `ops.fill {}` targets the station's capacity, so the train leaves all it can.
+`ops.balance {}` targets the average stock of the stations that store the resource. The
+[ops reference](/docs/ops) lists every block, and a policy can be plain Lua when the blocks do not fit.
+
+The first rule uses the roles: drain the mine and fill the dome. The second is balancing, which needs no
+roles. It is the policy a game might adopt for every line a player builds, and the workbench's baseline,
+`balance-stock`:
 
 ```lua
 return ops.policy { target = ops.balance {} }
 ```
 
-With two stations holding $m$ and $d$, the average is $(m + d)/2$, so a stop at the
-fuller station loads
+With $m$ units at the mine and $d$ at the dome, the average is $(m + d)/2$, so a stop at the mine loads
 
 $$
 m - \frac{m + d}{2} = \frac{m - d}{2},
 $$
 
+half the difference between the stations, however much room the train has.
+
 <Check ref="maxima:half-difference" />
 
-half the difference, however much room the train has. The case study below follows that
-through.
+### What the dome needs
+
+Suppose the line settles into a **steady state**, where every round trip repeats the one before. Each
+trip then delivers what the dome uses in one round trip: a load $\bar a = uT$, where the round trip $T$
+includes two stops that each move $\bar a$ units. Solving
+
+$$
+\bar a = uT, \qquad T = 2\tau + 2(t_0 + t_1 \bar a)
+\qquad\text{gives}\qquad
+\bar a = \frac{2u(\tau + t_0)}{1 - 2u t_1}.
+$$
+
+For this line $\bar a = 250/19 \approx 13.16$ units and $T = 500/57 \approx 8.77$ hours. The
+drain-and-fill rule reaches this state: it leaves the dome's station full at every stop, so each trip
+replaces what the dome used since the last, and the dome never runs short.
+
+<Check ref="maxima:needed-load" />
+
+### Balancing in steady state
+
+Balancing cannot fill the dome's station: it unloads only up to the average stock of the two stations,
+which reaches 30 only when both are full. Suppose instead that the line settles with the mine's station
+full at every mine stop, the dome's station running out of stock before each delivery, and the train
+unloading its whole load at the dome. At the mine stop the dome has $d$ units in stock and the mine has
+$\bar x$, so the train loads $a = (\bar x - d)/2$. That $d$ is what remains of the
+last load after the stop at the dome and the leg back, which take $t_0 + t_1 a + \tau$ hours. So
+
+$$
+\begin{aligned}
+a &= \frac{\bar x - d}{2}, \qquad d = a - u(\tau + t_0 + t_1 a), \\
+a &= \frac{\bar x + u(\tau + t_0)}{3 - u t_1} = \frac{1450}{119} \approx 12.18\ \text{units},
+\end{aligned}
+$$
+
+with a round trip of $1040/119 \approx 8.74$ hours.
+
+<Check ref="maxima:balancing-load" />
+
+The three assumptions hold at this solution. The dome's stock at the mine stop lasts less than the time
+until the train arrives. The mine refills faster than the train takes metal away. At the dome, half
+the difference between the stations is more than the train carries.
+
+<Check ref="maxima:balancing-assumptions" />
+
+Each trip carries less than the dome uses in a round trip, so the dome runs out before every delivery.
+The train delivers $24a/T = 435/13 \approx 33.46$ units a day, and
+
+$$
+24u - \frac{24a}{T} = 36 - \frac{435}{13} = \frac{33}{13} \approx 2.54\ \text{units a day}
+$$
+
+go unmet, while the mine loses $150/13 \approx 11.54$ units a day for lack of room.
+
+<Check ref="maxima:balancing-shortfall" />
 
 ## In the simulator
 
-The workbench's built-in scenarios are its starters, and the `two-station` starter is
-this line, run for 10 days. It opens with the balancing
-baseline, the built-in `balance-stock` policy.
+The workbench's built-in scenarios are its starters. The `two-station` starter is this line, run for
+10 days with the balancing baseline. A run draws its random numbers from a **seed**, a number that fixes
+them, so the same seed always gives the same run. This chapter looks at one run at a time. Chapter 3 asks
+how much the results would change with another seed.
 
 <Scenario starter="two-station" />
 
-Try the drain-and-fill rule first. As an `ops` policy, the mine's station is a supply site that
-is drained and the dome's station a demand site that is filled:
+Open the drain-and-fill rule, the library's suggested fix for this starter:
 
-```lua runnable fix
+```lua runnable scenario=two-station fix
 return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
 }
 ```
 
-It meets all of the dome's demand on every one of 20 replications. Once the dome's station
-is full, the mine can still stall, as the surplus says it must.
+The Scenario tab shows the line as a scenario script, Lua that builds the stations and the train. The dome's consumer reads `rate = 36, variability = 20`. Change the 20 to 0, so that the dome
+uses exactly 36 a day as the model assumes, and run. Click a stop marker at the mine on the timeline to see
+in the stop inspector what the train loaded. The model predicts that loads settle at 13.16 units and the
+dome never runs short.
 
-<Check ref="test:on two-station taking everything from the mine and leaving everything at the dome meets all demand in each of 20 replications" />
+Now put <PolicyLink policy="balance-stock">`balance-stock`</PolicyLink> in the Policy slot. The scenario
+keeps its edit. Run again. The model predicts loads of 12.18 units and a dome that runs out on every trip.
+To measure the rate at which demand goes unmet once the line has settled, set the scenario's
+`duration = sols(20)` and compare the unmet demand in **Metrics** with a run of `sols(5)`.
 
-Now put the balancing baseline back in the run: click `balance-stock`, or use it from the
-**Policies** list in the library. Run it and open **Metrics**. In every one of 20 replications, the
-dome goes short while the mine stalls, at the same time.
+<Predicted>
 
-<Check ref="test:on two-station the balancing baseline leaves demand unmet while the mine's production stalls, in each of 20 replications" />
+| Steady demand | Model | Simulator |
+| --- | --- | --- |
+| Drain and fill: units loaded a trip | 13.16 | 13.15 to 13.18 |
+| Drain and fill: round trip, hours | 8.77 | 8.77 |
+| Balancing: units loaded a trip | 12.18 | 12.18 |
+| Balancing: round trip, hours | 8.74 | 8.74 |
+| Balancing: unmet a day, days 5 to 20 | 2.54 | 2.53 |
 
-Compare the two in **Batch** to see the difference over many replications, and what taking
-everything costs in [empty distance](/docs/metrics#empty-distance-share): the train
-always returns empty.
+<Check refs="
+  test:on two-station with steady demand the drain-and-fill rule meets all demand, settling at 13.16 units a trip and a round trip of 8.77 hours, whatever the seed
+  test:on two-station with steady demand balancing settles at 12.18 units a trip and a round trip of 8.74 hours, and from day 5 to day 20 leaves 2.53 units a day unmet while the mine stalls, whatever the seed
+" />
+
+</Predicted>
+
+The simulator advances a minute at a time and moves stock in thousandths of a unit, which accounts for the
+last digit. With steady demand nothing in the run is random, so every seed gives the same result.
+
+Set the variability back to 20 and run both rules again on seed 1. Balancing's loads now vary from trip to
+trip between 11 and 14 units, and 25.3 units go unmet over the 10 days. The drain-and-fill rule still meets
+all of the dome's demand. How far a second run would differ from the first is the subject of chapter 3.
+
+<Check ref="test:on two-station seed 1 with variable demand, balancing leaves 25.3 units unmet with loads between 11 and 14, and the drain-and-fill rule meets all demand" />
 
 ## Case study: half capacity
 
-Why does balancing fail on a line where draining the mine and filling the dome succeeds? Suppose the line
-settles into a steady cycle, where each trip delivers what the dome uses during one round
-trip. Call the load $L$, in units, and the round trip $T$, in seconds. The load is what
-the dome uses in a trip, at 36 units a day, and the trip is the eight hours of travel plus
-two stops that each take 600 seconds and 60 more for every unit moved:
+The train on this line could carry more than twice what the dome uses, yet balancing leaves the dome
+short. Two requirements meet at the mine stop. Balancing loads half the difference between the stations,
+so to load $\bar a$ the mine's stock must exceed the dome's by $2\bar a$. The dome must also have enough in
+stock at that moment to last until the train reaches it, $u(\tau + t_0 + t_1 \bar a)$. With the mine's
+station full, both fit only if each station's capacity is at least
 
 $$
-L = \frac{36\,T}{86\,400}, \qquad T = 28\,800 + 2\,(600 + 60\,L).
+\bar x_{\min} = 2\bar a + u(\tau + t_0 + t_1 \bar a) = \frac{625}{19} \approx 32.89\ \text{units}.
 $$
 
-<Check ref="maxima:steady-equations" />
+<Check ref="maxima:smallest-station" />
 
-Solving the two together gives
+Of those 32.89 units, $2\bar a \approx 26.32$ is the difference in stock balancing needs and $6.58$ is
+what the dome uses while the train comes from the mine. The stations' capacity is 30. At $\bar x_{\min}$, balancing's
+steady load from the model section equals $\bar a$. Below it, balancing settles at the smaller load and
+the dome runs out every trip. The mine's station sits full and the dome's sits nearly empty, so the line
+runs at both of its limits at once.
 
-$$
-T = \frac{600\,000}{19} \text{ s} \approx 8.77 \text{ h}, \qquad L = \frac{250}{19} \approx 13.16 \text{ units}.
-$$
+The threshold is a **sensitivity** result: it says how the conclusion moves when a parameter moves
+(Eiselt and Sandblom, 2022, p. 7). The needed load $\bar a$ grows with the dome's demand $u$ and with the
+leg time $\tau$, and $\bar x_{\min}$ grows with both. Shorter legs or larger stations bring balancing
+back within its limit, and a busier dome takes it further out. The exercises work through
+three of these.
 
-<Check ref="maxima:steady-load" />
-
-Balancing loads half the difference, so to load $L$ the mine's station must hold $2L$ more
-than the dome's:
-
-$$
-2L = \frac{500}{19} \approx 26.3 \text{ units},
-$$
-
-<Check ref="maxima:required-gap" />
-
-nearly 88% of a 30-unit station. To move enough, the mine's station must sit close to full
-and the dome's close to empty. Any disturbance then pushes one end over the edge: the
-mine's station fills and production stalls, or the dome's empties and demand goes unmet.
-The train has the capacity; the rule only ever uses about half of the gap it sees.
-
-Balancing pays for its generality. It ignores what we know about this line, that the mine
-makes metal and the dome uses it, and on a line this simple that knowledge is the whole
-difference between meeting demand and not. Much of the rest of this book is about putting knowledge like that to work.
+The drain-and-fill rule leaves the dome full at every stop, so it needs no station capacity beyond the
+load it delivers. Balancing needs no knowledge of which station supplies and which demands. On this line
+it needs a station capacity of 32.89 units in exchange, and the stations have 30.
 
 ## Where the simulator differs
 
-- **Demand varies.** The case study treats the steady cycle as exact. In the simulator
-  the dome's use wanders by up to 20%, so loads and trip times vary from trip to trip
-  around the steady values.
-- **Stock is measured in thousandths of a unit.** Policies see and move amounts in
-  milli-units, so 30 units is `30000`.
-- **The balancing rule is an assumption.** The baseline implements balancing as the
-  model describes it. How closely it matches any real system is recorded, with its
-  evidence, in [game mechanics](/docs/game-mechanics#station-balancing).
+- **Minutes and thousandths.** The simulator advances in one-minute steps and moves stock in thousandths
+  of a unit, so its loads settle at 12.18 where the model gives 12.185.
+- **Decisions on arrival.** A policy decides when the train arrives, using the stock at both stations at
+  that moment. The model assumes the same. A rule that saw older figures would settle elsewhere.
+- **Demand in two-hour steps.** With variability on, the dome's rate is drawn afresh every two hours,
+  uniformly within 20% either side of 36 a day.
+- **The simulator keeps the same account as the state equation** at every event: stock and cargo stay
+  between zero and capacity, and the totals of every resource balance.
+
+  <Check ref="test:conserves resources and keeps stock and cargo within bounds at every event" />
+- **The balancing rule is an assumption.** The baseline implements balancing as this chapter describes
+  it. [Game mechanics](/docs/game-mechanics#station-balancing) records how closely that matches the game,
+  with its evidence.
 
 ## Exercises
 
-1. At the top of its variability the demand station uses 20% more, 43.2 units a day.
-   Under balancing, what gap between the stations does a steady cycle need, and can a
-   30-unit station provide it?
+Each exercise uses the parameters in the table under [The line](#the-line), except where it says
+otherwise.
+
+1. Use the one-stop model. The train reaches the mine with nothing aboard and can carry 30 units. The
+   mine's station has 25 units in stock. The dome's station has a capacity of 30 and will have 22 units in
+   stock when the train arrives. How much does the train load, and which is the binding constraint?
 
 <Answer>
 
-The steady load becomes $750/47 \approx 15.96$ units, so the gap is $1500/47 \approx 31.91$
-units. That is more than a 30-unit station can hold, so at peak demand balancing cannot
-keep up however the stocks start.
+$a^* = \min(m, \kappa, \bar x - d) = \min(25, 30, 30 - 22) = 8$ units. The binding constraint is the
+dome's room, $a^* = \bar x - d$. The mine's stock and the train's capacity have slack.
+
+<Check ref="maxima:exercise-one-stop" />
+
+</Answer>
+
+2. The dome's use varies up to 20% either side of its average. At the top of that range it uses 43.2 units
+   a day, $u = 1.8$ units an hour. Keep every other parameter from the table. Find:
+   - the steady load $\bar a$ the dome needs, from [What the dome needs](#what-the-dome-needs);
+   - the smallest station capacity $\bar x_{\min}$ at which balancing keeps up, from the case study;
+   - balancing's steady load $a$ and round trip $T$ with the stations' capacity of 30, from
+     [Balancing in steady state](#balancing-in-steady-state);
+   - the demand left unmet a day, $24u - 24a/T$.
+
+<Answer>
+
+$$
+\begin{aligned}
+\bar a &= \frac{2 \times 1.8 \times (4 + \tfrac16)}{1 - 2 \times 1.8 \times \tfrac{1}{60}} = \frac{750}{47} \approx 15.96, \\
+\bar x_{\min} &= 2\bar a + 1.8\,(4 + \tfrac16 + \tfrac{1}{60}\bar a) \approx 31.91 + 7.98 = 39.89, \\
+a &= \frac{30 + 1.8\,(4 + \tfrac16)}{3 - \tfrac{1.8}{60}} = \frac{37.5}{2.97} \approx 12.63, \qquad
+T = 8 + 2\,(\tfrac16 + \tfrac{a}{60}) \approx 8.75\ \text{hours}, \\
+24u - \frac{24a}{T} &\approx 43.2 - 34.62 = 8.58\ \text{units a day}.
+\end{aligned}
+$$
+
+The dome needs almost 16 units a trip. Balancing would need a station capacity of about 40, and with 30 it
+delivers about 12.6 a trip.
 
 <Check ref="maxima:exercise-peak-demand" />
 
 </Answer>
 
-2. A faster vehicle travels at 10 units a second. What load and gap does the steady cycle
-   need under balancing?
+3. Halve the line. In the scenario script, change `distances = 72000` to `distances = 36000`, so each leg
+   takes $\tau = 2$ hours, and keep the dome's variability at 0. Every other parameter stays as in the
+   table. Work out $\bar a$ and $\bar x_{\min}$ for the shorter line, and decide from the stations'
+   capacity of 30 whether balancing keeps up. Then run `balance-stock` and compare.
 
 <Answer>
 
-Each leg takes two hours. The steady load is $130/19 \approx 6.84$ units, so the gap is
-about 13.68 units. Faster trips need smaller loads, so balancing copes better, but the
-stations still have to hold very different amounts.
+$$
+\bar a = \frac{2 \times 1.5 \times (2 + \tfrac16)}{1 - 2 \times 1.5 \times \tfrac{1}{60}} = \frac{130}{19} \approx 6.84,
+\qquad
+\bar x_{\min} = 2\bar a + 1.5\,(2 + \tfrac16 + \tfrac{1}{60}\bar a) = \frac{325}{19} \approx 17.11.
+$$
 
-<Check ref="maxima:exercise-faster-train" />
+A station capacity of 30 is more than 17.11, so balancing keeps up. The run meets all demand, with loads of
+6.84 units a trip.
+
+<Check refs="
+  maxima:exercise-short-line
+  test:on two-station with steady demand and the line halved, balancing meets all demand at 6.84 units a trip
+" />
 
 </Answer>
 
-3. Open the starter's script and change both stations to `mars.large_station`, which
-   holds 60 units. Does balancing keep up now?
+4. Raise both stations' capacity to 60 units. In the scenario script, change both `mars.small_station` to
+   `mars.large_station`, which has a capacity of 60 for each resource, and keep the dome's variability at
+   0. Everything else stays as in the table. Compare 60 with $\bar x_{\min}$ from the case study. Then run
+   `balance-stock` for 5 days and for 10 days (`duration = sols(5)` and `sols(10)`) and compare the unmet
+   demand in **Metrics**.
 
 <Answer>
 
-Mostly. The steady cycle needs a gap of about 26 units between the stations, and a
-60-unit station holds it with room to spare, so over 20 replications unmet demand falls
-from about 28 units to about 5. But the dome still goes short in every replication: balancing
-still moves half the gap it sees, so the dome sits low whenever the mine sits high, and
-any disturbance closes the difference.
+The line's parameters are unchanged, so $\bar x_{\min}$ is still 32.89, and 60 is above it: balancing can
+keep up once the stations' stock levels have moved apart. Both runs show 4.84 units unmet, so all of it
+goes unmet in the first five days, while the mine's stock rises and the dome's falls. By day 10 the loads
+have come down to the needed 13.16 units.
 
-<Check ref="test:on two-station with 60-unit stations, balancing leaves about 5 units unmet over 20 replications instead of about 28, but the dome still goes short in every replication" />
+<Check refs="
+  maxima:exercise-large-stations
+  test:on two-station with steady demand and 60-unit stations, balancing leaves 4.84 units unmet in the first five days and none after, and has come down to 13.16 units a trip by day 10
+" />
 
 </Answer>
 
 <GameNote>
 
-In the rail game, trains appear to balance stock across the stations on a line, which is
-the catch-all rule this chapter models. A game has to work for every line a player
-builds, so a rule that needs no roles is a reasonable default. A mine at one end of a long
-line and a dome at the other is where it costs most: the dome runs short and the mine's
-extractors stop, even with a train that could carry far more.
+In the rail game, trains appear to balance stock across the stations on a line, the rule this chapter
+models. A game has to work for every line a player builds, so a rule that needs no roles is a reasonable
+default. A mine at one end of a long line and a dome at the other is where it costs most: the dome runs
+short and the mine's extractors stop, although the train could carry far more.
 
 <Evidence level="observed" />
 
@@ -293,7 +410,8 @@ extractors stop, even with a train that could carry far more.
 
 ## References
 
-- Eiselt, H.A. and Sandblom, C.-L. (2022) *Operations research: a model-based approach*.
-  3rd edn. Cham: Springer.
-- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
-  Education.
+- Eiselt, H.A. and Sandblom, C.-L. (2022) *Operations research: a model-based approach*. 3rd edn. Cham:
+  Springer.
+- Hernández-Lerma, O., Laura-Guarachi, L.R., Mendoza-Palacios, S. and González-Sánchez, D. (2023) *An
+  introduction to optimal control theory*. Cham: Springer.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson Education.

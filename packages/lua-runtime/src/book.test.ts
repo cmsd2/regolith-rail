@@ -41,22 +41,85 @@ function metricsOver(scenarioId: string, source: string, seeds: number) {
 }
 
 describe("chapter 1, modelling operations", () => {
-  it("on two-station the balancing baseline leaves demand unmet while the mine's production stalls, in each of 20 replications", () => {
-    for (const metrics of metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 20)) {
-      expect(metrics.unmetDemand).toBeGreaterThan(0);
-      expect(metrics.stalledProduction).toBeGreaterThan(0);
-    }
-  });
-
-  it("on two-station taking everything from the mine and leaving everything at the dome meets all demand in each of 20 replications", () => {
-    const fix = `return ops.policy {
+  // Chapter 1 comes before replications, so each claim is about one run: steady demand, where the
+  // seed changes nothing, or seed 1.
+  const DRAIN_FILL = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
 }`;
-    for (const metrics of metricsOver("two-station", fix, 20)) {
-      expect(metrics.unmetDemand).toBe(0);
-      expect(metrics.policyErrors).toBe(0);
+  const BALANCE = BUILT_IN_POLICIES["balance-stock"];
+  const TWO_STATION = STARTER_SCRIPTS["two-station"] as string;
+  const STEADY = TWO_STATION.replace("variability = 20", "variability = 0");
+  const withDays = (script: string, days: number) =>
+    script.replace("duration = sols(10)", `duration = sols(${days})`);
+
+  /** One run: its metrics, the loads at the mine and the time between the last mine stops. */
+  function once(script: string, source: string, seed = 1) {
+    const loaded = runtime.loadScript(script);
+    if (!loaded.ok) throw new Error("the script should evaluate");
+    const policy = runtime.createPolicy(source);
+    try {
+      const out = runSimulation(loaded.scenario, policy, { seed, detail: "summary" });
+      const loads = out.events.flatMap((e) =>
+        e.kind === "transfer" && e.station === "Mine" ? [e.amount / 1000] : [],
+      );
+      const arrivals = out.events.flatMap((e) =>
+        e.kind === "arrival" && e.station === "Mine" ? [e.t / 3_600_000] : [],
+      );
+      const n = arrivals.length;
+      const trip = ((arrivals[n - 1] as number) - (arrivals[n - 3] as number)) / 2;
+      return { metrics: out.metrics, loads, trip, unmet: out.metrics.unmetDemand / 1000 };
+    } finally {
+      policy.close();
     }
+  }
+  const settled = (loads: number[]) => loads.slice(-10);
+
+  it("on two-station with steady demand the drain-and-fill rule meets all demand, settling at 13.16 units a trip and a round trip of 8.77 hours, whatever the seed", () => {
+    const run = once(STEADY, DRAIN_FILL);
+    expect(run.unmet).toBe(0);
+    expect(run.metrics.policyErrors).toBe(0);
+    for (const load of settled(run.loads)) expect(load).toBeCloseTo(13.16, 1);
+    expect(run.trip).toBeCloseTo(8.77, 2);
+    expect(once(STEADY, DRAIN_FILL, 2).metrics).toEqual(run.metrics);
+  });
+
+  it("on two-station with steady demand balancing settles at 12.18 units a trip and a round trip of 8.74 hours, and from day 5 to day 20 leaves 2.53 units a day unmet while the mine stalls, whatever the seed", () => {
+    const run = once(withDays(STEADY, 20), BALANCE);
+    for (const load of settled(run.loads)) expect(load).toBeCloseTo(12.18, 1);
+    expect(run.trip).toBeCloseTo(8.74, 2);
+    const early = once(withDays(STEADY, 5), BALANCE);
+    const rate = (run.unmet - early.unmet) / 15;
+    expect(rate).toBeGreaterThan(2.5);
+    expect(rate).toBeLessThan(2.56);
+    const stalled = (run.metrics.stalledProduction - early.metrics.stalledProduction) / 1000 / 15;
+    expect(stalled).toBeGreaterThan(11);
+    expect(stalled).toBeLessThan(12);
+    expect(once(withDays(STEADY, 20), BALANCE, 2).metrics).toEqual(run.metrics);
+  });
+
+  it("on two-station seed 1 with variable demand, balancing leaves 25.3 units unmet with loads between 11 and 14, and the drain-and-fill rule meets all demand", () => {
+    const balance = once(TWO_STATION, BALANCE);
+    expect(balance.unmet).toBeCloseTo(25.3, 1);
+    for (const load of settled(balance.loads)) {
+      expect(load).toBeGreaterThan(11);
+      expect(load).toBeLessThan(14);
+    }
+    expect(once(TWO_STATION, DRAIN_FILL).unmet).toBe(0);
+  });
+
+  it("on two-station with steady demand and the line halved, balancing meets all demand at 6.84 units a trip", () => {
+    const run = once(STEADY.replace("distances = 72000", "distances = 36000"), BALANCE);
+    expect(run.unmet).toBe(0);
+    for (const load of settled(run.loads)) expect(load).toBeCloseTo(6.84, 1);
+  });
+
+  it("on two-station with steady demand and 60-unit stations, balancing leaves 4.84 units unmet in the first five days and none after, and has come down to 13.16 units a trip by day 10", () => {
+    const large = STEADY.replaceAll("small_station", "large_station");
+    const run = once(large, BALANCE);
+    for (const load of run.loads.slice(-3)) expect(load).toBeCloseTo(13.16, 1);
+    expect(run.unmet).toBeCloseTo(4.84, 2);
+    expect(once(withDays(large, 5), BALANCE).unmet).toBe(run.unmet);
   });
 });
 
@@ -563,33 +626,6 @@ describe("simulator exercises", () => {
       policy.close();
     }
   };
-
-  it("on two-station with 60-unit stations, balancing leaves about 5 units unmet over 20 replications instead of about 28, but the dome still goes short in every replication", () => {
-    const large = load(
-      (STARTER_SCRIPTS["two-station"] as string).replaceAll("small_station", "large_station"),
-    );
-    const policy = runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]);
-    try {
-      const unmet = Array.from(
-        { length: 20 },
-        (_, i) =>
-          runSimulation(large, policy, { seed: replication(i), detail: "summary" }).metrics
-            .unmetDemand / 1000,
-      );
-      expect(mean(unmet)).toBeGreaterThan(4);
-      expect(mean(unmet)).toBeLessThan(6.5);
-      for (const u of unmet) expect(u).toBeGreaterThan(0);
-    } finally {
-      policy.close();
-    }
-    const small = mean(
-      metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 20).map(
-        (m) => m.unmetDemand / 1000,
-      ),
-    );
-    expect(small).toBeGreaterThan(26);
-    expect(small).toBeLessThan(30);
-  }, 300_000);
 
   it("on two-station over 10 replications the paired difference in unmet demand between the drain-and-fill rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 10);
