@@ -102,7 +102,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: loss-function */\nload(distrib)$\nphi(z) := pdf_normal(z, 0, 1)$\nPhi(z) := cdf_normal(z, 0, 1)$\nG(z) := phi(z) - z * (1 - Phi(z))$\n/* The density satisfies phi'(t) = -t phi(t), so the integral of t phi(t) from z is phi(z). */\nkill(t)$\nexpect_equal(\"density-derivative\", diff(phi(t), t), -t * phi(t));\nfor z in [-1, 0, 1/2, 2] do\n  expect_close(\"loss-integral\", first(quad_qagi((t - z) * phi(t), t, z, inf)), float(G(z)), 1e-8)$\nexpect_close(\"loss-at-zero\", G(0), 0.3989, 0.00005);\nexpect_equal(\"loss-derivative\", ratsimp(diff(G(t), t) - (Phi(t) - 1)), 0);",
+   "source": "/* check: loss-function */\n/* The distribution functions the checks use, written out as the distrib package defines them, so that\n   the notebook loads no package. */\npdf_normal(x, m, s) := exp(-(x - m)^2 / (2 * s^2)) / (sqrt(2 * %pi) * s)$\ncdf_normal(x, m, s) := 1/2 + erf((x - m) / (s * sqrt(2))) / 2$\nquantile_normal(q, m, s) := m + sqrt(2) * s * inverse_erf(2 * q - 1)$\nphi(z) := pdf_normal(z, 0, 1)$\nPhi(z) := cdf_normal(z, 0, 1)$\nG(z) := phi(z) - z * (1 - Phi(z))$\n/* The density satisfies phi'(t) = -t phi(t), so the integral of t phi(t) from z is phi(z). */\nkill(t)$\nexpect_equal(\"density-derivative\", diff(phi(t), t), -t * phi(t));\nfor z in [-1, 0, 1/2, 2] do\n  expect_close(\"loss-integral\", first(quad_qagi((t - z) * phi(t), t, z, inf)), float(G(z)), 1e-8)$\nexpect_close(\"loss-at-zero\", G(0), 0.3989, 0.00005);\nexpect_equal(\"loss-derivative\", ratsimp(diff(G(t), t) - (Phi(t) - 1)), 0);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
