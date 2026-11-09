@@ -358,6 +358,94 @@ export function Predicted({ children }: { children: ReactNode }) {
   );
 }
 
+/** How each kind of statement is set: results, definitions, and worked or passing matter. */
+const STATEMENT_STYLE: Record<string, string | undefined> = {
+  Definition: styles.statementDefinition,
+  Assumption: styles.statementDefinition,
+  Lemma: styles.statementResult,
+  Proposition: styles.statementResult,
+  Theorem: styles.statementResult,
+  Corollary: styles.statementResult,
+  WorkedExample: styles.statementExample,
+  Remark: styles.statementExample,
+};
+
+/** A worked example is labelled Example; `Example` itself is the runnable code block. */
+const kindLabel = (kind: string) => (kind === "WorkedExample" ? "Example" : kind);
+
+interface StatementProps {
+  id?: string;
+  /** Filled in at build time: the chapter, then the statement's place in it. */
+  number?: string;
+  name?: string;
+  children: ReactNode;
+}
+
+/** A numbered statement of the book, set apart from the text and labelled, as in a mathematics text. */
+function Statement({ kind, id, number, name, children }: StatementProps & { kind: string }) {
+  const label = `${kindLabel(kind)} ${number ?? ""}`.trim();
+  return (
+    <div
+      className={`${styles.statement} ${STATEMENT_STYLE[kind] ?? ""}`}
+      id={id}
+      data-testid="statement"
+      data-kind={kind}
+      data-number={number}
+    >
+      <span className={styles.statementLabel}>
+        {label}
+        {name && <span className={styles.statementName}> ({name})</span>}.
+      </span>
+      {children}
+    </div>
+  );
+}
+
+const statementOf = (kind: string) =>
+  function StatementOfKind(props: StatementProps) {
+    return <Statement kind={kind} {...props} />;
+  };
+
+/** A proof, or a sketch of one, which ends with a tombstone. */
+export function Proof({ sketch, children }: { sketch?: boolean; children: ReactNode }) {
+  const label = sketch ? "Sketch of proof" : "Proof";
+  return (
+    <div className={styles.proof} data-testid="proof">
+      <span className={styles.proofLabel}>{label}.</span>
+      {children}
+      <span className={styles.qed} role="img" aria-label="End of proof">
+        ∎
+      </span>
+    </div>
+  );
+}
+
+/** A reference to a numbered statement, resolved at build time to its label and address. */
+export function Ref({
+  to,
+  label,
+  href,
+  error,
+}: {
+  to: string;
+  label?: string;
+  href?: string;
+  error?: string;
+}) {
+  if (error || !href) {
+    return (
+      <span className={styles.checkError} data-testid="ref" data-to={to}>
+        Unresolved reference: {error ?? to}
+      </span>
+    );
+  }
+  return (
+    <DocLink href={href} data-testid="ref" data-to={to}>
+      {label}
+    </DocLink>
+  );
+}
+
 /** The book's parts and chapters, with chapters not yet written marked as coming later. */
 export function BookContents() {
   return (
@@ -400,16 +488,26 @@ export function BookContents() {
 export const mdxComponents: MDXComponents = {
   a: DocLink,
   Answer,
+  Assumption: statementOf("Assumption"),
   BookContents,
   BuildInfo,
   Check,
+  Corollary: statementOf("Corollary"),
+  Definition: statementOf("Definition"),
   Example,
   GameNote,
+  Lemma: statementOf("Lemma"),
   Placeholder,
   PolicyLink,
   Predicted,
+  Proof,
+  Proposition: statementOf("Proposition"),
+  Ref,
+  Remark: statementOf("Remark"),
   Scenario,
   ScenarioLink,
+  Theorem: statementOf("Theorem"),
+  WorkedExample: statementOf("WorkedExample"),
   Evidence,
   Callout,
 };

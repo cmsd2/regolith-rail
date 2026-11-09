@@ -5,6 +5,7 @@ import type { Root } from "mdast";
 import { assignHeadingIds, frontmatterOf, parseMdx } from "./markdown.ts";
 import { MOVED_PAGES } from "./moved.ts";
 import { isSection, referenceAnchors, referencePages } from "./pages.ts";
+import { statementAnchors } from "./statements.ts";
 
 export const CONTENT_DIR = fileURLToPath(new URL("../content/", import.meta.url));
 
@@ -75,6 +76,7 @@ export function docAnchors(root = CONTENT_DIR): Map<string, Set<string>> {
   for (const page of readContentPages(root)) {
     const ids = anchors.get(page.slug) ?? new Set<string>();
     for (const id of assignHeadingIds(page.tree)) ids.add(id);
+    for (const id of statementAnchors(page.tree)) ids.add(id);
     anchors.set(page.slug, ids);
   }
   return anchors;

@@ -14,3 +14,4 @@ export * from "./prose.ts";
 export * from "./reference.ts";
 export * from "./scenario-links.ts";
 export * from "./search-index.ts";
+export * from "./statements.ts";

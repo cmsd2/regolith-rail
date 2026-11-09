@@ -2,45 +2,80 @@
 
 This file is for authors. It is not published: only `.mdx` files become pages.
 
-The book teaches operations research to readers who know first-year probability and statistics. Its prose
-explains how a result arises and when it holds. The reader draws the conclusions.
+The book teaches operations research to readers who know first-year probability and statistics. It reads
+as a mathematics text: it defines its terms, states its results, proves the ones whose proofs teach
+something, and works examples by computation. The simulator confirms what the mathematics predicts.
 
 ## Register
 
-- **Neutral and technical.** Describe the mechanism: which quantity changes, what it depends on, by how much.
-  Leave out judgements the reader can make from the numbers.
+- **Neutral and declarative.** Write as a scientific paper or a mathematics textbook does. State what is
+  defined, assumed, shown and computed. Leave out judgements the reader can make from the result.
+- **Impersonal.** No "you". Prefer the mathematical object as the subject of the sentence: "Solving the pair
+  for $a$ gives", "The dome's stock falls at rate $u$". "We" is acceptable in a proof where no object serves.
+  Instructions in the simulator section and in exercises use the imperative: "Set", "Run", "Show that".
+- **Standard openings.** "Let", "Consider", "Suppose", "Then", "Hence", "It follows that". No rhetorical
+  questions, no "Take a single stop first", no narrative of discovery.
 - **Active voice** where the agent is known. Write "the train loads half the difference" in place of "half
   the difference is loaded".
 - **End a paragraph when its point is made.** No summarising line, no moral, no restatement of the last
   sentence in general terms.
-- **Claims no stronger than the evidence.** Say "on this line" when the evidence is one line. Say "in every
-  run" only when every run was checked.
-- **No significance inflation.** State the fact. "The cost rises 25%" is enough.
-- **Trust the reader.** Say a thing once. Do not announce what is coming ("Let's look at…") or what has been
-  shown ("As we have seen…").
-- **Plain words.** "Use" in place of "utilise". No buzzwords. Mechanical terms over metaphors.
-- **Adjectives earn their place.** Keep an adjective when it carries technical meaning ("periodic",
-  "backordered") or real weight. Drop decorative ones.
-- **Show the mechanism.** Where a system is intricate, describe how its parts interact. Do not label it
-  "complex" or "subtle".
+- **Claims no stronger than what is shown.** A proposition states its assumptions. A remark about a
+  simulated run says which run.
+- **Technical terms.** Use the field's term where one exists (binding constraint, slack, utilisation,
+  unbiased estimator), define it at first use in a Definition, and keep to it. One term for one thing:
+  "stock" is an amount present, "capacity" a limit.
+- **Plain words** for everything else. No buzzwords, no metaphors, no decorative adjectives.
 - **Lists of two or four.** Three adjectives, verbs or nouns in a row read as a formula. Use two, or four, or
   split them into sentences.
 
+## Statements
+
+The model section is built from numbered statements. Each has an `id` and may have a `name`. The build
+numbers them in one sequence per chapter, whatever their kind, and `<Ref to="id" />` cites one as
+"Theorem 2.3" with a link.
+
+| Element | Use |
+| --- | --- |
+| `<Definition>` | A term, with the term in bold where it is defined. |
+| `<Assumption>` | A standing condition that later results rely on. |
+| `<Lemma>`, `<Proposition>`, `<Theorem>`, `<Corollary>` | A result. A theorem is a main result of the chapter, and there are few. |
+| `<Proof>` | Follows the result it proves. Unnumbered. |
+| `<WorkedExample>` | A computation, labelled Example. Every chapter's running example appears in these. |
+| `<Remark>` | A limit, a link to another chapter or a note on usage. |
+
+Ids carry a prefix for their kind: `def-`, `asm-`, `lem-`, `prop-`, `thm-`, `cor-`, `ex-`, `rem-`.
+
+**When to prove.** Prove a result when the proof shows why the result holds or exercises a technique the
+reader will reuse: a counting argument, a first-order condition, a variance computation. State a result
+without proof, with a citation, when its proof is long or needs tools beyond the prerequisites. Say which
+it is: "Proof", "Sketch of proof", or a sentence naming the source.
+
+**When to compute.** Follow each result with a worked example on the chapter's running example, showing
+the substitution. A reader should be able to reproduce every number from the parameters given.
+
 ## Structure inside a section
 
-1. The setting and its assumptions.
-2. The derivation, with each displayed step.
-3. The result, named.
-4. Worked numbers for the running example.
-5. What the result does not cover, if it matters for what follows.
+1. Definitions and assumptions.
+2. The result, as a numbered statement.
+3. Its proof, or the source that proves it.
+4. A worked example with the running example's numbers.
+5. A remark on what the result does not cover, if later text depends on it.
 
-Numbers never come before the relation that produces them. In the simulator section, the model's prediction
-comes before the run, and the table of predicted and simulated values comes after it.
+A section's prose connects the statements: one or two sentences saying why the next definition or result is
+wanted. Numbers never come before the relation that produces them.
+
+## The simulator section
+
+The simulator grounds the model. It does not carry the argument. Keep the section short: name the scenario,
+give the policies as code, say what to run, and set the model's values beside the simulator's in a
+`<Predicted>` table. Library vocabulary (`ops` blocks, scenario script fields) belongs here and in exercises,
+and stays out of the model section.
 
 ## Checks
 
 A displayed formula needs a check that cites it before the next heading. A check after a formula's worked
-numbers covers both. A derivation of several formulas can end with one grouped check, one reference to a line:
+numbers covers both. A statement and its proof count as part of the text around them, so one grouped check
+after a proof can cover the formulas in the result and the proof, one reference to a line:
 
 ```mdx
 <Check refs="
@@ -69,6 +104,7 @@ style pass reviews every exemption.
 
 The lint cannot catch these. Read each chapter aloud and rewrite any you find.
 
+- second person, rhetorical questions and narrative openings ("Take a single stop first.");
 - aphoristic closers ("Balancing pays for its generality.");
 - verdicts stronger than the evidence ("that knowledge is the whole difference between meeting demand and
   not");

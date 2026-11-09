@@ -8,6 +8,7 @@ import type { PluggableList } from "unified";
 import { remarkChecks } from "./claims.ts";
 import { remarkExamples, remarkHeadingIds } from "./markdown.ts";
 import { remarkScenarioLinks } from "./scenario-links.ts";
+import { remarkStatements } from "./statements.ts";
 
 /** MDX compiler options for documentation pages. Highlighting and maths happen at build time. */
 export const mdxOptions: { remarkPlugins: PluggableList; rehypePlugins: PluggableList } = {
@@ -21,6 +22,7 @@ export const mdxOptions: { remarkPlugins: PluggableList; rehypePlugins: Pluggabl
     remarkChecks,
     remarkExamples,
     remarkScenarioLinks,
+    remarkStatements,
   ],
   rehypePlugins: [
     rehypeKatex,

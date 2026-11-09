@@ -16,6 +16,7 @@ import {
   checkProse,
   checkReference,
   checkStarterFixes,
+  checkStatements,
   checkTemplatePages,
   describePlaceholders,
   exampleIndex,
@@ -59,6 +60,7 @@ const prose = checkProse(pages);
 problems.push(...prose.problems);
 const placeholders = checkPlaceholders(pages);
 problems.push(...placeholders.problems);
+problems.push(...checkStatements(pages));
 
 const examples = pages.flatMap((page) => extractExamples(page.slug, page.tree));
 problems.push(...checkExampleWidth(examples));
