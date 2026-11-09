@@ -4,7 +4,9 @@
 In Book pages, every displayed formula, every numeric result stated in the text and every exercise answer
 SHALL carry a reference to the check that verifies it. A displayed formula's check SHALL appear after the
 formula and before the next heading. A check MAY cite several checks at once, and a run of displayed formulas
-forming one derivation MAY share one such grouped check placed after the last of them. Outside exercise
+forming one derivation MAY share one such grouped check placed after the last of them. A numbered statement
+and a proof SHALL count as part of the text around them, so that a grouped check placed after a proof covers
+the formulas in the result and in the proof. Outside exercise
 answers, a page SHALL cite a given check at most once. The documentation checks SHALL fail when:
 
 - a Book page displays mathematics that no check after it and before the next heading cites;
@@ -23,6 +25,11 @@ answers, a page SHALL cite a given check at most once. The documentation checks 
 #### Scenario: One check for a derivation
 - **WHEN** chapter 4 displays the EOQ cost, its optimum and its sensitivity ratio in turn, followed by one
   check citing the three notebook cells
+- **THEN** the documentation checks pass
+
+#### Scenario: One check for a theorem and its proof
+- **WHEN** a theorem displays a formula, its proof displays another, and one check citing two cells follows
+  the proof
 - **THEN** the documentation checks pass
 
 #### Scenario: Repeated citation

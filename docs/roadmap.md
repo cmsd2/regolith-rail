@@ -805,8 +805,8 @@ trade-off on a line: running the train less often saves trips and holds more sto
 
 #### normal-per-period-demand
 
-Normally distributed per-period demand. Chapter 5 needs it only if a discretised table built in a scenario
-script proves unworkable.
+Normally distributed per-period demand. Chapter 5 uses it for the newsvendor with normal demand, where the
+model gives the optimal order and the cost of uncertainty in closed form.
 
 #### service-level-metrics
 
@@ -814,8 +814,8 @@ Cycle service level and fill rate as run and batch metrics. Chapter 7 compares b
 
 #### smooth-seasonal-demand
 
-A seasonal demand profile smoother than two flat halves. Chapter 8 needs it only if the current profile
-cannot show seasonal indices.
+A seasonal demand profile smoother than two levels. Chapter 8 uses it for seasonal indices, which Winters'
+method estimates.
 
 ## 9. Out of scope
 

@@ -1,6 +1,6 @@
 ---
 title: Reviews, lead times and base-stock
-description: Deciding from what is on hand and on the way, over the time an order must cover.
+description: Inventory position, and the base-stock level as a newsvendor quantile of the demand over the protection interval.
 section: Book
 part: 2
 chapter: 6
@@ -8,125 +8,278 @@ chapter: 6
 
 ## What you will learn
 
-- To track inventory position, stock on hand plus stock on order less backorders, and to
-  see why decisions must use it rather than stock on hand.
-- To find the protection interval an order must cover when stock is reviewed
-  periodically and replenished after a lead time.
-- To set a base-stock level with the critical fractile, and to run the policy that
-  orders up to it.
+- To define the inventory level and the inventory position, and to prove how the level after a lead
+  time depends on the position now.
+- To define a base-stock policy and the protection interval that each of its orders must cover.
+- To prove that the optimal base-stock level is a critical-ratio quantile of demand, and to bound it by
+  the quantiles over the lead time and over the protection interval.
+- To compute the excess that results from ordering on the stock on hand alone.
 
 ## The problem
 
-Chapter 5 orders once, for a single period. Most stock is not like that. A shop keeps
-selling, reviews its shelves on a schedule, and reorders from a supplier who takes time
-to deliver. Each order has to last until the next one can arrive, and in the meantime
-earlier orders are still on their way.
+The newsvendor of chapter 5 orders once, for one period. A station that keeps selling orders again and
+again, and each order takes time to arrive. Two questions follow. The first is what an order should be
+based on, given that earlier orders are still on their way. The second is how much demand an order must
+cover before a later order can help.
 
-Two things make this harder than it looks. First, the decision must count what is
-already coming, or the same shortage gets ordered again and again. Second, an order
-placed now cannot help until the lead time has passed, and the next order cannot help
-until a review period after that, so each order protects against demand over a longer
-stretch than the time until it arrives (Axsäter, 2015, pp. 39–43; Snyder and Shen, 2019,
-pp. 105–113).
+The answers are the inventory position and the protection interval (Axsäter, 2015, pp. 39–43; Snyder and
+Shen, 2019, pp. 105–113). With them, the choice of a stock level for a station with many periods reduces
+to the newsvendor problem of <Ref to="thm-critical-ratio" />.
 
 ## The model
 
+### The Shop with a lead time
+
+<Assumption id="asm-shop-lead-time" name="The Shop with a lead time">
+
+The Shop of <Ref to="asm-shop" /> is changed as follows.
+
+1. Demand is a Poisson process with rate $\lambda$, as in <Ref to="def-poisson-process" />.
+2. The Shop reviews its stock at intervals $R$ and may order any quantity at a review. An order has no
+   fixed cost.
+3. An order arrives a lead time $L$ after it is placed.
+4. Demand that finds no stock is **backordered**: it waits, and is met when stock arrives.
+5. Stock on hand costs $h$ per unit per unit time, and each backordered unit costs $p$ per unit time.
+
+</Assumption>
+
+The chapter's examples and exercises use the following values, with time in days.
+
+| Parameter | Symbol | Value |
+| --- | --- | --- |
+| Demand rate | $\lambda$ | 10 units a day |
+| Review period | $R$ | 1 hour, $1/24$ day |
+| Lead time | $L$ | 1 day |
+| Cost of holding a unit | $h$ | 1 a day |
+| Cost of a backordered unit | $p$ | 10 a day |
+
+Without a fixed cost there is no reason to combine orders, and the question of chapter 4, how much to
+order at a time, gives way to the question of how much stock to keep.
+
 ### Inventory position
 
-Stock on hand is what is on the shelf. Inventory position also counts what has been
-ordered but not delivered, and subtracts demand that is waiting to be met:
+<Definition id="def-inventory-position" name="Inventory level and inventory position">
 
-$$
-\text{position} = \text{on hand} + \text{on order} - \text{backorders}.
-$$
+The **inventory level** is the stock on hand less the backorders. The **inventory position** is the
+inventory level plus the stock on order, that is, ordered and not yet arrived. Write $\mathit{IL}(t)$ and
+$\mathit{IP}(t)$ for their values at time $t$.
 
-With 5 on hand, 7 on order and 2 backordered, the position is 10.
+</Definition>
+
+Stock on hand and backorders are never both positive, since arriving stock first meets the backorders. A
+positive level is stock on hand and a negative level is backorders (Axsäter, 2015, p. 40).
+
+<WorkedExample id="ex-inventory-position">
+
+A station with nothing on hand, 2 units backordered and 12 on order has an inventory level of $-2$ and
+an inventory position of 10. A station with 5 on hand and 7 on order has a level of 5 and a position
+of 12.
+
+</WorkedExample>
 
 <Check ref="maxima:inventory-position" />
 
-Orders already placed will arrive whatever happens next, so the position is what the
-station will hold once they do. Deciding from the position counts every order exactly
-once.
+<Lemma id="lem-level-after-lead-time" name="Level after a lead time">
 
-### The protection interval
-
-Suppose stock is reviewed every $R$ and an order arrives a lead time $L$ after it is
-placed. An order placed at a review arrives after $L$. The next order, placed a review
-later, arrives after $R + L$. Until then, only this order and those before it can meet
-demand. The order must therefore cover demand over the protection interval $L + R$.
-
-With arrivals of 4 a day, a lead time of 2 days and reviews every 6 hours, the protection
-interval is $9/4$ days and demand over it is Poisson with mean 9.
-
-<Check ref="maxima:protection-interval" />
-
-### Base stock
-
-A base-stock policy raises the inventory position to a fixed level $S$ at every review,
-ordering $S$ minus the position. What happens over the protection interval is then the
-newsvendor problem of chapter 5. Each extra unit of $S$ costs $h$ for holding when it
-turns out not to be needed, and saves $b$ for a backorder when it is. The best level is the critical
-fractile of demand $N$ over the protection interval:
+Let $D(t, t']$ be the demand in the interval $(t, t']$. Then for every $t$,
 
 $$
-S^* = \min\left\{ S : P(N \le S) \ge \frac{b}{b + h} \right\}.
+\mathit{IL}(t + L) = \mathit{IP}(t) - D(t, t + L] .
 $$
 
-<Check ref="maxima:critical-fractile" />
+</Lemma>
 
-With a holding cost of 1 and a backorder cost of 10, the fractile is $10/11$. Demand
-with mean 9 is at most 12 with probability below that and at most 13 with probability
-about 0.926, so $S^* = 13$.
+<Proof>
 
-<Check ref="maxima:base-stock-level" />
+Every order outstanding at time $t$ was placed at or before $t$, so it has arrived by $t + L$. No order
+placed after $t$ has arrived by $t + L$. The level at $t + L$ is therefore the level at $t$, plus all
+the stock on order at $t$, less the demand in between. The first two terms make up $\mathit{IP}(t)$.
 
-### Why stock on hand fails
+</Proof>
 
-A policy that orders up to $S$ from stock on hand ignores what is on the way. With a
-lead time of 2 days and reviews every 6 hours, the first order arrives only after 8 more
-reviews, and at each of them the same shortage is still on the shelf and gets ordered
-again.
+<Check ref="maxima:level-after-lead-time" />
 
-<Check ref="maxima:repeated-orders" />
+The lemma is the reason for the definition. The position at time $t$ determines the level a lead time
+later, up to the demand in between, and nothing the station does after $t$ can change that level.
+
+### Base-stock policies
+
+<Definition id="def-base-stock" name="Base-stock policy">
+
+A **base-stock policy** with **base-stock level** $S$ orders, at each review, the quantity that raises
+the inventory position to $S$.
+
+</Definition>
+
+<Proposition id="prop-cycle-level" name="Level during a cycle">
+
+Under a base-stock policy with level $S$, let a review occur at time $t$. Then for $0 \le \tau < R$,
+
+$$
+\mathit{IL}(t + L + \tau) = S - D(t, t + L + \tau] .
+$$
+
+</Proposition>
+
+<Proof>
+
+After the review $\mathit{IP}(t) = S$. No order is placed in $(t, t + \tau]$, so the position falls with
+the demand and $\mathit{IP}(t + \tau) = S - D(t, t + \tau]$. Applying
+<Ref to="lem-level-after-lead-time" /> at time $t + \tau$ gives
+$\mathit{IL}(t + \tau + L) = S - D(t, t + \tau] - D(t + \tau, t + \tau + L]$.
+
+</Proof>
+
+The order placed at time $t$ arrives at $t + L$, and the next order arrives at $t + L + R$. Between
+those arrivals the level is $S$ less the demand over an interval that grows from $L$ to $R + L$. The
+order placed at $t$ must therefore cover the demand until $t + R + L$.
+
+<Definition id="def-protection-interval" name="Protection interval">
+
+The **protection interval** is $R + L$, the time from a review until the order placed at the next review
+arrives.
+
+</Definition>
+
+<WorkedExample id="ex-protection-interval">
+
+For the Shop the protection interval is $25/24$ days. The demand over the lead time is Poisson with mean
+$\lambda L = 10$, and the demand over the protection interval is Poisson with mean
+$\lambda (R + L) = 125/12 \approx 10.42$.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:cycle-level
+  maxima:protection-interval
+" />
+
+### The base-stock level
+
+Let $N_u$ denote the demand over an interval of length $u$, which is Poisson with mean $\lambda u$, and
+let $F_u$ be its distribution function. Define
+
+$$
+g_u(S) = h\,E\big[(S - N_u)^+\big] + p\,E\big[(N_u - S)^+\big] .
+$$
+
+<Theorem id="thm-base-stock" name="Base-stock level">
+
+Under a base-stock policy with level $S$:
+
+1. the expected rate of cost at a time $\tau$ after an order arrives, $0 \le \tau < R$, is
+   $g_{L + \tau}(S)$;
+2. for each $u$, the function $g_u$ is minimised by $S_u$, the smallest $S$ with
+   $F_u(S) \ge p / (p + h)$;
+3. the long-run average cost $\bar g(S) = \frac1R \int_0^R g_{L + \tau}(S)\,d\tau$ is minimised by the
+   smallest $S$ with $\frac1R \int_0^R F_{L + \tau}(S)\,d\tau \ge p / (p + h)$, and this level $S^*$
+   satisfies $S_L \le S^* \le S_{R + L}$.
+
+</Theorem>
+
+<Proof>
+
+By <Ref to="prop-cycle-level" /> the level at that time is $S - N$, where $N$ is the demand over an
+interval of length $L + \tau$. The stock on hand is $(S - N)^+$ and the backorders are $(N - S)^+$,
+which gives (1).
+
+The function $g_u$ is the cost of <Ref to="lem-overage-underage" /> without its constant term, with
+overage cost $h$ and underage cost $p$. As in the proof of <Ref to="thm-critical-ratio" />,
+
+$$
+g_u(S + 1) - g_u(S) = (h + p)\,F_u(S) - p ,
+$$
+
+which does not decrease with $S$ and is first non-negative at $S_u$. This gives (2).
+
+Every cycle has the same distribution, so the long-run average cost is the mean of the cost rate over a
+cycle, $\bar g(S)$. Averaging the last display over $\tau$ gives the condition in (3). More demand
+arrives in a longer interval, so $F_u(S)$ decreases as $u$ grows, and the average of $F_{L + \tau}(S)$
+lies between $F_{R + L}(S)$ and $F_L(S)$. Hence the average reaches $p/(p+h)$ no sooner than $F_L$ does
+and no later than $F_{R + L}$ does.
+
+</Proof>
+
+<Check refs="
+  maxima:cost-rate-definition
+  maxima:cost-rate
+" />
+
+The ratio $p / (p + h)$ is the critical ratio of chapter 5 with $c_u = p$ and $c_o = h$. The optimal
+level is a quantile of demand at that ratio, over an interval between the lead time and the protection
+interval. When reviews are frequent, $R$ is small beside $L$ and the two bounds are close.
+
+<Remark id="rem-base-stock-optimal">
+
+Two related results are stated here without proof. With no fixed order cost, a base-stock policy is
+optimal among all policies (Snyder and Shen, 2019, pp. 124–129). In a model that charges the holding and
+backorder costs once in each review period, at its end, the optimal level is $S_{R + L}$ exactly (Snyder
+and Shen, 2019, pp. 105–113; Axsäter, 2015, p. 96).
+
+</Remark>
+
+<WorkedExample id="ex-base-stock-shop">
+
+For the Shop the critical ratio is $10/11 \approx 0.909$. Over the lead time, $F_L(13) = 0.8645$ and
+$F_L(14) = 0.9165$, so $S_L = 14$. Over the protection interval, $F_{R+L}(14) = 0.8930$ and
+$F_{R+L}(15) = 0.9352$, so $S_{R+L} = 15$. The average of $F_{L+\tau}(14)$ over a cycle is $0.9051$,
+just below the ratio, so $S^* = 15$. The average costs are
+
+| Level $S$ | 14 | 15 | 16 |
+| --- | --- | --- | --- |
+| $\bar g(S)$, a day | 6.18 | 6.14 | 6.52 |
+
+The level 15 exceeds the mean demand over the protection interval by 4.58 units. Chapter 7 calls that
+excess the safety stock.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:base-stock-bounds
+  maxima:average-cost
+" />
+
+<WorkedExample id="ex-on-hand" name="Ordering on the stock on hand">
+
+Consider the rule that orders, at each review, the quantity that raises the stock on hand to $S$. Let the
+demand be steady at rate $\lambda$, and let the stock first fall below $S$ just after a review. The next
+review finds a shortfall of $\lambda R$ and orders it. Nothing arrives for a lead time, so the review
+after that finds a shortfall of $2\lambda R$ and orders all of it again. The $k$-th review orders
+$k \lambda R$, and the $m = L / R$ reviews of the first lead time order
+
+$$
+\sum_{k=1}^{m} k\,\lambda R = \frac{m + 1}{2}\,\lambda L
+$$
+
+in total, against a demand of $\lambda L$. For the Shop $m = 24$: the rule orders 125 units to replace 10.
+The inventory position counts each unit on order once, and a base-stock policy orders exactly the
+demand since the last review.
+
+</WorkedExample>
+
+<Check ref="maxima:on-hand-orders" />
 
 ## In the simulator
 
-The `classic.reorder` template has one station, replenished after a lead time, whose
-unmet demand is backordered. Open it and turn on **random** for Poisson demand. This
-version matches the worked case: 4 a day, a lead time of 2 days, reviews every 6 hours,
-and no fixed order cost.
+The `classic.reorder` template with the following parameters is the Shop of
+<Ref to="asm-shop-lead-time" />. Its reviews are hourly by default. The run lasts 60 days and starts with
+15 units on hand.
 
 <Scenario template="classic.reorder" />
 
 ```lua runnable script
 return classic.reorder {
   random = true,
-  demand = 4,
-  lead_time = days(2),
-  review_period = hours(6),
+  demand = 10,
+  lead_time = days(1),
   order_cost = 0,
-  duration = days(30),
+  initial = 15,
+  duration = days(60),
 }
 ```
 
-The reference policy orders up to 13, using the inventory position that every `ops`
-target works from. The template works out its expected cost tick by tick from Poisson
-probabilities: 7.97 a day.
-
-```lua runnable scenario=classic.reorder
-return ops.policy {
-  review = { target = ops.order_up_to { level = 13000 } },
-}
-```
-
-<Check ref="test:the reorder template's base-stock reference for 4 a day, a 2-day lead time and 6-hour reviews orders up to 13 and expects 7.97 a day" />
-
-Over 200 replications, the simulated cost per day agrees with that value within its confidence
-interval.
-
-<Check ref="test:reaches the analytic expected cost of a base-stock policy with random demand" />
-
-Now compare it with a policy ordering up to 15:
+`ops.order_up_to { level = S }` is the base-stock policy of <Ref to="def-base-stock" />. Every `ops`
+target for a review is compared with the inventory position. The reference policy has $S^* = 15$:
 
 ```lua runnable scenario=classic.reorder
 return ops.policy {
@@ -134,20 +287,42 @@ return ops.policy {
 }
 ```
 
-In **Batch**, tick **Compare**, and run both over 100 replications. Both policies face the same
-demand, so their costs rise and fall together, and over 100 replications the paired
-differences spread less than half as much as independent runs would. The interval for the
-difference leaves out zero: ordering up to 15 costs more, because every unit above the
-critical fractile is held more often than it is needed.
+Compare it in **Batch**, over 200 replications, with a policy of level 16:
 
-<Check ref="test:comparing base-stock levels 13 and 15 on the same 100 replications, paired differences spread less than half as much as independent runs, and level 15 costs more" />
+```lua runnable scenario=classic.reorder
+return ops.policy {
+  review = { target = ops.order_up_to { level = 16000 } },
+}
+```
 
-Now order up to the same level from stock on hand, in plain Lua:
+<Predicted>
+
+| Cost a day | Model $\bar g(S)$ | Simulator, 200 replications |
+| --- | --- | --- |
+| $S = 14$ | 6.18 | $6.16 \pm 0.11$ |
+| $S = 15$ | 6.14 | $6.14 \pm 0.08$ |
+| $S = 16$ | 6.52 | $6.52 \pm 0.06$ |
+
+<Check refs="
+  test:on the Shop with a 1-day lead time, over 200 replications of 60 days, ordering up to 14, 15 and 16 costs about 6.16, 6.14 and 6.52 a day, and the paired differences from 15 have less than half the standard deviation of independent replications
+  test:the reorder template's base-stock reference for the Shop with a 1-day lead time orders up to 15 and expects 6.20 a day over 60 days
+" />
+
+</Predicted>
+
+The run begins with the whole base-stock level on hand and nothing on order, so the stock on the first
+day is above its long-run distribution. The template computes the expected cost of the 60-day run
+exactly, start included, as 6.20 a day at $S = 15$. The comparison uses common random numbers
+(<Ref to="def-crn" />), so both policies face the same demand. The paired differences have less than half
+the standard deviation that independent replications would give. The interval for the difference
+between levels 16 and 15, $0.39 \pm 0.04$, excludes zero.
+
+The rule of <Ref to="ex-on-hand" /> needs plain Lua, since it ignores the inventory position:
 
 ```lua runnable scenario=classic.reorder
 return {
   on_review = function(ctx)
-    local short = 13000 - ctx.here.stock.Goods
+    local short = 15000 - ctx.here.stock.Goods
     if short > 0 then
       ctx.order("Goods", short)
     end
@@ -155,24 +330,22 @@ return {
 }
 ```
 
-Over 100 replications it costs more than five times as much a day. Open the stock chart to
-see why: stock climbs far above 13 as repeated orders for the same shortage arrive one
-after another.
+Over 100 replications of 30 days it costs about 100 a day, more than fifteen times the cost of the
+base-stock policy. The stock chart shows the stock rising far above 15 as the repeated orders arrive.
 
-<Check ref="test:on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, over 100 replications" />
+<Check ref="test:on the Shop with a 1-day lead time, ordering up to 15 from the stock on hand costs about 100 a day over 100 replications of 30 days, more than fifteen times the cost of ordering from the inventory position" />
 
 ## Case study: double dispatch
 
-The `two-trains` starter has two trains sharing a line from a mine to a factory and a
-dome. It was built to show double dispatch: under the balancing baseline, both trains
-react to the same low stock, so one station can be oversupplied while the other waits. It
-looks like the stock-on-hand mistake: each train judges a shortage without counting what
-the other is already bringing.
+The `two-trains` starter has two trains on one line from a mine to a factory and a dome. Under
+balancing, each train responds to the stock it finds at a station and takes no account of the cargo that
+the other train is bringing. Both respond to the same shortage, and one station is oversupplied while the
+other waits. This is the error of <Ref to="ex-on-hand" />: a decision based on the stock on hand, where
+the inventory position would count the cargo on its way.
 
 <Scenario starter="two-trains" />
 
-The first remedy is to stop balancing and treat stations by their role: take everything
-from the mine, and fill the factory and the dome.
+Drain-and-fill with roles removes most of the unmet demand:
 
 ```lua runnable scenario=two-trains fix
 return ops.policy {
@@ -185,8 +358,9 @@ return ops.policy {
 }
 ```
 
-The second remedy adds [ops.lookahead](/docs/ops/lookahead), which reserves cargo for
-stations further along, so that the other train counts it in its inventory position:
+[ops.lookahead](/docs/ops/lookahead) adds the inventory position to this policy. It reserves cargo for
+the stations further along the line, and the other train counts the reserved cargo in each station's
+position:
 
 ```lua runnable scenario=two-trains
 return ops.policy {
@@ -200,95 +374,105 @@ return ops.policy {
 }
 ```
 
-The measurements do not flatter the second remedy. Over 100 replications, roles alone leave
-less than a tenth of the baseline's unmet demand. Adding lookahead leaves more unmet
-demand than roles alone, and more than three times the empty running.
+Over 100 replications, roles alone leave less than a tenth of the baseline's unmet demand. With
+lookahead added, the unmet demand is higher than with roles alone, and the share of distance travelled
+empty is more than three times as high.
 
 <Check ref="test:on two-trains over 100 replications, roles leave less than a tenth of the balancing baseline's unmet demand, and adding lookahead leaves more unmet demand than roles alone with over three times the empty running" />
 
-A likely reason shows in how lookahead decides. At the mine, a train loads only what the
-stations ahead are short of *now*. The dome is four hours' travel away and uses 7 units in
-that time, and the factory, 100 minutes away, uses almost 3 units. Loading for today's
-shortfall at the far end of a trip is the same error as ordering without a protection
-interval: the cargo arrives too small for the demand it has to meet.
+The policy with lookahead counts the cargo on its way and omits the other half of this chapter. At the
+mine a train loads what the stations ahead are short of at that moment. The dome is four hours away and
+consumes 7 units in that time, and the factory, 100 minutes away, consumes almost 3. A load sized for the
+present shortfall is a base-stock level with no allowance for the demand over the protection interval,
+and it arrives too small.
 
 <Check ref="maxima:two-trains-travel" />
 
-Counting what is on the way is necessary, but not enough. It has to be combined with
-enough stock, or cargo, to cover demand until the next delivery can arrive.
-
 ## Where the simulator differs
 
-- **Periodic, not continuous, review.** Many textbook models watch stock continuously.
-  The simulator reviews on a schedule, a minute into each period, so continuous review is
-  approximated by reviewing often.
-- **Backorders only for the reference result.** With lost sales and a lead time, a
-  base-stock policy is no longer the best, and the best policy has no simple form
-  (Axsäter, 2015, pp. 97–99). The template gives a reference result only with backorders.
-- **Whole cost units, charged as they accrue.** Holding and backorder costs are charged
-  each minute on what is held or owed, in whole cost units per unit per day.
+- **Periodic review.** The simulator reviews on a schedule, one minute into each review period.
+  Continuous review, which many texts assume, corresponds to a short review period.
+- **Costs as they accrue.** The simulator charges the holding and backorder costs each minute on the
+  stock on hand and the backorders, which is the cost rate of <Ref to="thm-base-stock" />. The
+  template's reference level is $S_{R+L}$, the level for costs charged at the end of each period.
+- **Lost sales.** The results of this chapter assume backorders. When unmet demand is lost and the lead
+  time is positive, a base-stock policy is no longer optimal and the optimal policy has no simple form
+  (Axsäter, 2015, pp. 97–99).
 
 ## Exercises
 
-1. Keep the worked case but review once a day. What is the protection interval's mean
-   demand, and the base-stock level?
+Each exercise uses the Shop's values in the table under
+[The Shop with a lead time](#the-shop-with-a-lead-time), except where it states otherwise.
+
+1. A station has nothing on hand, 4 units backordered and 12 on order. Find its inventory level and its
+   inventory position, and the order that a base-stock policy with $S = 15$ places.
 
 <Answer>
 
-The interval is $2 + 1 = 3$ days, so mean demand is 12, and the level rises to 17. Less
-frequent reviews need more stock.
+The level is $0 - 4 = -4$ and the position is $-4 + 12 = 8$. The policy orders $15 - 8 = 7$ units.
 
-<Check ref="maxima:longer-review" />
+<Check ref="maxima:exercise-position" />
 
 </Answer>
 
-2. Backorders become twice as costly, 20 a unit a day. What is the new level?
+2. Let the lead time be 2 days. Find $S_L$ and $S_{R+L}$, and decide which of them minimises the average
+   cost $\bar g$.
 
 <Answer>
 
-The fractile rises to $20/21$ and the level to 14.
+The demand over the lead time has mean 20, and $F_L(25) = 0.8878 < 10/11 \le F_L(26) = 0.9221$, so
+$S_L = 26$. Over the protection interval the mean is 20.42 and $S_{R+L} = 27$. The average of
+$F_{L+\tau}(26)$ over a cycle is $0.9147 \ge 10/11$, so $S^* = 26$, with $\bar g(26) = 8.47$ against
+$\bar g(27) = 8.53$. Here the lower bound of <Ref to="thm-base-stock" /> is attained.
 
-<Check ref="maxima:dearer-backorders" />
+<Check ref="maxima:exercise-two-day-lead" />
 
 </Answer>
 
-3. The supplier halves the lead time to 1 day. What is the level now?
+3. Approximate the demand over the Shop's protection interval by a normal distribution with the same
+   mean and variance. Use <Ref to="prop-normal-demand" /> to estimate the base-stock level and the cost
+   of uncertainty, with $c_o = h$ and $c_u = p$.
 
 <Answer>
 
-The protection interval shrinks to $5/4$ days with mean demand 5, and the level falls to
-8. A shorter lead time saves 5 units of stock.
+The mean is $125/12 \approx 10.42$ and the standard deviation is $\sqrt{125/12} \approx 3.227$. With
+$\Phi(z^*) = 10/11$, $z^* = 1.335$ and the level is $10.42 + 1.335 \times 3.227 = 14.73$, which rounds up
+to the exact level of 15. The cost of uncertainty is $(h + p)\,\sigma\,\phi(z^*) = 11 \times 3.227 \times
+0.1636 = 5.81$ a day, against the exact $g_{R+L}(15) = 6.16$.
 
-<Check ref="maxima:shorter-lead-time" />
+<Check ref="maxima:exercise-normal-approximation" />
 
 </Answer>
 
-4. Set the template's lead time to one day, so that the reference orders up to 8 as in
-   exercise 3, and run it over 100 replications. What does it cost a day?
+4. Let the demand be 4 units a day, with reviews every 6 hours and a lead time of 1 day. Compute
+   $S_{R+L}$. Then set the template's `demand = 4`, `review_period = hours(6)` and `duration = days(30)`,
+   remove `initial`, and run the reference policy with that level over 100 replications.
 
 <Answer>
 
-About 4.7 a day, against 7.97 with a two-day lead time: the level falls by 5 units and
-the cost by two fifths, because less stock is held and less demand arrives before an
-order can. The template's analytic value is 4.81, and over 100 replications the simulated
-cost agrees with it within its confidence interval.
+The demand over the protection interval of $5/4$ days has mean 5, and
+$F(7) = 0.8666 < 10/11 \le F(8) = 0.9319$, so $S_{R+L} = 8$. The template's exact expected cost for the
+30-day run is 4.81 a day, and the mean cost over 100 replications agrees with it within its confidence
+interval.
 
-<Check ref="test:on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over 100 replications the simulated cost agrees within its interval" />
+<Check refs="
+  maxima:shorter-lead-time
+  test:on classic.reorder with a 1-day lead time the reference orders up to 8 and expects 4.81 a day, and over 100 replications the simulated cost agrees within its interval
+" />
 
 </Answer>
 
 <GameNote>
 
-On a rail line, a train's visit is a review and the time for cargo to reach a station is
-a lead time. A train that counts only a station's stock, and not what another train is
-already bringing, makes the stock-on-hand mistake above. Stations far apart, or served by
-few trains, have long protection intervals and need fuller stocks to avoid running dry
-between visits.
+On a rail line a train's visit is a review, and the time for cargo to reach a station is a lead time. A
+train that considers only a station's stock, and omits the cargo that another train is bringing, makes
+the error of ordering on the stock on hand. Stations that are far apart, or served by few trains, have
+long protection intervals and need more stock to last between visits.
 
 </GameNote>
 
 ## References
 
 - Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
-- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
-  Hoboken, NJ: John Wiley & Sons.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn. Hoboken, NJ: John
+  Wiley & Sons.

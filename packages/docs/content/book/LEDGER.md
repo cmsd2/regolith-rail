@@ -4,159 +4,300 @@ Not published. Lists, per chapter, the terms, results, notation, and `ops` block
 
 ## Uses before introduction
 
-Line numbers match the chapter files at commit ba71068. Check labels render on the page, so the chapter 1 and 2 entries include them; other entries cite prose only. "Forward pointer" marks a sentence that names a later chapter's term and defers to that chapter.
+Audited against the second edition, 2026-11-09. "Forward pointer" marks a sentence that names a later chapter's term and defers to that chapter. No chapter relies on a later result in a proof.
 
-- ch 3 line 180: "The two policies' empty running moves in opposite directions" uses empty running (ch 1 and 2 call it empty distance), never introduced.
-- ch 3 line 189: "Chapter 6 compares two order-up-to levels" uses order-up-to level, introduced in ch 4 (forward pointer).
-- ch 4 line 114: "chapter 6 works it out as the protection interval" uses protection interval, introduced in ch 6 (forward pointer).
-- ch 4 lines 114 to 115: "it also carries safety stock, which chapter 7 sets" uses safety stock, introduced in ch 7 (forward pointer).
-- ch 5 line 174: "A wasted unit now costs $c - s = 1$" uses s as the salvage value, never defined (s is the reorder point in ch 4).
-- ch 5 line 187: "$100 + 20z$ with $z \approx 0.2533$" uses z, the standard normal quantile, never defined (the normal approximation arrives in ch 7).
-- ch 5 line 217: "Chapter 6 returns to this as the protection interval" uses protection interval, introduced in ch 6 (forward pointer).
-- ch 6 line 113: "works out its expected cost tick by tick" uses tick, the simulator's time step, never introduced.
-- ch 6 line 205: "more than three times the empty running" uses empty running, never introduced.
-- ch 7 line 84: "with $z_{0.95} \approx 1.645$" uses z_{0.95}, never defined.
+- ch 1: Remark 1.13 cites Proposition 2.4 and Corollary 2.3 for results that hold under every policy (forward pointer).
+- ch 4: "Chapter 6 does so" defers the stock on order, and Remark 4.16 defers the variation in demand to chapters 6 and 7 (forward pointers).
+- ch 5: "chapter 6 reduces a problem with many periods to it" (forward pointer).
+- ch 6: Example 6.11 names the safety stock, which chapter 7 defines (forward pointer).
+- ch 8: Remark 8.17 names Winters' method and does not define it.
 
 ## Chapter 1: Modelling operations
 
-Rewritten 2026-09-22.
+Second edition, in the mathematical register, 2026-11-09.
 
-**Introduces**
-- Terms: model, decision variable, parameter, constraint, objective, proxy objective, feasible, optimal, binding constraint, slack, state equation, state, action, disturbance, lost demand, unmet demand, policy, feedback (closed-loop) policy, steady state, feasibility check, sensitivity, site, role, target, drain-and-fill rule, balancing, baseline, starter, scenario script, seed, run, stop marker, stop inspector, stalled production, surplus.
-- Results: one-stop solution a* = min(m, κ, x̄ − d); state equation x_{k+1} = (x_k + a_k − ξ_k)^+ and unmet w_k = (ξ_k − x_k − a_k)^+, with conservation; slowest round trip 28/3 h and capacity 540/7 a day; surplus 9 a day; balancing loads (m − d)/2; needed steady load ā = 2u(τ + t₀)/(1 − 2ut₁) = 250/19, T = 500/57 h; balancing's steady load a = (x̄ + u(τ + t₀))/(3 − ut₁) = 1450/119 ≈ 12.18, T = 1040/119 h, unmet 33/13 a day, stalls 150/13 a day; smallest station for balancing x̄_min = 2ā + u(τ + t₀ + t₁ā) = 625/19 ≈ 32.89.
-- Notation: a (a load), m, d (stock at mine and dome, local), κ, x̄, x_k, a_k, ξ_k, w_k, (y)^+, π, J(π), τ, T, T_max, t₀, t₁ (stop times, local), u (dome's use an hour, local), ā, x̄_min.
-- ops and simulator: `ops.policy { classify, target }`, `ops.roles.manual` with `"supply"` and `"demand"`, `ops.drain`, `ops.fill`, `ops.balance`; built-in `balance-stock`; `two-station` starter; the scenario script and editing it (variability, distances, duration, `mars.large_station`); seeds; the timeline's stop markers and the stop inspector; Metrics; `PolicyLink` to put a built-in policy in the run.
+**Statements**
+- Definition 1.1 (Model) `def-model`
+- Definition 1.2 (Feasible and optimal solutions) `def-feasible`
+- Proposition 1.3 `prop-one-stop`
+- Example 1.4 `ex-one-stop`
+- Remark 1.5 `rem-proxy`
+- Definition 1.6 (State equation) `def-state-equation`
+- Lemma 1.7 (Conservation) `lem-conservation`
+- Definition 1.8 (Policy) `def-policy`
+- Assumption 1.9 (The line) `asm-line`
+- Definition 1.10 (Cycle) `def-cycle`
+- Proposition 1.11 (Capacity of the line) `prop-capacity`
+- Example 1.12 `ex-capacity`
+- Remark 1.13 `rem-every-policy`
+- Definition 1.14 (Steady state) `def-steady-state`
+- Proposition 1.15 (Load that meets demand) `prop-needed-load`
+- Example 1.16 `ex-needed-load`
+- Definition 1.17 (Drain-and-fill policy) `def-drain-fill`
+- Definition 1.18 (Balancing policy) `def-balancing`
+- Proposition 1.19 (Drain-and-fill meets demand) `prop-drain-fill`
+- Proposition 1.20 (Capacity that balancing requires) `prop-balancing-capacity`
+- Example 1.21 `ex-balancing-capacity`
+- Proposition 1.22 (Steady state under balancing) `prop-balancing-steady`
+- Example 1.23 `ex-balancing-steady`
+- Corollary 1.24 `cor-capacity-factor`
+- Example 1.25 `ex-half-capacity`
+
+**Introduces besides**
+- Terms: proxy objective, state, action, disturbance, lost demand, unmet demand, feedback policy, throughput of a cycle, capacity of the line, sensitivity, site, role, target, baseline, starter, scenario script, seed, stop inspector.
+- Notation: a, a*, (y)^+, x_k, a_k, ξ_k, w_k, π, J_n(π), x̄, κ, τ, t₀, t₁, u, v, T(a), f(a), ā, x̄_min, a_B; m, d, c, s, s′, q local.
+- ops and simulator: `ops.policy { classify, target }`, `ops.roles.manual` with `"supply"` and `"demand"`, `ops.drain`, `ops.fill`, `ops.balance`; built-in `balance-stock`; `two-station` starter; editing the scenario script (variability, distances, duration, `mars.large_station`); seeds; Metrics.
 
 **Uses from earlier chapters**
-- None (first chapter). No replications, confidence intervals or batch comparisons.
+- None. No replications, confidence intervals or batch comparisons. Forward references to Proposition 2.4 and Corollary 2.3 for results that hold under every policy.
 
 ## Chapter 2: Flows, rates and Little's law
 
-Rewritten 2026-09-22.
+Second edition, in the mathematical register, 2026-11-09.
 
-**Introduces**
-- Terms: flow, rate in, rate out, flow balance, greatest flow a vehicle can carry, utilisation, Little's law, average number present, arrival rate, effective arrival rate, average time in a place, cover, balanced line (production equal to demand), sawtooth stock at a drained station, time aboard, dead stock, long-run averages table (Stock, In a day, Out a day, Stock ÷ out, Waited, the line's row with cargo).
-- Results: (x(T) − x(0))/T = λ_in − λ_out, at most x̄/T in size; λ_max = 24κ/T_max = 540/7, ρ = 7/15; a four-unit sample path with L = 1.5, λ = 0.5, W = 3; the counting argument ∫N dt = ΣW_i and L = λW; on the balanced line, 30 units and 20 hours a unit, mine and train λT/2 = 125/19 each, dome 30 − λT = 320/19, and at speed 10, 65/19 each and 440/19; relay under roles ā = 4420/343, dome 30 − ā/2 = 8080/343, cover 16.63 h; relay readings (37.5 h and 45.3 h on the line, 9.7 h at the junction).
-- Notation: λ, λ_in, λ_out, λ_max, ρ, L, W, N(t), A(T), W_i, T_max, L_mine, L_train, L_dome.
-- ops and simulator: the `"relay"` role, `ops.pass_through`; the `relay` starter; `speed` on `mars.train`; the mine's extractor `rate`; Metrics' long-run averages table.
+**Statements**
+- Definition 2.1 (Rates of flow) `def-flow-rates`
+- Proposition 2.2 (Flow balance) `prop-flow-balance`
+- Corollary 2.3 (Throughput of a line) `cor-throughput`
+- Proposition 2.4 (Capacity bound) `prop-capacity-bound`
+- Definition 2.5 (Utilisation) `def-utilisation`
+- Corollary 2.6 `cor-overload`
+- Example 2.7 `ex-utilisation`
+- Remark 2.8 `rem-utilisation`
+- Definition 2.9 (Averages of a system) `def-system-averages`
+- Example 2.10 `ex-sample-path`
+- Theorem 2.11 (Little's law, finite form) `thm-littles-law`
+- Theorem 2.12 (Little's law) `thm-littles-law-limit`
+- Remark 2.13 `rem-little`
+- Definition 2.14 (Cover) `def-cover`
+- Proposition 2.15 (Stock on a balanced line) `prop-balanced-line`
+- Example 2.16 `ex-balanced-line`
+- Example 2.17 (A line with a relay station) `ex-relay`
+- Example 2.18 `ex-dead-stock`
+
+**Introduces besides**
+- Terms: place, throughput of a line, effective arrival rate, balanced line, relay station, dead stock, long-run averages table (Stock, In a day, Out a day, Stock ÷ out, Waited, the line's row).
+- Notation: I(T), O(T), λ, λ_in, λ_out, D_n, H_n, ℓ_i, δ_i (local), ρ, a_i, d_i, W_i, N(t), A(t), L, L_T, λ_T, W, W_T, S.
+- ops and simulator: the `"relay"` role, `ops.pass_through`; the `relay` starter; `speed` on `mars.train`; the extractor's `rate`; the long-run averages table.
 
 **Uses from earlier chapters**
-- ch 1: state equation and its account, κ, x̄, τ, t₀, t₁, T, ā and the needed-load result, T_max, the drain-and-fill rule, balancing, roles, `ops.roles.manual`, `ops.drain`, `ops.fill`, `ops.balance`, scenario script edits, seeds, stalled production, unmet demand.
+- ch 1: Assumption 1.9 (the line), Lemma 1.7, cycles, T(a), f(a), capacity, Proposition 1.15 (ā), Proposition 1.19 (drain-and-fill's steady state), Example 1.25 (balancing at ρ = 0.47), the two policies and their `ops` forms, scenario script edits, seeds.
 - No replications, confidence intervals or batch comparisons.
 
 ## Chapter 3: Randomness and simulation
 
-**Introduces**
-- Terms: random arrivals, Poisson process and distribution, exponential gaps between arrivals, replication, sample mean, standard error, sample standard deviation, 95% confidence interval, Student's t distribution, critical value, degrees of freedom, significance level, estimation by simulation (π example, not called Monte Carlo), paired comparison, common random numbers, correlation between two policies' results, seed, random stream, batch, repeatable run.
-- Results: Poisson P(N = k) = e^(−m) m^k / k! with mean = variance = m = λt and standard deviation √m; P(no arrival in s) = e^(−λs), gaps exponential with mean 1/λ; SE(X̄) = σ/√n, so four times the runs halve it; t-interval X̄ ± t_{0.975,n−1} s/√n (t_{0.975,29} ≈ 2.045, t_{0.975,99} ≈ 1.984); Var(D) = σ_A² + σ_B² − 2ρσ_Aσ_B; worked: 7.9 ± 0.28, π with 400 000 points has SE ≈ 0.0026, standard deviation of a difference falls from 1.98 to 0.63 at ρ = 0.9; two-station balancing: unmet demand mean 28.0, SE 0.30, interval 27.4 to 28.6, stalls correlate at about 0.8, paired standard deviation 2.9 against 3.7; exercises: 400 runs halve a 100-run width, ρ = 0.75 needs a quarter of the runs, e^(−4) ≈ 0.0183.
-- Notation: λ rate (ch 2: average flow); t time, and t_{0.975,n−1} critical value (ch 8: t_k trend); m = λt Poisson mean (ch 1: mine's stock); N count and k its value (ch 6: N demand over the protection interval; ch 8: N window, k day); s gap length and, from line 73, sample standard deviation (ch 4: reorder point); n number of runs; X̄ sample mean; σ standard deviation of one run's result (ch 7: of demand); SE; α = 0.05 (ch 8: smoothing constant); D = X_B − X_A (ch 4, 5, 7, 8: demand); ρ correlation; σ_A, σ_B.
-- ops and simulator: seed and repeatable runs; Poisson arrivals drawn from the seed in whole units; **Batch** (one seed and a number of replications, one stream per replication derived from the seed and the replication's number); batch reports a mean and a median per metric; **Compare** (a second policy on the same streams, paired difference with a 95% interval); two-station demand rate redrawn every two hours; arrivals sampled in at least eight sub-steps a minute, variance lower by 1/2880 at 4 a day (the word "binomial" is not used); t table with conservative critical values; adding replications leaves earlier ones unchanged.
+Second edition, in the mathematical register, 2026-11-09.
+
+**Statements**
+- Definition 3.1 (Poisson process) `def-poisson-process`
+- Example 3.2 (Shortage between deliveries) `ex-shortage`
+- Example 3.3 (Demand on the two-station line) `ex-line-demand`
+- Definition 3.4 (Replications) `def-replication`
+- Proposition 3.5 (Mean and variance of the sample mean) `prop-sample-mean`
+- Corollary 3.6 `cor-root-n`
+- Definition 3.7 (Confidence interval for a mean) `def-confidence-interval`
+- Example 3.8 (A mean that is known) `ex-known-mean`
+- Corollary 3.9 (Replications for a given half-width) `cor-replications`
+- Example 3.10 (A mean that is not known) `ex-pilot`
+- Proposition 3.11 (Estimating a probability) `prop-proportion`
+- Example 3.12 `ex-proportion`
+- Proposition 3.13 (Variance of a difference) `prop-difference`
+- Definition 3.14 (Common random numbers) `def-crn`
+- Corollary 3.15 `cor-crn`
+- Example 3.16 (Production lost at the mine) `ex-crn`
+- Remark 3.17 `rem-crn-negative`
+- Remark 3.18 `rem-transient`
+
+**Introduces besides**
+- Terms: output of a run, sample mean, sample variance, unbiased estimator, standard error, half-width, pilot batch, paired differences, transient period, base seed, batch, Compare with policy B.
+- Notation: A(t) as a count of demand, X, Y, μ_X, σ_X², n, X̄_n, S_n², t_(n−1, 0.975), z, δ, θ, ρ_XY, Z_i, D (total demand), U_j (local).
+- ops and simulator: Batch (Seeds, Base seed, Compare with policy B, the B − A column); metrics Demand met, Unmet demand, Stalled production.
+- Placeholder: `mars-poisson-consumer`.
 
 **Uses from earlier chapters**
-- ch 1: two-station line, demand varying by 20%, balancing baseline `balance-stock`, drain-and-fill rule and its `ops` policy, unmet demand, stalled production, starter, run.
-- Background (first-year statistics): mean, variance, standard deviation, median, correlation, independence, normal distribution.
-- From later chapters or never introduced: empty running (never); order-up-to level (ch 4, forward pointer).
-- Note: "cost" (lines 13, 60, 226) is a generic run result here; the worked example measures unmet demand, and cost metrics start in ch 4.
+- ch 1: Assumption 1.9, the two policies, unmet demand, lost production, the `two-station` starter, seeds.
+- ch 2: the relay line's finite-run averages (Remark on runs of finite length).
+- Recalled without proof: the Poisson and normal distributions, the central limit theorem, Student's t.
 
 ## Chapter 4: Order quantities: EOQ and (s, S)
 
-**Introduces**
-- Terms: order, supplier, lead time (zero in this chapter), review, review period (reviews on a schedule; "periodic review" is named in ch 6), fixed order cost, holding cost, order quantity, economic order quantity (EOQ), flat bottom (cost insensitive near Q*), reorder point, order-up-to level, (s, S) policy, template, reference policy.
-- Results: C(Q) = KD/Q + hQ/2; Q* = √(2KD/h) and C(Q*) = √(2KDh); at Q* ordering and holding cost the same; C(xQ*)/C(Q*) = ½(x + 1/x), so 1.5 times costs 8.3% more and double or half costs 25% more; reorder point = demand expected before the next review, S = s + Q*; worked: Q* = 20, 20 a day, 25 at 10 or 40, 21.67 at 30, s = 417 and S = 20 417 thousandths; exercises: Q* = 20√2 when K doubles, square-root law (Q* doubles when D quadruples), 22.8 a day for 30 at a time in a 20-day run.
-- Notation: D demand a day (ch 3: difference; ch 5: random period demand); K order cost; h holding cost a unit a day (same in ch 6); Q order quantity; C(Q) cost a day (ch 5: expected period cost); Q*; x multiple of Q*; s reorder point (ch 3: sample standard deviation; ch 5: salvage value); S order-up-to level (ch 6: base-stock level).
-- ops and simulator: `review` table in `ops.policy`; `ops.order_up_to { level }`; `ops.min_max { min, max }`; `on_review` for plain Lua (named, linked to /docs/api/review); `classic.reorder` template with steady-demand defaults; scenario script `return classic.reorder {}`; order cost charged when an order is placed, holding cost each minute; Batch with three policies.
+Second edition, in the mathematical register, 2026-11-09.
+
+**Statements**
+- Assumption 4.1 (The Shop) `asm-shop`
+- Definition 4.2 (Plan and average cost) `def-plan`
+- Lemma 4.3 (Orders at zero stock) `lem-zero-stock`
+- Lemma 4.4 (Equal quantities) `lem-equal-quantities`
+- Proposition 4.5 (Average cost of a fixed quantity) `prop-eoq-cost`
+- Theorem 4.6 (Economic order quantity) `thm-eoq`
+- Corollary 4.7 (Optimality among all plans) `cor-eoq-all-plans`
+- Example 4.8 `ex-eoq-shop`
+- Corollary 4.9 (Sensitivity) `cor-eoq-sensitivity`
+- Example 4.10 `ex-eoq-sensitivity`
+- Remark 4.11 `rem-eoq-time`
+- Proposition 4.12 (Reorder point) `prop-reorder-point`
+- Definition 4.13 (Periodic review and (s, S) policies) `def-s-s-policy`
+- Proposition 4.14 `prop-periodic-review`
+- Example 4.15 `ex-periodic-review`
+- Remark 4.16 `rem-random-demand`
+- Example 4.17 (The interval between trips) `ex-dispatch-interval`
+
+**Introduces besides**
+- Terms: order, supplier, order cost, holding cost, plan, average cost, cycle of a plan, economic order quantity, lead time, reorder point, periodic review, review period, reorder level, order-up-to level, (s, S) policy, template, reference policy.
+- Notation: D (constant demand rate), K, h, n(T), x(t), Q, Q*, C(Q), x (multiple of Q*), L, r, R, s, S; q, y, q̄, T, F, T* local.
+- ops and simulator: the `review` table of `ops.policy`; `ops.min_max { min, max }`; the `classic.reorder` template with steady demand and hourly reviews; scenario script `return classic.reorder {}`; the metric Total cost; order cost charged when an order is placed, holding cost each minute.
+- Placeholder: `mars-dispatch-interval`.
 
 **Uses from earlier chapters**
-- ch 1: policy, target, `ops.policy`, thousandths of a unit, station, unmet demand.
-- ch 3: Batch, random demand.
-- From later chapters or never introduced: protection interval (ch 6), safety stock (ch 7), both forward pointers.
+- ch 1: policy, target, thousandths of a unit, binding constraint, vehicle capacity κ.
+- ch 2: Theorem 2.12 (Little's law) in Remark 4.11.
+- No replications. Recalled without proof: Scarf's theorem on (s, S) policies (Remark 4.16).
 
 ## Chapter 5: One period under uncertainty: the newsvendor
 
-**Introduces**
-- Terms: single-period decision, newsvendor problem, unit cost, lost sale, expected shortfall, the one-more-unit (marginal) argument, critical ratio, underage cost, overage cost, expired stock, salvage.
-- Results: C(Q) = cQ + p E[(D − Q)⁺]; C(Q + 1) − C(Q) = c − p P(D > Q); the best Q is the smallest with P(D ≤ Q) ≥ (p − c)/p; critical ratio c_u/(c_u + c_o) = (p − c)/p; worked: ratio 3/5, Q = 15, C(15) = 370/9 ≈ 41.11, 430/9 at 10 and 385/9 at 20 (lopsided cost); exercises: expected leftover 20/9, salvage of 1 gives ratio 3/4 and Q = 20, normal demand gives 105.07, lost cost 10 gives ratio 4/5, Q = 20 and 410/9.
-- Notation: c unit cost; p lost-sale cost (ch 7: p_ℓ probability); D random demand in a period; Q order quantity; C(Q) expected cost (ch 4: cost a day); E[·] expectation; (x)⁺ = max(x, 0); c_u, c_o; s salvage value (ex 2, undefined); z (ex 3, undefined).
-- ops and simulator: `classic.newsvendor` template (discrete demand spread over the day, lost demand, stock expiring at each daily review, supplier with no lead time, 30 days); `lost_cost` parameter; total cost metric; expired stock metric; 99% confidence interval over 400 replications.
+Second edition, in the mathematical register, 2026-11-09.
+
+**Statements**
+- Assumption 5.1 (The newsvendor) `asm-newsvendor`
+- Definition 5.2 (Expected cost) `def-newsvendor-cost`
+- Lemma 5.3 (Overage and underage) `lem-overage-underage`
+- Proposition 5.4 (Convexity) `prop-newsvendor-convex`
+- Theorem 5.5 (Critical ratio, discrete demand) `thm-critical-ratio`
+- Example 5.6 (A newspaper stand) `ex-stand`
+- Theorem 5.7 (Critical ratio, continuous demand) `thm-critical-ratio-continuous`
+- Example 5.8 `ex-uniform-demand`
+- Definition 5.9 (Standard normal loss function) `def-loss-function`
+- Lemma 5.10 `lem-loss-function`
+- Proposition 5.11 (Normal demand) `prop-normal-demand`
+- Example 5.12 `ex-normal-demand`
+- Remark 5.13 (Salvage value) `rem-salvage`
+
+**Introduces besides**
+- Terms: newsvendor problem, expected shortfall, overage cost, underage cost, critical ratio, quantile of the demand, cost of uncertainty, salvage value, expired stock.
+- Notation: D (random demand), F, Q, Q*, c, p, C(Q) (expected cost), c_o, c_u, Z, φ, Φ, G(z), μ, σ, z*; v local.
+- ops and simulator: `ops.order_up_to { level }`; the `classic.newsvendor` template (discrete demand spread over the day, lost demand, stock that expires at the daily review, 30 days); `lost_cost`; the metric Expired stock.
+- Placeholder: `normal-per-period-demand`.
 
 **Uses from earlier chapters**
-- ch 1: thousandths of a unit (restated at line 131).
-- ch 3: replication, confidence interval (99% is new; ch 3 derives 95% and gives the general α form), Batch, Compare, expected cost.
-- ch 4: order, review, supplier, lead time, order quantity, `ops.order_up_to`, `review` table, template, reference policy.
-- Background: probability distribution, quantile, normal distribution.
-- From later chapters or never introduced: salvage value s (never); z (never; the normal approximation arrives in ch 7); protection interval (ch 6, forward pointer).
+- ch 1: the identity (y)^+ − (−y)^+ = y of Lemma 1.7.
+- ch 3: replications, Definition 3.7 (confidence interval), Batch.
+- ch 4: order, review, supplier, template, reference policy, the `review` table.
+- Recalled without proof: an expectation of convex functions is convex; the tail-integral formula for an expectation; the normal distribution.
 
 ## Chapter 6: Reviews, lead times and base-stock
 
-**Introduces**
-- Terms: stock on hand, stock on order, backorder, inventory position, periodic review, continuous review, protection interval, base-stock policy, base-stock level, critical fractile, backorder cost, the stock-on-hand mistake (ordering the same shortage again), double dispatch, lookahead (cargo reserved for stations further along).
-- Results: position = on hand + on order − backorders; protection interval L + R; S* = min{S : P(N ≤ S) ≥ b/(b + h)}; worked: position 10, interval 9/4 days with mean 9, fractile 10/11, S* = 13, 7.97 a day; ordering from stock on hand repeats the shortage over 8 reviews; exercises: daily reviews give 17, b = 20 gives 14, a 1-day lead time gives 8 and 4.81 a day.
-- Notation: R review period (same in ch 7); L lead time (ch 1: load; ch 2: average stock); S base-stock level and S*; b backorder cost a unit a day (ch 8: trend); N demand over the protection interval (ch 3: Poisson count; ch 8: window).
-- ops and simulator: `classic.reorder` parameters `random`, `demand`, `lead_time`, `review_period`, `order_cost`, `duration`; **random** switch; `days()`, `hours()`; the template's analytic expected cost; plain Lua `on_review(ctx)` with `ctx.here.stock.Goods` and `ctx.order(resource, amount)`; `two-trains` starter; `ops.lookahead` in the `plan` stage; reviews a minute into each period; costs charged each minute.
+Second edition, in the mathematical register, 2026-11-09.
+
+**Statements**
+- Assumption 6.1 (The Shop with a lead time) `asm-shop-lead-time`
+- Definition 6.2 (Inventory level and inventory position) `def-inventory-position`
+- Example 6.3 `ex-inventory-position`
+- Lemma 6.4 (Level after a lead time) `lem-level-after-lead-time`
+- Definition 6.5 (Base-stock policy) `def-base-stock`
+- Proposition 6.6 (Level during a cycle) `prop-cycle-level`
+- Definition 6.7 (Protection interval) `def-protection-interval`
+- Example 6.8 `ex-protection-interval`
+- Theorem 6.9 (Base-stock level) `thm-base-stock`
+- Remark 6.10 `rem-base-stock-optimal`
+- Example 6.11 `ex-base-stock-shop`
+- Example 6.12 (Ordering on the stock on hand) `ex-on-hand`
+
+**Introduces besides**
+- Terms: backorder, backorder cost, stock on hand, stock on order, inventory level, inventory position, base-stock policy, base-stock level, order cycle, protection interval, cost rate, continuous review, double dispatch, lookahead.
+- Notation: λ (Poisson demand rate), R, L, h, p (per unit per day backordered), IL(t), IP(t), D(t, t′], S, τ (time since an arrival), N_u, F_u, g_u(S), S_u, ḡ(S), S*, S_L, S_(R+L); m local.
+- ops and simulator: `classic.reorder` parameters `random`, `demand`, `lead_time`, `order_cost`, `initial`, `duration`, `review_period`; `days()`, `hours()`; `ops` review targets compared with the inventory position; the template's exact expected cost for a finite run; plain Lua `on_review(ctx)` with `ctx.here.stock.Goods` and `ctx.order`; the `two-trains` starter; `ops.lookahead` in the `plan` stage.
 
 **Uses from earlier chapters**
-- ch 1: role, `ops.roles.manual`, `ops.drain`, `ops.fill`, balancing baseline, unmet demand.
-- ch 2: stock chart, roles policy.
-- ch 3: Poisson, replication, confidence interval, Batch, Compare, paired differences on the same streams.
-- ch 4: review, lead time, supplier, order-up-to level, holding cost h, `ops.order_up_to`, `on_review`, `classic.reorder`, reference policy.
-- ch 5: newsvendor problem, critical ratio (as critical fractile), lost sales, whole cost units.
-- From later chapters or never introduced: tick (never); empty running (never).
-- Note: line 112 says every `ops` target works from the inventory position; ch 1 line 80 and ch 4 line 42 compare the target with what the site or station holds.
+- ch 1: roles, `ops.roles.manual`, `ops.drain`, `ops.fill`, the balancing baseline, unmet demand.
+- ch 3: Definition 3.1 (Poisson process), replications, confidence intervals, Definition 3.14 (common random numbers), Batch.
+- ch 4: Assumption 4.1 (the Shop), review period, lead time, order-up-to level, `classic.reorder`.
+- ch 5: Lemma 5.3, Theorem 5.5 (critical ratio), Proposition 5.11 in exercise 3.
+- Recalled without proof: optimality of base-stock policies; the level S_(R+L) for costs charged at the end of each period (Remark 6.10).
 
 ## Chapter 7: Safety stock and service levels
 
-**Introduces**
-- Terms: service target, safety stock, cycle, cycle service level, fill rate, variable lead time, orders overtaking each other, normal approximation, supply shock, demand shock, state of the world, disruption as distinct from variability.
-- Results: CSL(S) = Σ_ℓ p_ℓ P(Poisson(λ(R + ℓ)) ≤ S), valid when lead times differ by less than a review period; Var(D_T) = λE[T] + λ²Var(T); safety stock ≈ z_{0.95} σ; β ≈ 1 − E[(D_T − S)⁺]/(λR); worked: means 80, 100 and 90, S = 113 at 0.9546, safety stock 23, variance 190 and standard deviation 13.78, normal estimate 22.67, fixed lead time 106 and 15.60, fill rate 0.996 at 113; storm shock of 94 units against a 30-unit station; exercises: 121 for 0.99, 75 with reviews every 3.5 days.
-- Notation: S order-up-to level; R review period; L lead time and ℓ a lead-time value (ch 8: ℓ_k level); p_ℓ its probability (ch 5: p lost-sale cost); λ demand rate; CSL(S); T random interval length (ch 1: round trip); D_T demand over T; E[T], Var(T); σ standard deviation of D_T (ch 3: of a run's result); z_{0.95} (undefined); β fill rate (ch 8: Holt trend constant).
-- ops and simulator: `classic.safety_stock` template (Poisson demand, backorders, weekly reviews, lead time drawn per order, 10 weeks); `lead_time = discrete { ... }`; `target_service`; the template rejects lead times that differ by a review period or more; `storm-shock` starter; timeline bands for states of the world; `ops.min_max` as a train's target at a demand site; backorder metrics; no cycle service level metric.
+Second edition, in the mathematical register, 2026-11-09.
+
+**Statements**
+- Assumption 7.1 (The Shop with a service target) `asm-shop-service`
+- Definition 7.2 (Cycle service level and fill rate) `def-service`
+- Proposition 7.3 (Cycle service level of a base-stock level) `prop-csl`
+- Definition 7.4 (Safety stock) `def-safety-stock`
+- Example 7.5 `ex-csl`
+- Proposition 7.6 (Demand over a random interval) `prop-random-interval`
+- Example 7.7 `ex-random-interval`
+- Proposition 7.8 (Safety stock by the normal approximation) `prop-safety-stock-normal`
+- Example 7.9 `ex-safety-stock`
+- Proposition 7.10 (Fill rate of a base-stock level) `prop-fill-rate`
+- Example 7.11 `ex-fill-rate`
+
+**Introduces besides**
+- Terms: service target, order cycle, cycle service level, fill rate, type-1 and type-2 service, safety stock, mixture of Poisson distributions, normal approximation, supply shock, demand shock.
+- Notation: T = R + L (random), D_T, CSL(S), σ_T, z_α, α (service target), β(S); ℓ local.
+- ops and simulator: the `classic.safety_stock` template (Poisson demand, backorders, weekly reviews, a lead time drawn for each order, 10 weeks); `lead_time = discrete { ... }`; `target_service`; the template rejects lead times that differ by a review period or more; metrics Backorders (average) and Backorders (peak); the `storm-shock` starter; `ops.min_max` as a train's target at a demand station.
+- Placeholder: `service-level-metrics`.
 
 **Uses from earlier chapters**
-- ch 1: two-station line (as `storm-shock`), balancing, drain-and-fill `ops` policy, `ops.roles.manual`, `ops.drain`, `ops.fill`, unmet demand.
-- ch 2: cover, roles policy (line 188 attributes it to ch 1, which calls it the drain-and-fill rule).
-- ch 3: Poisson, sub-step arrivals (line 227 calls them binomial; ch 3 does not use the word), replication, 99% confidence interval, Batch.
-- ch 4: periodic review, order-up-to level, `ops.order_up_to`, `ops.min_max`, template, reference policy.
-- ch 5: (x)⁺, expectation, expected shortfall, lost sales.
-- ch 6: base-stock level, backorder, inventory position, protection interval (ex 2), R, L, `days()`.
-- From later chapters or never introduced: z_{0.95} (never).
-- Note: line 218 points to Part III, which the book does not contain.
+- ch 1: the two-station line, balancing, drain-and-fill, unmet demand.
+- ch 3: Poisson process, Proposition 3.11 (estimating a probability), replications, Batch.
+- ch 4: (s, S) target, review period.
+- ch 5: Definition 5.9 and Proposition 5.11 (loss function, normal demand).
+- ch 6: Assumption 6.1, Lemma 6.4, base-stock policy, protection interval, backorders, F_u.
+- Recalled without proof: the law of total variance.
 
 ## Chapter 8: Forecasting
 
-**Introduces**
-- Terms: forecast, moving average, forecast lag, trend, season, exponential smoothing, smoothing constant, average age of the data, Holt's method (level and trend), forecast error, bias, mean absolute error, root mean squared error, demand inferred from the inventory position.
-- Results: moving-average lag D_k − F_k = b(N + 1)/2; F_{k+1} = αD_k + (1 − α)F_k; weights α(1 − α)^j summing to 1; average age (1 − α)/α; moving average of the same age N = 2/α − 1; steady-trend lag D_{k+1} − F_{k+1} = b/α and D_k − F_{k+1} = b(1 − α)/α; Holt updates for ℓ_k and t_k with F_{k+1} = ℓ_k + t_k; bias, MAE, RMSE; cost of the lag 3b/α + 3b = 18; worked: 7-day average lags 4, α = 0.2 lags 5 and 4, Holt within 0.01 after 200 days, bias 0.4, MAE 1.6, RMSE 1.90; exercises: α = 0.5 lags 2 and needs 9, a 9-day average with b = 2 lags 10.
-- Notation: D_k demand on day k; F_k forecast for day k; k day; N window length (ch 3: count; ch 6: protection-interval demand); j age in days; a, b intercept and trend (ch 6: b backorder cost); α smoothing constant (ch 3: significance level); ℓ_k level (ch 7: lead-time value); t_k trend estimate (ch 3: t critical value); β trend smoothing constant (ch 7: fill rate); e_k = D_k − F_k error.
-- ops and simulator: `classic.forecasting` template (`level`, `trend`, `noise`, `safety`, `alpha`, `season_length`, `season_amplitude`; daily reviews, 2-day lead time, backorders); plain Lua with `ctx.memory`, `ctx.record` (charted series), `here.backorders`, and `here.on_order` entries with `resource` and `amount`.
+Second edition, in the mathematical register, 2026-11-09.
+
+**Statements**
+- Definition 8.1 (Demand models) `def-demand-models`
+- Definition 8.2 (Forecast and forecast error) `def-forecast`
+- Definition 8.3 (Moving average) `def-moving-average`
+- Definition 8.4 (Exponential smoothing) `def-exponential-smoothing`
+- Proposition 8.5 (Smoothing as a weighted average) `prop-smoothing-weights`
+- Proposition 8.6 (Variance of a forecast) `prop-forecast-variance`
+- Proposition 8.7 (Lag behind a trend) `prop-forecast-lag`
+- Example 8.8 `ex-forecast-trade-off`
+- Definition 8.9 (Holt's method) `def-holt`
+- Proposition 8.10 (Holt's method follows a trend) `prop-holt`
+- Example 8.11 `ex-holt`
+- Definition 8.12 (Measures of forecast error) `def-error-measures`
+- Example 8.13 `ex-error-measures`
+- Proposition 8.14 (Shortfall of a lagging forecast) `prop-forecast-shortfall`
+- Example 8.15 (The Shop with growing demand) `ex-forecast-shortfall`
+- Remark 8.16 `rem-forecast-safety-stock`
+- Remark 8.17 `rem-seasonality`
+
+**Introduces besides**
+- Terms: level model, trend model, forecast, forecast error, moving average, exponential smoothing, smoothing constant, mean age of the data, unbiased forecast, lag, Holt's method, bias, mean absolute deviation, root mean squared error, shortfall of a forecast, season.
+- Notation: d_t, a, b, ε_t, σ², f_(t+1), e_(t+1), M, â_t, α (smoothing constant), γ, b̂_t, k, σ_e; n (periods in the protection interval), j local.
+- ops and simulator: the `classic.forecasting` template (`level`, `trend`, `noise`, `safety`, `alpha`, `season_length`, `season_amplitude`; daily reviews, a 2-day lead time, backorders); plain Lua with `ctx.memory`, `ctx.record`, `here.backorders` and `here.on_order`.
 
 **Uses from earlier chapters**
-- ch 2: cover (three-day cover, `COVER`).
-- ch 3: Poisson noise, Batch.
-- ch 4: review, lead time, order-up-to level, `on_review`, template, reference policy.
-- ch 5: known demand distribution, lost sales.
-- ch 6: inventory position, backorders, protection interval (lead time plus one review, unnamed at line 113), `ctx.here.stock`, `ctx.order`.
-- ch 7: safety stock.
-- From later chapters or never introduced: none.
+- ch 3: Poisson demand, Batch.
+- ch 4: review, lead time, order-up-to level, template, reference policy.
+- ch 6: inventory position, backorders, base-stock policy, protection interval, `on_review`, `ctx.order`.
+- ch 7: safety stock, Proposition 7.8, z_α.
+- Recalled without proof: convergence of Holt's method from inexact initial estimates (Axsäter, 2015, p. 15); Winters' method.
 
 ## Symbols with more than one meaning
 
+The notation appendix states each of these in its opening paragraph or in the row for the symbol.
+
 | Symbol | Meanings |
 | --- | --- |
-| L | ch 2 average stock; ch 6, 7 lead time |
-| T | ch 1 round trip in hours; ch 7 random interval length |
-| t | ch 1 stop times t₀, t₁ (hours); ch 3 time and critical value t_{0.975,n−1}; ch 8 trend estimate t_k |
-| s | ch 3 gap length and sample standard deviation; ch 4 reorder point; ch 5 salvage value (undefined) |
-| S | ch 4, 7 order-up-to level; ch 6 base-stock level |
-| m | ch 1 mine's stock; ch 3 Poisson mean λt |
-| D | ch 3 difference X_B − X_A; ch 4 demand a day; ch 5 random period demand; ch 7 D_T demand over T; ch 8 D_k demand on day k |
-| N | ch 3 Poisson count; ch 6 demand over the protection interval; ch 8 moving-average window |
-| k | ch 3 Poisson value; ch 8 day index |
-| λ | ch 2 average flow; ch 3, 7 arrival or demand rate |
-| σ | ch 3 standard deviation of a run's result; ch 7 standard deviation of demand over T |
-| α | ch 3 significance level 0.05; ch 8 smoothing constant |
-| β | ch 7 fill rate; ch 8 Holt trend constant |
-| b | ch 6 backorder cost; ch 8 trend a day |
-| p | ch 5 lost-sale cost; ch 7 p_ℓ lead-time probability |
-| ℓ | ch 7 lead-time value; ch 8 Holt level ℓ_k |
-| C(Q) | ch 4 cost a day; ch 5 expected cost of the period |
-| z | ch 5, 7 standard normal quantile, never defined |
+| L | ch 2 mean number present (Little's law); ch 4, 6, 7, 8 lead time |
+| D | ch 3 total demand over a period (random); ch 4 constant demand rate; ch 5 random demand; ch 6 D(t, t′]; ch 7 D_T |
+| S | ch 2 total stock on a line; ch 4 order-up-to level; ch 6, 7 base-stock level |
+| a | ch 1 load; ch 2 a_i arrival time; ch 8 level of a demand model |
+| T | ch 1 T(a) cycle duration; ch 2, 4 a horizon; ch 4 Example 4.17 interval between trips; ch 7 random protection interval |
+| τ | ch 1, 2 leg time; ch 6 time since an order arrived |
+| α | ch 7 service target; ch 8 smoothing constant |
+| n | ch 1, 2 number of periods or round trips; ch 3 replications; ch 4 number of orders; ch 8 periods in the protection interval |
+| λ | ch 2 rate of flow; ch 3, 6, 7 Poisson demand rate; ch 4 Example 4.17 production rate |
+| σ | ch 3 σ_X of an output; ch 5 of a normal demand; ch 7 σ_T; ch 8 of ε_t, and σ_e |
+| C(Q) | ch 4 average cost; ch 5 expected cost of one period |
+| p | ch 5 cost per unit lost; ch 6 cost per unit per day backordered |
+| z | ch 3 normal quantile 1.96; ch 5 z*; ch 7 z_α |
+| F | ch 4 Example 4.17 cost of a trip; ch 5 distribution function of demand |
+| x | ch 1 x_k stock and x̄ capacity; ch 4 x(t) stock, and x as a multiple of Q* |

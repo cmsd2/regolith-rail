@@ -19,7 +19,7 @@ introduces it.
 
 #### Scenario: Notation appendix
 - **WHEN** a reader opens the Book contents page
-- **THEN** the Notation appendix is listed after the parts, and it gives the meaning of $z$ with a link to
+- **THEN** the Notation appendix is listed after the parts, and it gives the meaning of $z^*$ with a link to
   chapter 5
 
 ### Requirement: A scenario for every chapter
@@ -32,15 +32,17 @@ see, verified by a simulator check.
   drain-and-fill rule with balancing.
 - Chapter 2 SHALL use the `two-station` starter at two train speeds, and the `relay` starter under balancing
   and under roles.
-- Chapter 3 SHALL use the `two-station` starter, comparing the policies chapter 1 introduced over many
-  replications, with paired and independent seeds.
+- Chapter 3 SHALL use the `two-station` starter: first to estimate a mean that is known, the total demand
+  of a run, and then to compare the policies chapter 1 introduced over many replications with common random
+  numbers, setting the paired interval beside the one that independent replications would give.
 - Chapter 4 SHALL use `classic.reorder` with the Shop's parameters, comparing order quantities of half, one
   and two times the economic order quantity.
-- Chapter 5 SHALL use `classic.newsvendor`, and a scenario script with normal demand.
-- Chapter 6 SHALL use `classic.reorder` with the Shop's parameters, random demand and a lead time, and the
-  `two-trains` starter for its case study.
-- Chapter 7 SHALL use `classic.safety_stock` with the Shop's demand and costs, and the `storm-shock` starter
-  for its case study.
+- Chapter 5 SHALL use `classic.newsvendor`, comparing three order quantities over replications, and SHALL
+  mark its normal-demand example with a placeholder until the simulator draws normal demand in each period.
+- Chapter 6 SHALL use `classic.reorder` with the Shop's demand and holding cost, Poisson demand and a lead
+  time, comparing base-stock levels over replications, and the `two-trains` starter for its case study.
+- Chapter 7 SHALL use `classic.safety_stock` with the Shop's demand, weekly reviews and a random lead time,
+  and the `storm-shock` starter for its case study.
 - Chapter 8 SHALL use `classic.forecasting` with the Shop's starting demand.
 
 #### Scenario: Open a chapter's scenario
@@ -70,7 +72,7 @@ confidence intervals, which chapter 3 introduces.
 
 #### Scenario: Base stock after the newsvendor
 - **WHEN** a reader reaches the base-stock level in chapter 6
-- **THEN** the critical fractile it uses refers back to chapter 5, where it was derived
+- **THEN** the critical ratio it uses refers back to chapter 5, where it was derived
 
 #### Scenario: Randomness before inventory
 - **WHEN** a reader runs chapter 3's comparison
@@ -110,13 +112,15 @@ them from first principles.
 
 ### Requirement: Running examples
 The book SHALL carry three examples across chapters with fixed base parameters: the two-station line, the
-relay line and the Shop. The Shop SHALL have a demand of 10 a day, an order cost of 20, a holding cost of 1 a
-unit a day and a backorder cost of 10 a unit a day, and chapters 4, 6, 7 and 8 SHALL use it, each changing one
-thing from the chapter before.
+relay line and the Shop. The Shop SHALL have a demand of 10 a day and a holding cost of 1 a unit a day, with
+an order cost of 20 in chapter 4 and a backorder cost of 10 a unit a day in chapter 6. Chapters 4, 6, 7 and 8
+SHALL use it, and each SHALL state as a numbered assumption or example how its Shop differs from the Shop of
+the chapter before, with a table of the values it uses.
 
 #### Scenario: The Shop gains a lead time
 - **WHEN** a reader moves from chapter 4 to chapter 6
-- **THEN** the Shop has the same demand and costs, and chapter 6 adds random demand and a lead time
+- **THEN** chapter 6's assumption refers to chapter 4's and lists what changes: Poisson demand at the same
+  rate, a lead time, backorders with a cost, and no fixed order cost
 
 ### Requirement: Progression within chapters
 Each chapter's model section SHALL order its subsections from a deterministic or single-station case to the
@@ -129,13 +133,42 @@ assumptions.
 - **THEN** the first run has the dome's variability switched off, as the model assumes
 
 ### Requirement: Prose style
-Book chapters SHALL be written in a neutral, technical register that explains how results arise. The
-documentation check SHALL fail on em dashes, tailing negations and the banned words listed in the book's style
-guide, outside code and mathematics, unless a line carries an exemption comment.
+Book chapters SHALL be written in the neutral, declarative and impersonal register of a mathematics text.
+They SHALL NOT address the reader in the second person outside the fixed section headings, except by
+imperatives in simulator instructions and exercises. The documentation check SHALL fail on em dashes,
+tailing negations and the banned words listed in the book's style guide, outside code and mathematics,
+unless a line carries an exemption comment.
 
 #### Scenario: Banned construction
 - **WHEN** a chapter contains the sentence "That is a fact about the line, not a failure of the rule."
 - **THEN** the documentation check fails and names the chapter and the line
+
+### Requirement: Numbered statements
+A chapter's model section SHALL present its definitions, assumptions, results and worked examples as numbered
+statements, set apart from the running text and labelled with their kind and number. Statements SHALL be
+numbered in one sequence per chapter, whatever their kind, as the chapter number followed by the statement's
+place in the chapter. A proof SHALL follow the result it proves and end with a mark. A result SHALL be proved
+where the proof shows why it holds, and otherwise SHALL cite a source that proves it. Each result SHALL be
+followed by a worked example that computes it for the chapter's running example. A reference to a statement
+SHALL show its kind and number and link to it, within a chapter or across chapters. The documentation check
+SHALL fail on a statement without an identifier, on two statements with the same identifier, and on a
+reference to a statement that does not exist.
+
+#### Scenario: A theorem with its proof
+- **WHEN** a reader reaches Little's law in chapter 2
+- **THEN** it appears as a numbered theorem, followed by a proof that ends with a mark and by a worked example
+
+#### Scenario: Reference across chapters
+- **WHEN** chapter 2 cites the assumptions of the line from chapter 1
+- **THEN** the citation reads "Assumption" with its number, and following it opens chapter 1 at that statement
+
+#### Scenario: Inserted statement
+- **WHEN** an author adds a definition before a theorem
+- **THEN** the theorem's number and every reference to it change at the next build, with no edit to the references
+
+#### Scenario: Unknown reference
+- **WHEN** a chapter refers to a statement identifier that no chapter defines
+- **THEN** the documentation check fails and names the chapter and the identifier
 
 ### Requirement: Placeholders for missing capabilities
 Where a chapter's example needs a simulator capability that does not exist, the chapter SHALL keep the
@@ -146,8 +179,8 @@ chapter. A placeholder SHALL NOT replace a chapter's only runnable comparison.
 
 #### Scenario: Placeholder in chapter 7
 - **WHEN** a reader reaches the fill-rate comparison in chapter 7 before the simulator reports fill rates
-- **THEN** a placeholder set apart from the text states the predicted fill rates and names the
-  `service-level-metrics` capability with a link to the roadmap
+- **THEN** a placeholder set apart from the text states the predicted cycle service level and fill rate and
+  names the `service-level-metrics` capability with a link to the roadmap
 
 #### Scenario: Unknown capability
 - **WHEN** a chapter's placeholder names a capability missing from the registry

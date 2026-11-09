@@ -18,7 +18,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* The two-station line from chapter 1, in hours and units. */\ntau: 4$  t0: 1/6$  t1: 1/60$  kappa: 30$  xbar: 30$\nlam: 36/24$            /* the dome's use, 36 a day, as units an hour */",
+   "source": "/* The two-station line from chapter 1, in hours and units. */\ntau: 4$  t0: 1/6$  t1: 1/60$  kappa: 30$  xbar: 30$\nlam: 36/24$            /* the dome's use, 36 a day, as units an hour */\ncycle(a) := 2 * tau + 2 * (t0 + t1 * a)$\nflow(a) := a / cycle(a)$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -32,14 +32,56 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: capacity-utilisation */\nTmax: 2 * tau + 2 * (t0 + kappa * t1)$\nlam_max: kappa * 24 / Tmax$\nexpect_equal(\"slowest-trip\", Tmax, 28/3);\nexpect_equal(\"greatest-flow\", lam_max, 540/7);\nexpect_equal(\"utilisation\", 36 / lam_max, 7/15);\nexpect_close(\"utilisation-decimal\", 36 / lam_max, 0.47, 0.005);",
+   "source": "/* check: capacity-bound-proof */\n/* n round trips deliver D <= n kappa and last at least 2 n (tau + t0) + 2 t1 D, so at least D T(kappa) / kappa. */\nkill(D, K, TAU, T0, T1)$\nexpect_equal(\"duration-bound\", D / K * 2 * (TAU + T0) + 2 * T1 * D, D * (2 * TAU + 2 * (T0 + T1 * K)) / K);\n/* A policy that alternates loads of 30 and 10, delivering each in full: its flow is under the bound. */\nloads: [30, 10, 30, 10, 30, 10]$\ndelivered: apply(\"+\", loads)$\nduration: apply(\"+\", map(lambda([l], cycle(l)), loads))$\nexpect_equal(\"alternating-delivered\", delivered, 120);\nexpect_equal(\"alternating-under-bound\", is(delivered / duration <= flow(kappa)), true);\nexpect_equal(\"alternating-trips-bound\", is(length(loads) >= delivered / kappa), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: littles-law */\n/* A sample path: four units arrive at times a and leave at times d, in hours, over a window of 8. */\na: [0, 1, 2, 5]$  d: [3, 4, 6, 7]$  window: 8$\nN(t) := length(sublist(makelist(i, i, 1, 4), lambda([i], a[i] <= t and t < d[i])))$\n/* The area under N(t), hour by hour, is the total time the units spend inside. */\narea: sum(N(k + 1/2), k, 0, window - 1)$\nexpect_equal(\"area-is-total-time\", area, sum(d[i] - a[i], i, 1, 4));\nL_avg: area / window$  lam_avg: 4 / window$  W_avg: area / 4$\nexpect_equal(\"average-number\", L_avg, 3/2);\nexpect_equal(\"arrival-rate\", lam_avg, 1/2);\nexpect_equal(\"average-time\", W_avg, 3);\nexpect_equal(\"little\", L_avg, lam_avg * W_avg);",
+   "source": "/* check: capacity-utilisation */\nexpect_equal(\"full-load-cycle\", cycle(kappa), 28/3);\nexpect_equal(\"capacity-per-day\", 24 * flow(kappa), 540/7);\nexpect_equal(\"utilisation\", lam / flow(kappa), 7/15);\nexpect_close(\"utilisation-decimal\", lam / flow(kappa), 0.47, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: sample-path */\n/* Four units arrive at times a and leave at times d, in hours, over a window of 8. */\na: [0, 1, 2, 5]$  d: [3, 4, 6, 7]$  window: 8$\npresent(t) := length(sublist(makelist(i, i, 1, 4), lambda([i], a[i] <= t and t < d[i])))$\n/* The number present is constant between whole hours, so its integral is a sum over hours. */\narea: sum(present(k + 1/2), k, 0, window - 1)$\nL_avg: area / window$  lam_avg: 4 / window$  W_avg: sum(d[i] - a[i], i, 1, 4) / 4$\nexpect_equal(\"area\", area, 12);\nexpect_equal(\"average-number\", L_avg, 3/2);\nexpect_equal(\"arrival-rate\", lam_avg, 1/2);\nexpect_equal(\"average-time\", W_avg, 3);\nexpect_equal(\"number-present-by-hour\", is(makelist(present(k + 1/2), k, 0, window - 1) = [1, 2, 3, 2, 1, 2, 1, 0]), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: littles-law */\nexpect_equal(\"little\", L_avg, lam_avg * W_avg);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: littles-law-area */\n/* The area under the number present is the sum of the times the units spend inside. */\nexpect_equal(\"area-is-total-time\", area, sum(d[i] - a[i], i, 1, 4));\n/* Unit by unit: each contributes its own time inside. */\nfor i: 1 thru 4 do expect_equal(\"unit-time\", sum(if a[i] <= k + 1/2 and k + 1/2 < d[i] then 1 else 0, k, 0, window - 1), d[i] - a[i])$\nexpect_equal(\"area-done\", 1, 1);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: littles-law-sandwich */\n/* At a time when units are present, the area lies between the waits of those departed and of those arrived. */\nupto: 9/2$\narea_upto: sum(present(k/2 + 1/4) / 2, k, 0, 2 * upto - 1)$\ndeparted: sum(if d[i] <= upto then d[i] - a[i] else 0, i, 1, 4)$\narrived: sum(if a[i] <= upto then d[i] - a[i] else 0, i, 1, 4)$\nexpect_equal(\"area-to-4.5\", area_upto, 17/2);\nexpect_equal(\"departed-waits\", departed, 6);\nexpect_equal(\"arrived-waits\", arrived, 10);\nexpect_equal(\"sandwich\", is(departed <= area_upto and area_upto <= arrived), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: littles-law-long-run */\n/* Repeat the pattern every 8 hours. Stopping part way through a period, the time average still tends to 3/2. */\naverage_at(k) := (12 * k + area_upto) / (8 * k + upto)$\nexpect_equal(\"after-1-period\", average_at(1), 41/25);\nexpect_close(\"after-10-periods\", average_at(10), 1.5, 0.03);\nexpect_close(\"after-100-periods\", average_at(100), 1.5, 0.003);\nexpect_equal(\"limit\", limit(average_at(k), k, inf), 3/2);\nexpect_equal(\"limit-is-lambda-w\", 3/2, (1/2) * 3);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: balanced-line-formula */\n/* In a cycle with load A, a unit is aboard for the mine stop and one leg, half the cycle. */\nkill(A, TAU, T0, T1, LAM, S)$\nTc: 2 * TAU + 2 * (T0 + T1 * A)$\nexpect_equal(\"aboard-is-half-cycle\", T0 + T1 * A + TAU, Tc / 2);\n/* The three parts add up to the line's stock. */\nexpect_equal(\"parts-sum\", LAM * Tc / 2 + LAM * Tc / 2 + (S - LAM * Tc), S);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -67,7 +109,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: relay-reading */\n/* Reading the 10-day runs with steady demand by Little's law. */\n/* Balancing: stations 44.11, aboard 7.25, delivering 32.86 a day; 13.29 at the junction, 6.27 at the dome. */\nexpect_close(\"balancing-line-stock\", 44.11 + 7.25, 51.36, 0.005);\nexpect_close(\"balancing-line-hours\", (44.11 + 7.25) / 32.86 * 24, 37.5, 0.05);\nexpect_close(\"balancing-junction-hours\", 13.29 / 32.86 * 24, 9.7, 0.05);\nexpect_close(\"balancing-dome-cover\", 6.27 / 32.86 * 24, 4.6, 0.05);\n/* At the dome, a measured wait of 4.53 hours gives lambda W within 2% of the stock. */\nexpect_close(\"dome-lambda-w\", 32.86 * 4.53 / 24, 6.20, 0.005);\nexpect_equal(\"dome-within-2-percent\", is(abs(32.86 * 4.53 / 24 / 6.27 - 1) < 0.02), true);\n/* At the junction, 4.11 a day and a measured wait of 62.9 hours. */\nexpect_close(\"junction-lambda-w-share\", 4.11 * 62.9 / 24 / 13.29, 0.81, 0.005);\n/* Roles: stations 42.98, aboard 21.14, delivering 34 a day; 23.00 at the dome. */\nexpect_close(\"roles-line-stock\", 42.98 + 21.14, 64.12, 0.005);\nexpect_close(\"roles-line-hours\", (42.98 + 21.14) / 34 * 24, 45.3, 0.05);\nexpect_close(\"roles-dome-cover\", 23.00 / 34 * 24, 16.2, 0.05);",
+   "source": "/* check: relay-reading */\n/* Reading the 10-day runs with steady demand by Little's law. */\n/* Balancing: stations 44.11, aboard 7.25, delivering 32.86 a day; 13.29 at the junction, 6.27 at the dome. */\nexpect_close(\"balancing-line-stock\", 44.11 + 7.25, 51.36, 0.005);\nexpect_close(\"balancing-line-hours\", (44.11 + 7.25) / 32.86 * 24, 37.5, 0.05);\nexpect_close(\"balancing-junction-hours\", 13.29 / 32.86 * 24, 9.7, 0.05);\nexpect_close(\"balancing-dome-cover\", 6.27 / 32.86 * 24, 4.6, 0.05);\n/* At the dome, a measured wait of 4.53 hours gives lambda W within 2% of the stock. */\nexpect_close(\"dome-lambda-w\", 32.86 * 4.53 / 24, 6.20, 0.005);\nexpect_equal(\"dome-within-2-percent\", is(abs(32.86 * 4.53 / 24 / 6.27 - 1) < 0.02), true);\n/* At the junction, 4.11 a day and a measured wait of 62.9 hours. */\nexpect_close(\"junction-lambda-w-share\", 4.11 * 62.9 / 24 / 13.29, 0.81, 0.005);\n/* Roles: stations 42.98, aboard 21.14, delivering 34 a day; 23.00 at the dome. */\nexpect_close(\"roles-line-stock\", 42.98 + 21.14, 64.12, 0.005);\nexpect_close(\"roles-line-hours\", (42.98 + 21.14) / 34 * 24, 45.3, 0.05);\nexpect_close(\"roles-dome-cover\", 23.00 / 34 * 24, 16.2, 0.05);\n/* The drain-and-fill run has a quarter more stock than the balancing run, and more than three times the cover. */\nexpect_close(\"stock-ratio\", 64.12 / 51.36, 1.25, 0.005);\nexpect_equal(\"cover-ratio-over-three\", is((23.00 / 34) / (6.27 / 32.86) > 3), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

@@ -18,35 +18,77 @@
   },
   {
    "cell_type": "code",
-   "source": "/* Demand with level a and trend b: D[k] = a + b k. */\nd(k) := a + b * k$",
+   "source": "/* Demand with level a and trend b: d[k] = a + b k. */\nd(k) := a + b * k$\nassume(alpha > 0, alpha < 1)$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: moving-average-lag */\n/* The average of the last N days forecasts day k, and trails it by b (N + 1) / 2. */\nma(k, n) := sum(d(k - j), j, 1, n) / n$\nexpect_equal(\"ma-lag\", d(k) - ma(k, n), b * (n + 1) / 2);\nexpect_equal(\"ma-lag-7\", subst([b = 1, n = 7], b * (n + 1) / 2), 4);",
+   "source": "/* check: moving-average */\n/* The moving average of M equal demands is that demand, and of 8, 10, 12 over M = 3 it is 10. */\nkill(c, M)$\nexpect_equal(\"constant\", ev(sum(c, j, 0, M - 1), simpsum) / M, c);\nexpect_equal(\"three-periods\", (8 + 10 + 12) / 3, 10);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: smoothing-weights */\n/* Exponential smoothing weights past days alpha (1 - alpha)^j, which sum to 1 with mean age (1 - alpha) / alpha. */\nassume(alpha > 0, alpha < 1)$\nexpect_equal(\"weights-sum\", ev(sum(alpha * (1 - alpha)^j, j, 0, inf), simpsum), 1);\nexpect_equal(\"mean-age\", ev(sum(j * alpha * (1 - alpha)^j, j, 0, inf), simpsum), (1 - alpha) / alpha);\nexpect_equal(\"mean-age-02\", subst(alpha = 1/5, (1 - alpha) / alpha), 4);",
+   "source": "/* check: exponential-smoothing */\n/* One update with alpha = 0.2 moves an estimate of 10 a fifth of the way to a demand of 15, and an\n   estimate equal to the demand stays where it is. */\nkill(c)$\nexpect_equal(\"one-update\", subst(alpha = 1/5, alpha * 15 + (1 - alpha) * 10), 11);\nexpect_equal(\"fixed\", ratsimp(alpha * c + (1 - alpha) * c), c);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: smoothing-lag */\n/* F[k+1] = alpha D[k] + (1 - alpha) F[k]; the error e = D[k+1] - F[k+1] settles where e = (1 - alpha) e + b. */\nsteady: rhs(first(solve(e = (1 - alpha) * e + b, e)))$\nexpect_equal(\"lag-forecast-day\", steady, b / alpha);\nexpect_equal(\"lag-latest-day\", steady - b, b * (1 - alpha) / alpha);\nexpect_equal(\"lag-02-forecast-day\", subst([b = 1, alpha = 1/5], b / alpha), 5);\nexpect_equal(\"lag-02-latest-day\", subst([b = 1, alpha = 1/5], b * (1 - alpha) / alpha), 4);",
+   "source": "/* check: smoothing-weights */\n/* Unrolling the recursion twice, and the weights alpha (1 - alpha)^j, which sum to 1. */\nkill(d0, d1, d2, a3)$\nsmooth(prev, obs) := alpha * obs + (1 - alpha) * prev$\nexpect_equal(\"unrolled\", smooth(smooth(smooth(a3, d2), d1), d0),\n  alpha * d0 + alpha * (1 - alpha) * d1 + alpha * (1 - alpha)^2 * d2 + (1 - alpha)^3 * a3);\nexpect_equal(\"weights-sum\", ev(sum(alpha * (1 - alpha)^j, j, 0, inf), simpsum), 1);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: equivalent-average */\n/* A moving average of N days has the same mean age as smoothing when N = 2 / alpha - 1. */\nexpect_equal(\"ma-mean-age\", sum(j, j, 1, n) / n - 1, (n - 1) / 2);\nexpect_equal(\"equivalent-n\", rhs(first(solve((n - 1) / 2 = (1 - alpha) / alpha, n))), 2 / alpha - 1);\nexpect_equal(\"equivalent-n-02\", subst(alpha = 1/5, 2 / alpha - 1), 9);",
+   "source": "/* check: mean-age */\n/* The mean age of the data: (1 - alpha) / alpha for smoothing and (M - 1) / 2 for a moving average. */\nexpect_equal(\"mean-age\", ev(sum(j * alpha * (1 - alpha)^j, j, 0, inf), simpsum), (1 - alpha) / alpha);\nkill(n)$\nexpect_equal(\"ma-mean-age\", ratsimp(ev(sum(j, j, 0, n - 1), simpsum) / n), (n - 1) / 2);\nexpect_equal(\"equivalent-n\", rhs(first(solve((n - 1) / 2 = (1 - alpha) / alpha, n))), 2 / alpha - 1);\nexpect_equal(\"mean-age-02\", subst(alpha = 1/5, (1 - alpha) / alpha), 4);\nexpect_equal(\"equivalent-n-02\", subst(alpha = 1/5, 2 / alpha - 1), 9);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: forecast-variance */\n/* The variance of a weighted sum of independent demands is sigma^2 times the sum of the squared\n   weights: 1 / M for a moving average and alpha / (2 - alpha) for smoothing. */\nkill(M)$\nexpect_equal(\"ma-squared-weights\", M * (1 / M)^2, 1 / M);\n/* With M = 2 / alpha - 1 the two are equal. */\nexpect_equal(\"matched-variance\", ratsimp(subst(M = 2 / alpha - 1, 1 / M) - alpha / (2 - alpha)), 0);\n/* The error of the forecast adds the variance of the new demand. */\nexpect_equal(\"error-variance\", ratsimp(1 + alpha / (2 - alpha)), ratsimp(2 / (2 - alpha)));\nexpect_equal(\"variance-02\", subst(alpha = 1/5, alpha / (2 - alpha)), 1/9);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: squared-weights */\n/* The squared smoothing weights form a geometric series with ratio (1 - alpha)^2. */\nkill(q)$\nassume(q > 0, q < 1)$\ngeometric: ev(sum(q^j, j, 0, inf), simpsum)$\nexpect_equal(\"squared-weights\", ratsimp(alpha^2 * subst(q = (1 - alpha)^2, geometric)), ratsimp(alpha / (2 - alpha)));\nexpect_equal(\"denominator\", ratsimp(1 - (1 - alpha)^2), ratsimp(alpha * (2 - alpha)));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: moving-average-lag */\n/* The average of the last M demands, d[t], ..., d[t - M + 1], forecasts d[t + 1] and trails it by b (M + 1) / 2. */\nkill(n, k)$\nma(k, n) := ev(sum(d(k - j), j, 0, n - 1), simpsum) / n$\nexpect_equal(\"ma-lag\", ratsimp(d(k + 1) - ma(k, n)), ratsimp(b * (n + 1) / 2));\nexpect_equal(\"ma-lag-9\", subst([b = 1, n = 9], b * (n + 1) / 2), 5);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: smoothing-lag */\n/* e[t+1] = d[t+1] - a_hat[t] satisfies e[t+1] = (1 - alpha) e[t] + b, with fixed point b / alpha. */\nkill(e, prev, k)$\na_hat: alpha * d(k) + (1 - alpha) * prev$\nexpect_equal(\"error-recursion\", ratsimp(d(k + 1) - a_hat - ((1 - alpha) * (d(k) - prev) + b)), 0);\nsteady: rhs(first(solve(e = (1 - alpha) * e + b, e)))$\nexpect_equal(\"lag-forecast-day\", steady, b / alpha);\n/* The distance from the fixed point shrinks by the factor 1 - alpha each period. */\nexpect_equal(\"contraction\", ratsimp(((1 - alpha) * e + b) - b / alpha - (1 - alpha) * (e - b / alpha)), 0);\nexpect_equal(\"lag-latest-day\", steady - b, b * (1 - alpha) / alpha);\nexpect_equal(\"lag-02-forecast-day\", subst([b = 1, alpha = 1/5], b / alpha), 5);\nexpect_equal(\"lag-02-latest-day\", subst([b = 1, alpha = 1/5], b * (1 - alpha) / alpha), 4);\n/* A moving average with M = 2 / alpha - 1 has the same lag. */\nexpect_equal(\"matched-lag\", ratsimp(subst(n = 2 / alpha - 1, b * (n + 1) / 2) - b / alpha), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: trade-off */\n/* The variance factor alpha / (2 - alpha), the lag b / alpha for b = 1, and the matching M. */\nfor row in [[1/10, 1/19, 10, 19], [1/5, 1/9, 5, 9], [2/5, 1/4, 5/2, 4]] do block([al, v, lag, m],\n  [al, v, lag, m]: row,\n  expect_equal(\"variance-factor\", subst(alpha = al, alpha / (2 - alpha)), v),\n  expect_equal(\"lag\", 1 / al, lag),\n  expect_equal(\"matching-m\", 2 / al - 1, m))$\nexpect_close(\"variance-factor-01\", 1/19, 0.053, 0.0005);\nexpect_close(\"variance-factor-02\", 1/9, 0.111, 0.0005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: holt-fixed-point */\n/* If the level and trend estimates are exact after period t - 1, Holt's updates leave them exact after period t. */\nkill(t, gam)$\nlevel_prev: a + b * (t - 1)$\ntrend_prev: b$\nlevel_new: alpha * (a + b * t) + (1 - alpha) * (level_prev + trend_prev)$\ntrend_new: gam * (level_new - level_prev) + (1 - gam) * trend_prev$\nexpect_equal(\"level-stays-exact\", ratsimp(level_new - (a + b * t)), 0);\nexpect_equal(\"trend-stays-exact\", ratsimp(trend_new - b), 0);\nexpect_equal(\"forecast-exact\", ratsimp(level_new + trend_new - (a + b * (t + 1))), 0);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -60,7 +102,21 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: cover-shortfall */\n/* An order at day k covers days k to k + 2. Demand then is 3 D[k] + 3 b, but the forecast gives 3 (D[k] - b / alpha). */\ncover: 3$\nneeded: sum(d(k + j), j, 0, cover - 1)$\nplanned: cover * (d(k) - b / alpha)$\nexpect_equal(\"shortfall\", needed - planned, cover * b / alpha + b * cover * (cover - 1) / 2);\nexpect_equal(\"shortfall-default\", subst([b = 1, alpha = 1/5], cover * b / alpha + b * cover * (cover - 1) / 2), 18);",
+   "source": "/* check: error-measures */\nerrors_example: [2, -1, 3, 0, -2]$\nexpect_equal(\"bias\", lsum(x, x, errors_example) / 5, 2/5);\nexpect_equal(\"mae\", lsum(abs(x), x, errors_example) / 5, 8/5);\nexpect_equal(\"rmse-squared\", lsum(x^2, x, errors_example) / 5, 18/5);\nexpect_close(\"rmse\", sqrt(18/5), 1.90, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: cover-shortfall */\n/* After period t, the next n periods demand n d[t] + b n (n + 1) / 2, and the smoothed forecast plans\n   n (d[t] - b (1 - alpha) / alpha). */\nkill(n, t)$\nneeded: ratsimp(ev(sum(d(t + j), j, 1, n), simpsum))$\nplanned: n * (d(t) - b * (1 - alpha) / alpha)$\nexpect_equal(\"needed\", ratsimp(needed - (n * d(t) + b * n * (n + 1) / 2)), 0);\nexpect_equal(\"shortfall\", ratsimp(needed - planned - (n * b * (1 - alpha) / alpha + b * n * (n + 1) / 2)), 0);\nshortfall(n, b, alpha) := n * b * (1 - alpha) / alpha + b * n * (n + 1) / 2$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: cover-shortfall-shop */\n/* The Shop: n = 3 days, b = 1 a day, alpha = 0.2. */\nexpect_equal(\"lag-term\", 3 * 1 * (4/5) / (1/5), 12);\nexpect_equal(\"growth-term\", 1 * 3 * 4 / 2, 6);\nexpect_equal(\"shortfall-shop\", shortfall(3, 1, 1/5), 18);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -74,21 +130,21 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: error-measures */\nerrors_example: [2, -1, 3, 0, -2]$\nexpect_equal(\"bias\", lsum(x, x, errors_example) / 5, 2/5);\nexpect_equal(\"mae\", lsum(abs(x), x, errors_example) / 5, 8/5);\nexpect_equal(\"rmse-squared\", lsum(x^2, x, errors_example) / 5, 18/5);\nexpect_close(\"rmse\", sqrt(18/5), 1.90, 0.005);",
+   "source": "/* check: exercise-faster-smoothing */\nexpect_equal(\"alpha-05-lag\", subst([b = 1, alpha = 1/2], b / alpha), 2);\nexpect_equal(\"alpha-05-shortfall\", shortfall(3, 1, 1/2), 9);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: exercise-faster-smoothing */\nexpect_equal(\"alpha-05-lag\", subst([b = 1, alpha = 1/2], b / alpha), 2);\nexpect_equal(\"alpha-05-safety\", subst([b = 1, alpha = 1/2], cover * b / alpha + b * cover * (cover - 1) / 2), 9);",
+   "source": "/* check: exercise-ma-lag */\nexpect_equal(\"ma-9-lag\", subst([b = 2, n = 9], b * (n + 1) / 2), 10);\nexpect_equal(\"ma-9-alpha\", rhs(first(solve(2 / alpha - 1 = 9, alpha))), 1/5);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: exercise-ma-lag */\nexpect_equal(\"ma-9-lag\", subst([b = 2, n = 9], b * (n + 1) / 2), 10);",
+   "source": "/* check: exercise-error-variance */\n/* The standard deviation of the forecast error, as a multiple of sigma. */\nexpect_close(\"smoothing-error-sd\", sqrt(subst(alpha = 1/5, 2 / (2 - alpha))), 1.054, 0.0005);\nexpect_close(\"ma-error-sd\", sqrt(1 + 1/9), 1.054, 0.0005);\nexpect_close(\"faster-error-sd\", sqrt(subst(alpha = 1/2, 2 / (2 - alpha))), 1.155, 0.0005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

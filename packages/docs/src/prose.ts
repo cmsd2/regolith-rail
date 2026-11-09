@@ -58,14 +58,7 @@ export const PROSE_EXEMPTION = "prose-ok";
  * Book chapters still in their first edition. Their prose findings are reported as a count and
  * do not fail the check; each chapter leaves this list when it is rewritten.
  */
-export const PROSE_PENDING: ReadonlySet<string> = new Set([
-  "book/randomness",
-  "book/order-quantities",
-  "book/newsvendor",
-  "book/base-stock",
-  "book/safety-stock",
-  "book/forecasting",
-]);
+export const PROSE_PENDING: ReadonlySet<string> = new Set([]);
 
 interface Page {
   slug: string;

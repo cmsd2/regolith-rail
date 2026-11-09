@@ -32,6 +32,20 @@
   },
   {
    "cell_type": "code",
+   "source": "/* check: overage-underage */\n/* Q = D + (Q - D)^+ - (D - Q)^+, so the cost is c E[D] plus an overage cost c and an underage cost p - c. */\nmean_demand: sum(demand_probs[i] * demand_values[i], i, 1, n_values)$\nexpect_equal(\"mean-demand\", mean_demand, 15);\nsplit(q) := unit_cost * mean_demand + unit_cost * leftover(q) + (lost_cost - unit_cost) * shortfall(q)$\nexpect_equal(\"cost-split\", lsum(abs(e), e, makelist(expected_cost(q) - split(q), q, 0, 30)), 0);\nfor y in [-4, 0, 7/2] do expect_equal(\"positive-parts\", max(y, 0) - max(-y, 0), y)$\nexpect_equal(\"identity-done\", 1, 1);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: convexity */\n/* The marginal cost c - p P(D > Q) never falls as Q grows, so the expected cost is convex. */\nmarginal: makelist(expected_cost(q + 1) - expected_cost(q), q, 0, 29)$\nexpect_equal(\"marginal-nondecreasing\", is(lmin(makelist(marginal[i + 1] - marginal[i], i, 1, 29)) >= 0), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
    "source": "/* check: marginal-cost */\n/* One more unit costs the unit cost for certain, and saves the lost-demand cost when demand exceeds the order. */\ngot: makelist(expected_cost(q + 1) - expected_cost(q), q, 0, 29)$\nwant: makelist(unit_cost - lost_cost * (1 - cdf(q)), q, 0, 29)$\nexpect_equal(\"marginal-cost\", lsum(abs(d), d, got - want), 0);",
    "metadata": {},
    "execution_count": null,
@@ -39,14 +53,14 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: optimality-condition */\n/* Adding a unit stops paying, c - p (1 - F) >= 0, exactly when the chance F that demand is covered reaches (p - c) / p, since p > 0. */\nexpect_equal(\"optimality-condition\", c - p * (1 - F) - p * (F - (p - c) / p), 0);",
+   "source": "/* check: optimality-condition */\n/* Adding a unit stops paying, c - p (1 - F) >= 0, exactly when the chance F that demand is covered reaches (p - c) / p, since p > 0. */\nkill(c, p, F)$\nexpect_equal(\"optimality-condition\", c - p * (1 - F) - p * (F - (p - c) / p), 0);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: critical-ratio */\nexpect_equal(\"critical-ratio-general\", subst([cu = pp - cc, co = cc], cu / (cu + co)), (pp - cc) / pp);\nexpect_equal(\"critical-ratio\", (lost_cost - unit_cost) / lost_cost, 3/5);",
+   "source": "/* check: critical-ratio */\nkill(cu, co, pp, cc)$\nexpect_equal(\"critical-ratio-general\", subst([cu = pp - cc, co = cc], cu / (cu + co)), (pp - cc) / pp);\nexpect_equal(\"critical-ratio\", (lost_cost - unit_cost) / lost_cost, 3/5);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -74,7 +88,42 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: expected-leftover */\nexpect_equal(\"expected-leftover\", leftover(15), 20/9);\nexpect_close(\"expected-leftover-decimal\", leftover(15), 2.22, 0.005);",
+   "source": "/* check: continuous-demand */\n/* Demand uniform on [0, 30]: the derivative of the cost is c - p (1 - F(Q)), which vanishes at the critical ratio. */\nkill(Q, t, c, p)$\nassume(Q > 0, Q < 30)$\ntail_mean: integrate((t - Q) / 30, t, Q, 30)$\ncost_u: c * Q + p * tail_mean$\nexpect_equal(\"cost-derivative\", diff(cost_u, Q), c - p * (1 - Q / 30));\nbest_u: rhs(solve(diff(cost_u, Q) = 0, Q)[1])$\nexpect_equal(\"first-order-condition\", best_u / 30, (p - c) / p);\nexpect_equal(\"uniform-order\", subst([c = 2, p = 5], best_u), 18);\nexpect_equal(\"uniform-shortfall\", subst(Q = 18, tail_mean), 12/5);\nexpect_equal(\"uniform-cost\", subst([c = 2, p = 5, Q = 18], cost_u), 48);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: tail-integral */\n/* The expected shortfall is the integral of the tail probability 1 - F from Q, here for uniform demand. */\nexpect_equal(\"shortfall-as-integral\", tail_mean, integrate(1 - t / 30, t, Q, 30));\nexpect_equal(\"shortfall-closed-form\", ratsimp(tail_mean - (30 - Q)^2 / 60), 0);\nexpect_equal(\"shortfall-derivative\", ratsimp(diff(tail_mean, Q) + (1 - Q / 30)), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: loss-function */\nload(distrib)$\nphi(z) := pdf_normal(z, 0, 1)$\nPhi(z) := cdf_normal(z, 0, 1)$\nG(z) := phi(z) - z * (1 - Phi(z))$\n/* The density satisfies phi'(t) = -t phi(t), so the integral of t phi(t) from z is phi(z). */\nkill(t)$\nexpect_equal(\"density-derivative\", diff(phi(t), t), -t * phi(t));\nfor z in [-1, 0, 1/2, 2] do\n  expect_close(\"loss-integral\", first(quad_qagi((t - z) * phi(t), t, z, inf)), float(G(z)), 1e-8)$\nexpect_close(\"loss-at-zero\", G(0), 0.3989, 0.00005);\nexpect_equal(\"loss-derivative\", ratsimp(diff(G(t), t) - (Phi(t) - 1)), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: normal-shortfall */\n/* For D normal with mean 100 and standard deviation 20, the expected shortfall at Q = 100 + 20 z is 20 G(z). */\nfor z in [-1/2, 0, 1/2, 1] do\n  expect_close(\"normal-shortfall\", first(quad_qagi((t - (100 + 20 * z)) * pdf_normal(t, 100, 20), t, 100 + 20 * z, inf)), float(20 * G(z)), 1e-7)$\nexpect_close(\"shortfall-at-mean\", 20 * G(0), 7.979, 0.0005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: normal-optimum */\n/* With 1 - Phi(z) = c / p at the optimum, the cost c (mu + z sigma) + p sigma G(z) is c mu + p sigma phi(z). */\nkill(c, p, mu, sigma, zz, ph)$\ncost_at_z: c * (mu + zz * sigma) + p * sigma * (ph - zz * (c / p))$\nexpect_equal(\"normal-optimal-cost\", ratsimp(cost_at_z), ratsimp(c * mu + p * sigma * ph));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: normal-example */\n/* Mean 100, standard deviation 20, unit cost 2 and lost-demand cost 5. */\nz5: quantile_normal(3/5, 0, 1)$\nexpect_close(\"z-star\", z5, 0.2533, 0.00005);\nexpect_close(\"order\", 100 + 20 * z5, 105.07, 0.005);\nexpect_close(\"density-at-z\", phi(z5), 0.3863, 0.00005);\nexpect_close(\"cost-of-uncertainty\", 5 * 20 * phi(z5), 38.63, 0.005);\nexpect_close(\"optimal-cost\", 2 * 100 + 5 * 20 * phi(z5), 238.63, 0.005);\n/* Ordering the mean costs c mu + p sigma G(0). */\nexpect_close(\"cost-at-mean\", 2 * 100 + 5 * 20 * G(0), 239.89, 0.005);\nexpect_close(\"saving\", 5 * 20 * (G(0) - phi(z5)), 1.26, 0.005);\n/* With a lost-demand cost of 10 the ratio is 4/5. */\nz10: quantile_normal(4/5, 0, 1)$\nexpect_close(\"z-star-ten\", z10, 0.8416, 0.00005);\nexpect_close(\"order-ten\", 100 + 20 * z10, 116.83, 0.005);\nexpect_close(\"cost-of-uncertainty-ten\", 10 * 20 * phi(z10), 55.99, 0.005);\nexpect_close(\"saving-ten\", 10 * 20 * (G(0) - phi(z10)), 23.80, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -88,7 +137,21 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: normal-demand */\nload(distrib)$\nexpect_close(\"normal-order\", quantile_normal(3/5, 100, 20), 105.07, 0.005);\nexpect_close(\"normal-z\", quantile_normal(3/5, 0, 1), 0.2533, 0.00005);",
+   "source": "/* check: expected-leftover */\nexpect_equal(\"expected-leftover\", leftover(15), 20/9);\nexpect_close(\"expected-leftover-decimal\", leftover(15), 2.22, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-exponential */\n/* Exponential demand with mean 15: F(Q) = 1 - exp(-Q / 15) reaches 3/5 at Q = 15 log(5/2). */\nkill(Q)$\nbest_e: rhs(solve(1 - exp(-Q / 15) = 3/5, Q)[1])$\nexpect_equal(\"exponential-order\", best_e, 15 * log(5/2));\nexpect_close(\"exponential-order-decimal\", best_e, 13.74, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-half-ratio */\n/* Unit cost 2 and lost-demand cost 4: the ratio is 1/2, so the order is the mean. */\nexpect_equal(\"half-ratio\", (4 - 2) / 4, 1/2);\nexpect_equal(\"half-ratio-z\", quantile_normal(1/2, 0, 1), 0);\nexpect_close(\"half-ratio-uncertainty\", 4 * 20 * phi(0), 31.92, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

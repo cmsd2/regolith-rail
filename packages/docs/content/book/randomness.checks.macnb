@@ -18,7 +18,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* Poisson counts: the chance of k arrivals when the mean count is m. */\nassume(m > 0, lam > 0)$\npmf(k) := exp(-m) * m^k / k!$",
+   "source": "/* Poisson counts: the chance of k arrivals when the mean count is m. */\nassume(m > 0, lam > 0)$\npmf(k) := exp(-m) * m^k / k!$\n/* The chance of more than x arrivals when the mean count is mu. */\ntail(x, mu) := 1 - sum(float(subst(m = mu, pmf(k))), k, 0, x)$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -32,35 +32,98 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: exponential-gap */\n/* No arrival in a gap of length s is zero arrivals with mean lam s; the gaps then have mean 1/lam. */\nexpect_equal(\"no-arrival\", subst(m = lam * s, pmf(0)), exp(-lam * s));\nexpect_equal(\"mean-gap\", integrate(s * lam * exp(-lam * s), s, 0, inf), 1 / lam);",
+   "source": "/* check: shortage-probability */\n/* Demand with mean 10 before the next delivery exceeds a stock of x. */\nexpect_close(\"shortage-10\", tail(10, 10), 0.4170, 0.00005);\nexpect_close(\"shortage-12\", tail(12, 10), 0.2084, 0.00005);\nexpect_close(\"shortage-15\", tail(15, 10), 0.0487, 0.00005);\nexpect_close(\"shortage-18\", tail(18, 10), 0.0072, 0.00005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: standard-error */\n/* The mean of n independent runs has standard deviation sigma / sqrt(n): four times the runs halve it. */\nse(n) := sigma / sqrt(n)$\nexpect_equal(\"standard-error-quarter\", se(4 * n) / se(n), 1/2);\nexpect_equal(\"seeds-to-halve\", rhs(first(solve(sigma / sqrt(n2) = sigma / (2 * sqrt(100)), n2))), 400);",
+   "source": "/* check: line-demand */\n/* The dome's rate in each two-hour block is u (1 + U), with U uniform between -1/5 and 1/5. */\nvar_u: integrate(x^2 / (2/5), x, -1/5, 1/5)$\nexpect_equal(\"uniform-variance\", var_u, 1/75);\nblocks: 10 * 24 / 2$\nblock_mean: 2 * 36/24$\nexpect_equal(\"blocks\", blocks, 120);\nexpect_equal(\"block-mean\", block_mean, 3);\nexpect_equal(\"demand-mean\", blocks * block_mean, 360);\nexpect_equal(\"demand-variance\", blocks * block_mean^2 * var_u, 72/5);\nexpect_close(\"demand-sd\", sqrt(blocks * block_mean^2 * var_u), 3.79, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: paired-variance */\n/* The difference of two runs on the same seed has variance a^2 + b^2 - 2 rho a b. */\npaired(a, b, rho) := a^2 + b^2 - 2 * rho * a * b$\nexpect_equal(\"paired-general\", paired(sigma, sigma, rho), 2 * sigma^2 * (1 - rho));\nexpect_equal(\"paired-ratio-09\", paired(sigma, sigma, 9/10) / paired(sigma, sigma, 0), 1/10);\nexpect_equal(\"paired-ratio-075\", paired(sigma, sigma, 3/4) / paired(sigma, sigma, 0), 1/4);",
+   "source": "/* check: sample-statistics */\n/* The sample mean and the sample variance, with divisor n - 1, of the observations 2, 4 and 9. */\nobs: [2, 4, 9]$\nxbar_obs: apply(\"+\", obs) / 3$\ns2_obs: apply(\"+\", map(lambda([v], (v - xbar_obs)^2), obs)) / 2$\nexpect_equal(\"sample-mean-example\", xbar_obs, 5);\nexpect_equal(\"sample-variance-example\", s2_obs, 13);\n/* The divisor n - 1 makes the sample variance unbiased: for two independent copies of X uniform on\n   1, 2, 3, the sample variance (a - b)^2 / 2 averages to the variance of X, 2/3. */\npairs: create_list((a - b)^2 / 2, a, [1, 2, 3], b, [1, 2, 3])$\nexpect_equal(\"sample-variance-unbiased\", apply(\"+\", pairs) / 9, 2/3);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: no-arrival-day */\nexpect_close(\"no-arrival-day\", subst([lam = 4, s = 1], exp(-lam * s)), 0.0183, 0.00005);",
+   "source": "/* check: sample-mean */\n/* The mean of n independent copies has the same mean and 1/n of the variance. */\nkill(n, mu, sigma)$\nexpect_equal(\"mean-of-mean\", n * mu / n, mu);\nexpect_equal(\"variance-of-mean\", n * sigma^2 / n^2, sigma^2 / n);\n/* By enumeration: X uniform on 1, 2, 3, and every pair of two independent copies. */\nvals: [1, 2, 3]$\nmu1: apply(\"+\", vals) / 3$\nvar1: apply(\"+\", map(lambda([v], (v - mu1)^2), vals)) / 3$\nmeans: create_list((a + b) / 2, a, vals, b, vals)$\nmu2: apply(\"+\", means) / 9$\nvar2: apply(\"+\", map(lambda([v], (v - mu2)^2), means)) / 9$\nexpect_equal(\"enumerated-mean\", mu2, mu1);\nexpect_equal(\"enumerated-variance\", var2, var1 / 2);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: binomial-substeps */\n/* A binomial count over n sub-steps with chance p each has mean n p and variance n p (1 - p). */\nexpect_equal(\"binomial-variance-ratio\", (n * p * (1 - p)) / (n * p), 1 - p);\n/* Four arrivals a day, 1440 minutes, eight sub-steps a minute. */\np_four: 4 / (1440 * 8)$\nexpect_equal(\"substep-chance\", p_four, 1/2880);\nexpect_equal(\"variance-shortfall-small\", is(p_four < 1/1000), true);",
+   "source": "/* check: standard-error */\n/* The standard error sigma / sqrt(n): four times the replications halve it. */\nkill(n, sigma)$\nassume(n > 0, sigma > 0)$\nse(n) := sigma / sqrt(n)$\nexpect_equal(\"standard-error-quarter\", se(4 * n) / se(n), 1/2);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: known-mean */\n/* Total demand has standard deviation sqrt(72/5); its standard error with 25, 100 and 400 replications. */\nsd_demand: sqrt(72/5)$\nexpect_close(\"se-25\", sd_demand / sqrt(25), 0.759, 0.0005);\nexpect_close(\"se-100\", sd_demand / sqrt(100), 0.379, 0.0005);\nexpect_close(\"se-400\", sd_demand / sqrt(400), 0.190, 0.0005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: replications-needed */\n/* A half-width of delta at 95% needs about (1.96 sigma / delta)^2 replications. */\nneeded(sd, delta) := (1.96 * sd / delta)^2$\nexpect_close(\"needed-quarter\", needed(3.00, 0.25), 553.2, 0.05);\nexpect_equal(\"needed-quarter-rounded\", ceiling(needed(3.00, 0.25)), 554);\nexpect_close(\"needed-half\", needed(3.00, 0.5), 138.3, 0.05);\n/* Halving delta multiplies the number by four. */\nexpect_close(\"needed-ratio\", needed(3.00, 0.25) / needed(3.00, 0.5), 4, 1e-9);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: bernoulli-variance */\n/* An indicator with chance theta has variance theta (1 - theta), greatest at theta = 1/2. */\nkill(theta)$\nexpect_equal(\"indicator-variance\", theta * 1^2 + (1 - theta) * 0^2 - theta^2, theta * (1 - theta));\nexpect_equal(\"stationary-point\", rhs(solve(diff(theta * (1 - theta), theta) = 0, theta)[1]), 1/2);\nexpect_equal(\"largest-variance\", subst(theta = 1/2, theta * (1 - theta)), 1/4);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: proportion-example */\n/* Estimating the shortage probability 0.2084. */\nth: 0.2084$\nexpect_close(\"proportion-se-400\", sqrt(th * (1 - th) / 400), 0.0203, 0.00005);\nexpect_close(\"proportion-needed\", 1.96^2 * th * (1 - th) / 0.01^2, 6337, 1);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: paired-variance */\n/* The variance of a difference, from the variances and the covariance rho a b. */\nkill(a, b, rho, sigma)$\npaired(a, b, rho) := a^2 + b^2 - 2 * rho * a * b$\n/* Expanding Var(X - Y) with a covariance matrix [[a^2, rho a b], [rho a b, b^2]] and weights (1, -1). */\ncov: matrix([a^2, rho * a * b], [rho * a * b, b^2])$\nw: matrix([1], [-1])$\nexpect_equal(\"variance-of-difference\", (transpose(w) . cov . w), paired(a, b, rho));\nexpect_equal(\"independent\", paired(a, b, 0), a^2 + b^2);\nexpect_equal(\"equal-variances\", paired(sigma, sigma, rho), 2 * sigma^2 * (1 - rho));\nexpect_equal(\"ratio-equal-variances\", paired(sigma, sigma, rho) / paired(sigma, sigma, 0), 1 - rho);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: paired-example */\n/* Stalled production: standard deviations 0.92 and 3.59, correlation 0.786. */\nsd_independent: sqrt(paired(0.92, 3.59, 0))$\nsd_paired: sqrt(paired(0.92, 3.59, 0.786))$\nexpect_close(\"independent-sd\", sd_independent, 3.71, 0.005);\nexpect_close(\"paired-sd\", sd_paired, 2.92, 0.005);\nexpect_close(\"variance-ratio\", sd_paired^2 / sd_independent^2, 0.62, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: binomial-substeps */\n/* A binomial count over n sub-steps with chance p each has mean n p and variance n p (1 - p). */\nkill(n, p)$\nexpect_equal(\"binomial-variance-ratio\", (n * p * (1 - p)) / (n * p), 1 - p);\n/* Four arrivals a day, 1440 minutes, eight sub-steps a minute. */\np_four: 4 / (1440 * 8)$\nexpect_equal(\"substep-chance\", p_four, 1/2880);\nexpect_equal(\"variance-shortfall-small\", is(p_four < 1/1000), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-poisson */\n/* Arrivals at 4 a day: no arrival in a day, and at most two. */\nexpect_close(\"no-arrival-day\", float(subst(m = 4, pmf(0))), 0.0183, 0.00005);\nexpect_close(\"at-most-two\", 1 - tail(2, 4), 0.2381, 0.00005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-equal-variances */\nexpect_equal(\"paired-ratio-075\", paired(sigma, sigma, 3/4) / paired(sigma, sigma, 0), 1/4);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

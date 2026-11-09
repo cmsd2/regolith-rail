@@ -199,6 +199,23 @@ test.describe("the book", () => {
     await context.close();
   });
 
+  test("a chapter numbers its statements and links references to them across chapters", async ({
+    page,
+  }) => {
+    await page.goto("/docs/book/flows");
+    const article = page.getByTestId("doc-article");
+    const first = article.locator("#def-flow-rates");
+    await expect(first).toHaveAttribute("data-kind", "Definition");
+    await expect(first).toContainText("Definition 2.1 (Rates of flow).");
+    await expect(article.getByTestId("proof").first()).toContainText("Proof.");
+    await expect(article.locator('[data-testid="ref"][data-to="missing"]')).toHaveCount(0);
+    const reference = article.locator('[data-testid="ref"][data-to="asm-line"]').first();
+    await expect(reference).toHaveText(/^Assumption 1\.\d+$/);
+    await reference.click();
+    await expect(page).toHaveURL(/\/docs\/book\/modelling#asm-line$/);
+    await expect(page.locator("#asm-line")).toContainText("(The line).");
+  });
+
   test("the contents lists the notation appendix, which says where it sits", async ({ page }) => {
     await page.goto("/docs/book");
     const appendices = page.getByTestId("book-appendices");

@@ -18,7 +18,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* The two-station line, in hours and units. */\nleg_distance: 72000$  speed: 5$\ntau: leg_distance / speed / 3600$      /* hours a leg */\nt0: 10/60$                             /* hours a stop, before moving anything */\nt1: 1/60$                              /* hours a stop, for each unit moved */\nkappa: 30$                             /* the train's capacity */\nxbar: 30$                              /* each station's capacity */\nu: 36/24$                              /* units the dome uses an hour */\nprod: 45/24$                           /* units the mine makes an hour */",
+   "source": "/* The two-station line, in hours and units. */\nleg_distance: 72000$  speed: 5$\ntau: leg_distance / speed / 3600$      /* hours a leg */\nt0: 10/60$                             /* hours a stop, before moving anything */\nt1: 1/60$                              /* hours a stop, for each unit moved */\nkappa: 30$                             /* the train's capacity */\nxbar: 30$                              /* each station's capacity */\nu: 36/24$                              /* units the dome uses an hour */\nprod: 45/24$                           /* units the mine makes an hour */\n/* A cycle with load a: its duration and its throughput. */\ncycle(a) := 2 * tau + 2 * (t0 + t1 * a)$\nflow(a) := a / cycle(a)$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -46,7 +46,28 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: capacity-bound */\n/* The slowest round trip moves a full load at both stops. */\nslowest_trip: 2 * tau + 2 * (t0 + t1 * kappa)$\nexpect_equal(\"slowest-trip-hours\", slowest_trip, 28/3);\nexpect_equal(\"capacity-per-day\", kappa * 24 / slowest_trip, 540/7);\nexpect_close(\"capacity-per-day-decimal\", kappa * 24 / slowest_trip, 77.1, 0.05);\nexpect_equal(\"room-to-spare\", is(kappa * 24 / slowest_trip > 2 * u * 24), true);",
+   "source": "/* check: conservation */\n/* With pos(y) = max(y, 0), pos(y) - pos(-y) = y, so stock after less unmet demand is x + a - xi. */\npos(y) := max(y, 0)$\nfor y in [-3, -1/2, 0, 2, 7/3] do expect_equal(\"positive-part-identity\", pos(y) - pos(-y), y)$\n/* The state equation and the unmet demand, for a period that runs short and one that does not. */\nfor case in [[3, 10, 14], [8, 10, 14], [0, 0, 5], [30, 0, 0]] do block([x, a, xi],\n  [x, a, xi]: case,\n  expect_equal(\"conservation\", pos(x + a - xi) + xi - pos(xi - x - a), x + a))$\nexpect_equal(\"conservation-done\", 1, 1);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: cycle-time */\n/* A cycle with load a on the line: two legs and two stops that each move a units. */\nkill(a)$\nexpect_equal(\"cycle-time\", cycle(a), 25/3 + a/30);\nexpect_equal(\"cycle-throughput\", flow(a), a / (25/3 + a/30));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: throughput */\n/* A cycle's throughput a / T(a) increases with its load. */\nkill(a, TAU, T0, T1)$\nTg: 2 * TAU + 2 * (T0 + T1 * a)$\nexpect_equal(\"throughput-derivative\", diff(a / Tg, a), 2 * (TAU + T0) / Tg^2);\nexpect_equal(\"throughput-numerator\", ratsimp(Tg - 2 * T1 * a), 2 * (TAU + T0));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: capacity-bound */\n/* The cycle with a full load. */\nexpect_equal(\"full-load-cycle-hours\", cycle(kappa), 28/3);\nexpect_equal(\"capacity-per-hour\", flow(kappa), 45/14);\nexpect_equal(\"capacity-per-day\", 24 * flow(kappa), 540/7);\nexpect_close(\"capacity-per-day-decimal\", 24 * flow(kappa), 77.1, 0.05);\nexpect_equal(\"demand-within-capacity\", is(u < flow(kappa)), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -60,6 +81,27 @@
   },
   {
    "cell_type": "code",
+   "source": "/* check: needed-load-formula */\n/* A cycle that meets a demand of U an hour carries a = U T(a). */\nkill(a, U, TAU, T0, T1)$\ngeneral: solve(a = U * (2 * TAU + 2 * (T0 + T1 * a)), a)$\nexpect_equal(\"needed-load-general\", rhs(general[1]), 2 * U * (TAU + T0) / (1 - 2 * U * T1));\n/* Its duration is then the load over the demand. */\nAg: 2 * U * (TAU + T0) / (1 - 2 * U * T1)$\nexpect_equal(\"needed-load-duration\", 2 * TAU + 2 * (T0 + T1 * Ag), Ag / U);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: needed-load */\n/* A steady cycle delivers what the dome uses in one round trip. */\nkill(a, T)$\nneeded: solve([a = u * T, T = 2 * tau + 2 * (t0 + t1 * a)], [a, T])[1]$\nabar: rhs(needed[1])$\nTbar: rhs(needed[2])$\nexpect_equal(\"needed-load\", abar, 250/19);\nexpect_close(\"needed-load-decimal\", abar, 13.16, 0.005);\nexpect_equal(\"needed-trip-hours\", Tbar, 500/57);\nexpect_close(\"needed-trip-decimal\", Tbar, 8.77, 0.005);\n/* The same in general, for a dome using U an hour. */\nkill(U, TAU, T0, T1)$\ngeneral: solve([a = U * T, T = 2 * TAU + 2 * (T0 + T1 * a)], [a, T])[1]$\nexpect_equal(\"needed-load-general\", rhs(general[1]), 2 * U * (TAU + T0) / (1 - 2 * U * T1));\n/* The cycle with that load carries exactly the demand, and lasts abar / u. */\nexpect_equal(\"needed-load-throughput\", flow(abar), u);\nexpect_equal(\"needed-load-cycle\", cycle(abar), abar / u);\nexpect_equal(\"needed-load-condition\", is(2 * u * t1 < 1), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: drain-fill-steady */\n/* The hypotheses: the mine makes at least what the dome uses, and the load fits the train and the stations. */\nexpect_equal(\"mine-covers-demand\", is(prod >= u), true);\nexpect_equal(\"load-fits\", is(abar <= min(kappa, xbar)), true);\n/* The dome, full after a stop, uses abar before the next and never runs out. */\nexpect_equal(\"dome-before-stop\", xbar - u * cycle(abar), xbar - abar);\nexpect_equal(\"dome-never-empty\", is(xbar - abar >= 0), true);\n/* With the mine making more than the dome uses, the mine refills to capacity within a cycle. */\nexpect_equal(\"mine-refills-to-capacity\", is((xbar - abar) + prod * cycle(abar) >= xbar), true);\n/* The train then leaves the mine full and returns with kappa - abar, so it loads abar again. */\nexpect_equal(\"load-repeats\", min(xbar, kappa - (kappa - abar)), abar);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
    "source": "/* check: half-difference */\n/* Moving each of two stations to their average: the fuller station gives up half the difference. */\nkill(m, d)$\nexpect_equal(\"half-difference\", m - (m + d) / 2, (m - d) / 2);",
    "metadata": {},
    "execution_count": null,
@@ -67,7 +109,28 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: needed-load */\n/* A steady cycle delivers what the dome uses in one round trip. */\nkill(a, T)$\nneeded: solve([a = u * T, T = 2 * tau + 2 * (t0 + t1 * a)], [a, T])[1]$\nabar: rhs(needed[1])$\nTbar: rhs(needed[2])$\nexpect_equal(\"needed-load\", abar, 250/19);\nexpect_close(\"needed-load-decimal\", abar, 13.16, 0.005);\nexpect_equal(\"needed-trip-hours\", Tbar, 500/57);\nexpect_close(\"needed-trip-decimal\", Tbar, 8.77, 0.005);\n/* The same in general, for a dome using U an hour. */\nkill(U, TAU, T0, T1)$\ngeneral: solve([a = U * T, T = 2 * TAU + 2 * (T0 + T1 * a)], [a, T])[1]$\nexpect_equal(\"needed-load-general\", rhs(general[1]), 2 * U * (TAU + T0) / (1 - 2 * U * T1));",
+   "source": "/* check: capacity-requirement */\n/* Loading A by balancing needs m - d = 2 A, and the dome needs d >= U (TAU + T0 + T1 A) to last the trip. */\nkill(m, d, A, U, TAU, T0, T1)$\nexpect_equal(\"gap-for-load\", rhs(solve((m - d) / 2 = A, m)[1]), d + 2 * A);\ndmin: U * (TAU + T0 + T1 * A)$\nexpect_equal(\"mine-stock-needed\", dmin + 2 * A, 2 * A + U * (TAU + T0 + T1 * A));",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: smallest-station */\n/* Balancing keeps up when its steady load reaches the needed one; the smallest station that allows it. */\nxmin_formula(A, UU, TT, TT0, TT1) := 2 * A + UU * (TT + TT0 + TT1 * A)$\nxmin: xmin_formula(abar, u, tau, t0, t1)$\nexpect_equal(\"smallest-station\", xmin, 625/19);\nexpect_close(\"smallest-station-decimal\", xmin, 32.89, 0.005);\n/* The same threshold from the balancing load: (3 - u t1) abar - u (tau + t0). */\nexpect_equal(\"smallest-station-agrees\", xmin, (3 - u * t1) * abar - u * (tau + t0));\n/* At that size, balancing's load is exactly the needed one. */\nexpect_equal(\"threshold-load\", (xmin + u * (tau + t0)) / (3 - u * t1), abar);\n/* Its two parts: the gap balancing needs to load abar, and what the dome must hold at the mine stop. */\nexpect_equal(\"gap-part\", 2 * abar, 500/19);\nexpect_close(\"gap-part-decimal\", 2 * abar, 26.32, 0.005);\nexpect_equal(\"carry-part\", u * (tau + t0 + t1 * abar), 125/19);\nexpect_close(\"carry-part-decimal\", u * (tau + t0 + t1 * abar), 6.58, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: capacity-factor */\n/* In general the capacity balancing needs is five halves of the load that meets demand. */\nkill(U, TAU, T0, T1)$\nabar_g: 2 * U * (TAU + T0) / (1 - 2 * U * T1)$\nxmin_g: 2 * abar_g + U * (TAU + T0 + T1 * abar_g)$\nexpect_equal(\"capacity-factor\", xmin_g, 5/2 * abar_g);\nexpect_equal(\"capacity-factor-line\", xmin, 5/2 * abar);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: balancing-load-formula */\n/* Mine full, train empty: the load is half the gap, and the dome has what the last load left. */\nkill(a, d, X, U, TAU, T0, T1)$\ngen: solve([a = (X - d) / 2, d = a - U * (TAU + T0 + T1 * a)], [a, d])[1]$\nexpect_equal(\"balancing-load-general\", rhs(gen[1]), (X + U * (TAU + T0)) / (3 - U * T1));",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -81,21 +144,21 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: balancing-assumptions */\n/* The dome runs out before the train arrives: what it holds at the mine stop lasts less than the trip. */\nexpect_equal(\"dome-runs-out\", is(dbal < u * (tau + t0 + t1 * abal)), true);\n/* The mine is full again by the next mine stop: it refills faster than the train takes. */\nexpect_equal(\"mine-refills\", is(prod * (Tbal - (t0 + t1 * abal)) >= abal), true);\n/* At the dome, half the gap is more than the train carries, so it unloads everything. */\nmine_at_dome: xbar - abal + prod * (tau + t0 + t1 * abal)$\nexpect_equal(\"unloads-all\", is((min(mine_at_dome, xbar) - 0) / 2 >= abal), true);",
+   "source": "/* check: balancing-assumptions */\n/* The dome has stock when the train reaches the mine, and it runs out before the train reaches the dome. */\nto_dome: tau + t0 + t1 * abal$\nexpect_close(\"dome-at-mine-stop\", dbal, 5.63, 0.005);\nexpect_close(\"dome-lasts-hours\", dbal / u, 3.75, 0.005);\nexpect_close(\"train-arrives-after\", to_dome, 4.37, 0.005);\nexpect_equal(\"dome-has-stock\", is(dbal > 0), true);\nexpect_equal(\"dome-runs-out\", is(dbal / u < to_dome), true);\n/* The mine makes more in a round trip than the train takes, so its station refills. */\nexpect_close(\"mine-makes\", prod * Tbal, 16.4, 0.05);\nexpect_equal(\"mine-refills\", is(prod * Tbal >= abal), true);\n/* At the dome, half the difference in stock is more than the train carries, so it unloads everything. */\nmine_at_dome: min(xbar, xbar - abal + prod * to_dome)$\nexpect_close(\"half-difference-at-dome\", mine_at_dome / 2, 13.0, 0.05);\nexpect_equal(\"unloads-all\", is(mine_at_dome / 2 >= abal), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: balancing-shortfall */\ndelivered: 24 * abal / Tbal$\nexpect_equal(\"delivered-per-day\", delivered, 435/13);\nexpect_equal(\"unmet-per-day\", 24 * u - delivered, 33/13);\nexpect_close(\"unmet-per-day-decimal\", 24 * u - delivered, 2.54, 0.005);\nexpect_equal(\"stalled-per-day\", 24 * prod - delivered, 150/13);",
+   "source": "/* check: balancing-shortfall */\ndelivered: 24 * abal / Tbal$\nexpect_equal(\"delivered-per-day\", delivered, 435/13);\nexpect_equal(\"unmet-per-day\", 24 * u - delivered, 33/13);\nexpect_close(\"unmet-per-day-decimal\", 24 * u - delivered, 2.54, 0.005);\nexpect_equal(\"stalled-per-day\", 24 * prod - delivered, 150/13);\nexpect_equal(\"unmet-per-hour\", u - flow(abal), 11/104);\nexpect_equal(\"flow-per-hour\", flow(abal), 145/104);\nexpect_close(\"stalled-per-day-decimal\", 24 * (prod - flow(abal)), 11.54, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: smallest-station */\n/* Balancing keeps up when its steady load reaches the needed one; the smallest station that allows it. */\nxmin_formula(A, UU, TT, TT0, TT1) := 2 * A + UU * (TT + TT0 + TT1 * A)$\nxmin: xmin_formula(abar, u, tau, t0, t1)$\nexpect_equal(\"smallest-station\", xmin, 625/19);\nexpect_close(\"smallest-station-decimal\", xmin, 32.89, 0.005);\n/* The same threshold from the balancing load: (3 - u t1) abar - u (tau + t0). */\nexpect_equal(\"smallest-station-agrees\", xmin, (3 - u * t1) * abar - u * (tau + t0));\n/* At that size, balancing's load is exactly the needed one. */\nexpect_equal(\"threshold-load\", (xmin + u * (tau + t0)) / (3 - u * t1), abar);\n/* Its two parts: the gap balancing needs to load abar, and what the dome must hold at the mine stop. */\nexpect_equal(\"gap-part\", 2 * abar, 500/19);\nexpect_close(\"gap-part-decimal\", 2 * abar, 26.32, 0.005);\nexpect_equal(\"carry-part\", u * (tau + t0 + t1 * abar), 125/19);\nexpect_close(\"carry-part-decimal\", u * (tau + t0 + t1 * abar), 6.58, 0.005);",
+   "source": "/* check: balancing-max-demand */\n/* Balancing can meet a demand only if its load 2 xbar / 5 carries it. */\namax: 2 * xbar / 5$\nexpect_equal(\"largest-load\", amax, 12);\nexpect_equal(\"largest-demand-per-hour\", flow(amax), 180/131);\nexpect_equal(\"largest-demand-per-day\", 24 * flow(amax), 4320/131);\nexpect_close(\"largest-demand-decimal\", 24 * flow(amax), 32.98, 0.005);\nexpect_equal(\"share-of-capacity\", flow(amax) / flow(kappa), 56/131);\nexpect_close(\"share-of-capacity-decimal\", flow(amax) / flow(kappa), 0.43, 0.005);\nexpect_equal(\"demand-exceeds-it\", is(u > flow(amax)), true);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

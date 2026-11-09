@@ -31,7 +31,7 @@ export const PLACEHOLDERS: readonly Capability[] = [
   },
   {
     id: "smooth-seasonal-demand",
-    needs: "a seasonal demand profile smoother than two flat halves",
+    needs: "a seasonal demand profile smoother than two levels",
   },
 ];
 

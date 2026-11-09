@@ -88,11 +88,14 @@ Three examples recur so that the reader sees one system gain structure.
 | --- | --- | --- |
 | The two-station line | Mine 45 a day, Dome 36 a day, 30-unit stations, one train, 4-hour legs | 1, 2, 3, 6 (side note and exercise), 7 (storm shock) |
 | The relay line | Mine, empty junction, Dome 34 a day, 2-hour legs | 2 |
-| The Shop | Demand 10 a day, order cost 20, holding 1 a unit a day, backorder 10 a unit a day | 4, 6, 7, 8 |
+| The Shop | Demand 10 a day, holding 1 a unit a day; order cost 20 in chapter 4, backorder 10 a unit a day in chapter 6 | 4, 6, 7, 8 |
 
-The Shop's parameters are the `classic.reorder` defaults. Chapter 7 sets `classic.safety_stock` to the same
-demand and costs, and chapter 8 sets `classic.forecasting { level = 10 }` so that demand starts where
-chapter 7 left it. The newsvendor stand in chapter 5 stands alone, since a single period cannot carry over.
+The Shop's parameters in chapter 4 are the `classic.reorder` defaults. Each later chapter states its changes
+as a numbered assumption with a table of values. Chapter 6 makes the demand Poisson, reviews hourly, adds a
+lead time of 1 day and a backorder cost, and drops the order cost. Chapter 7 reviews weekly, draws a lead
+time of 1 or 3 days, and replaces the backorder cost with a service target. Chapter 8 sets
+`classic.forecasting { level = 10 }`, so that demand grows from the Shop's 10 a day. The newsvendor stand in
+chapter 5 stands alone, since a single period cannot carry over.
 
 ### 4. Predict, then run
 
@@ -104,6 +107,9 @@ Every "In the simulator" section follows one pattern.
 4. Change one thing and run the second.
 5. Show a table of predicted and simulated values. From chapter 3 on, simulated values carry a 95% interval
    from a batch, and the prose says whether the prediction falls inside it.
+
+Decision 10 keeps this pattern and shortens the section: the simulator grounds the model and does not carry
+the argument.
 
 A new `Predicted` MDX component wraps that table, written as a Markdown table with a quantity column, a
 model column and a simulation column, and a check inside it citing what verifies the numbers. Checks run in
@@ -143,7 +149,8 @@ When an example needs something the simulator cannot do, the chapter keeps the e
 the mechanical ones.
 
 **Tone.** Neutral and technical. Explain how a result arises and when it holds. Let the reader draw the
-conclusion. A paragraph ends when its point is made, without a summarising line.
+conclusion. A paragraph ends when its point is made, without a summarising line. Decision 10 makes the
+register that of a mathematics text.
 
 **Linted** (errors in Book pages, outside code and maths):
 - em dashes;
@@ -185,12 +192,55 @@ Harvard style with printed page numbers, as now. Each chapter cites the sources 
 University modules are not cited. Where a chapter recalls a standard statistical result it states it without
 citation.
 
+### 10. A mathematical register, with numbered statements
+
+Added 2026-11-09, after the first rewrite of chapters 1 and 2 was reviewed. The book reads as a mathematics
+text. This decision replaces the tone of decision 7 and narrows decision 4.
+
+- **Register.** Neutral, declarative and impersonal, as in a scientific paper. No second person outside
+  the fixed heading "What you will learn". Instructions in the simulator section and in exercises use the
+  imperative.
+- **Statements.** The model section is built from numbered statements: `Definition`, `Assumption`,
+  `Lemma`, `Proposition`, `Theorem`, `Corollary`, `WorkedExample` (labelled Example) and `Remark`, with
+  `Proof` after a result. Each has an `id`. The build numbers them in one sequence per chapter, and
+  `<Ref to="id" />` cites one by kind and number with a link, within a chapter or across chapters. The
+  documentation check fails on a statement without an id, a repeated id, an id that a heading uses, and a
+  reference that names no statement.
+- **Proofs.** A result is proved when the proof shows why it holds or exercises a technique the reader
+  reuses. A result whose proof is long or needs tools beyond the prerequisites is stated with a citation,
+  or with a sketch marked as one.
+- **Computations.** Each result is followed by a worked example on the chapter's running example, with the
+  substitution shown.
+- **Checks.** A statement and its proof count as part of the text around them, so one grouped check after a
+  proof covers the formulas in both. Each displayed formula has its own check cell.
+- **The simulator section** grounds the model and stays short: the scenario, the policies as code, what to
+  run, and a `Predicted` table. Library vocabulary stays out of the model section. New simulation work is
+  kept to what a chapter's claims need.
+
+*Alternative:* statements written as bold run-in text with numbers typed by hand. Rejected: inserting a
+statement would renumber every later reference by hand.
+
+#### Statements in Part II
+
+As written, 2026-11-09.
+
+| Chapter | Proved | Stated with a citation |
+| --- | --- | --- |
+| 4 Order quantities | That an optimal plan orders at zero stock, by an exchange argument, and in equal quantities; the average cost of a fixed quantity; the EOQ and its cost by completing the square, with the first-order condition noted; optimality among all plans; the sensitivity ratio; the reorder point with a lead time; a cost bound for an $(s, S)$ policy under periodic review | Optimality of $(s, S)$ policies with a fixed order cost and random demand |
+| 5 Newsvendor | The overage and underage form of the cost; convexity; the critical ratio, by marginal analysis for discrete demand and by the derivative for continuous demand; the loss-function identity; the optimal order and the cost $c\,\mu + p\,\sigma\,\phi(z^*)$ under normal demand | |
+| 6 Base-stock | The inventory level after a lead time as the position less the demand in between; the level during a cycle; the base-stock level as a critical-ratio quantile of the cycle-average cost, bounded by the quantiles over $L$ and over $R + L$; the over-ordering of a rule that uses stock on hand, as an example | Optimality of base-stock policies without a fixed cost; the level $S_{R+L}$ when costs are charged at the end of each period |
+| 7 Safety stock | The cycle service level under a random lead time; the variance of demand over a random interval, by conditioning; the safety stock under the normal approximation; the fill rate | |
+| 8 Forecasting | Smoothing as a weighted average, with its mean age; the variance of a moving average and of exponential smoothing under a constant mean; the lag of each under a linear trend; that Holt's method keeps exact estimates exact; the shortfall of a lagging forecast over the protection interval | Convergence of Holt's method from inexact initial estimates; Winters' method |
+
 ## Per-chapter plan
 
 Each chapter lists its sources, the subsections of its model section in order, the displayed results, the
 simulator comparisons and any placeholders. Formulas are given as they will appear.
 
 ### Chapter 1: Modelling operations
+
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
 
 **Sources.** Eiselt and Sandblom (2022), ch. 1: the phases of a study (feasibility, optimality, sensitivity,
 implementability), parameters against variables, proxy objectives (PDF pp. 18–25). Taha (2017), ch. 1:
@@ -223,6 +273,9 @@ short. Then variability back on, one seed, both policies. No replications. The `
 
 ### Chapter 2: Flows, rates and Little's law
 
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
+
 **Sources.** Little (1961). Eiselt and Sandblom (2022), ch. 15, Little's formula in waiting-line models (PDF
 pp. 464–468). Brémaud, the section on Little's formula. Taha (2017), queueing chapter (pp. 667–668, already
 cited).
@@ -253,6 +306,9 @@ measured time aboard, so the in-transit comparison uses measured cargo ($L$) and
 against the scenario's trip time ($W$). The direct measurement of $W$ stays at the dome, where the table has it.
 
 ### Chapter 3: Randomness and simulation
+
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
 
 **Sources.** Taha (2017), ch. 19: Monte Carlo, the elements of discrete-event simulation, and gathering
 observations (PDF pp. 709–735). Brémaud, the Monte Carlo chapter, for the estimator and its variance.
@@ -287,6 +343,9 @@ simulator change is needed.
 
 ### Chapter 4: Order quantities: the EOQ and (s, S)
 
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
+
 **Sources.** Snyder and Shen (2019), §3.2: problem, cost function, optimum, sensitivity and lead times
 (chapter 3 PDF pp. 9–18). Axsäter (2015), §4.1 (PDF pp. 54–57 onwards). Taha (2017), §13.3. Eiselt and
 Sandblom (2022), §§12.2–12.3. Simchi-Levi, Chen and Bramel, §§9.4–9.5 for the optimality of $(s, S)$, stated
@@ -314,6 +373,9 @@ trip cost in the `mars` pack.
 
 ### Chapter 5: One period under uncertainty: the newsvendor
 
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
+
 **Sources.** Snyder and Shen (2019), §§4.3.1–4.3.2, including the optimal cost under normal demand (eq. 4.30,
 chapter 4 PDF pp. 6–22). Axsäter (2015), the newsboy model (PDF pp. 104–107).
 
@@ -332,6 +394,9 @@ normal demand table in Lua, ordering $\mu$ against $S^*$: the gap in cost agains
 **Placeholders.** None expected. If the discretised table proves awkward, `normal-per-period-demand`.
 
 ### Chapter 6: Reviews, lead times and base-stock
+
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
 
 **Sources.** Snyder and Shen (2019), §4.3.4, the infinite-horizon base-stock level (chapter 4 PDF
 pp. 30–33), and Theorem 4.8 on the optimality of base-stock policies without fixed costs (PDF pp. 59–64).
@@ -358,6 +423,9 @@ position.
 
 ### Chapter 7: Safety stock and service levels
 
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
+
 **Sources.** Snyder and Shen (2019), the type 1 and type 2 service levels and the fill rate (chapter 4 PDF
 pp. 36–46). Axsäter (2015), service levels $S_1$ to $S_3$ (PDF pp. 90–93). Eiselt and Sandblom (2022), §12.7,
 the EOQ with random lead-time demand.
@@ -380,6 +448,9 @@ without a stockout or the fill rate. Until it does, the chapter derives them fro
 placeholder describes the metric view the reader would use.
 
 ### Chapter 8: Forecasting
+
+*Written in the mathematical register of decision 10. `LEDGER.md` lists its numbered statements, which
+supersede the outline below.*
 
 **Sources.** Snyder and Shen (2019), ch. 2: moving averages, exponential smoothing, Holt's method and error
 measures (chapter 2 PDF pp. 1–21). Axsäter (2015), ch. 2: exponential smoothing, trend and seasonal models,
@@ -410,11 +481,12 @@ well. Step 4 confirms whether a trace can.
 | --- | --- | --- |
 | `mars-poisson-consumer` | 3 | Poisson consumption on `mars` consumers |
 | `mars-dispatch-interval` | 4 | Timetable routes and a fixed trip cost in the `mars` pack |
-| `normal-per-period-demand` | 5 | Normal per-period demand, only if a discretised table is unworkable |
+| `normal-per-period-demand` | 5 | Normal per-period demand |
 | `service-level-metrics` | 7 | Cycle service level and fill-rate metrics |
-| `smooth-seasonal-demand` | 8 | A seasonal profile smoother than two flat halves, if needed |
+| `smooth-seasonal-demand` | 8 | A seasonal profile smoother than two levels |
 
-Step 4 of each chapter's pipeline confirms or removes its conditional entries.
+All five are in use. Chapter 5 marks its normal-demand example with a placeholder and builds no discretised
+table, and chapter 8 marks seasonal indices with one.
 
 ## Risks / Trade-offs
 
@@ -422,8 +494,9 @@ Step 4 of each chapter's pipeline confirms or removes its conditional entries.
   `book.test.ts` cases are replaced. Golden hashes are unaffected, since starter scenarios do not change.
 - **Moving fix examples.** Starters' fixes are marked with the `fix` flag. A rewritten chapter must keep one
   marked fix per starter, or the library loses its link. The docs check already enforces this.
-- **Longer chapters.** Derivations add length. The target is 2,000 to 3,000 words a chapter, with exercises
-  carrying the extensions.
+- **Longer chapters.** Statements, proofs and worked examples add length. Chapters 1 to 3 in the register of
+  decision 10 run to between 3,500 and 4,900 words of source, including check references. The target is
+  under 5,000, with exercises carrying the extensions.
 - **Lint false positives.** "not" after a comma has legitimate uses. The lint allows a per-line exemption
   comment, and the style pass reviews every exemption.
 

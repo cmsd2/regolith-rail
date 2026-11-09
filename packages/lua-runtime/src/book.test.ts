@@ -297,89 +297,134 @@ describe("chapter 3, randomness and simulation", () => {
     expect(empty.ratio).toBeGreaterThan(1);
   }, 300_000);
 
-  it("comparing base-stock levels 13 and 15 on the same 100 replications, paired differences spread less than half as much as independent runs, and level 15 costs more", () => {
-    const params = {
-      random: true,
-      demand: 4,
-      lead_time: 2 * DAY,
-      review_period: 6 * 3_600_000,
-      order_cost: 0,
-      duration: 30 * DAY,
-    };
-    const loaded = runtime.loadScript(templateCall("classic.reorder", params));
-    if (!loaded.ok) throw new Error("the template should evaluate");
-    const costs = (level: number) => {
-      const policy = runtime.createPolicy(
-        `return ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }`,
-      );
-      try {
-        return Array.from({ length: 100 }, (_, i) => {
-          const out = runSimulation(loaded.scenario, policy, {
-            seed: replication(i),
-            detail: "summary",
-          });
-          return out.metrics.costs.total / 1000 / 30;
-        });
-      } finally {
-        policy.close();
-      }
-    };
-    const a = costs(13);
-    const b = costs(15);
-    const difference = spread(b.map((cost, i) => cost - (a[i] as number)));
+  it("on two-station the same replication draws the same demand under balancing and under drain-and-fill", () => {
+    const demand = (source: string) =>
+      metricsOver("two-station", source, 100).map((m) => m.demandMet + m.unmetDemand);
+    expect(demand(BUILT_IN_POLICIES["balance-stock"])).toEqual(demand(DRAIN_FILL));
+  }, 300_000);
+
+  it("on two-station under drain-and-fill the demand met over 25, 100 and 400 replications has means 360.46, 360.42 and 360.26 and standard deviations 3.83, 3.70 and 3.80, and each 95% interval, of half-width 1.58, 0.73 and 0.37, contains 360", () => {
+    const met = metricsOver("two-station", DRAIN_FILL, 400).map((m) => m.demandMet / 1000);
+    const expected = [
+      { n: 25, mean: 360.46, sd: 3.83, t: 2.064, half: 1.58 },
+      { n: 100, mean: 360.42, sd: 3.7, t: 1.984, half: 0.73 },
+      { n: 400, mean: 360.26, sd: 3.8, t: 1.966, half: 0.37 },
+    ];
+    for (const { n, mean: m, sd, t, half } of expected) {
+      const sample = spread(met.slice(0, n));
+      expect(sample.mean).toBeCloseTo(m, 2);
+      expect(sample.sd).toBeCloseTo(sd, 2);
+      const halfWidth = (t * sample.sd) / Math.sqrt(n);
+      expect(halfWidth).toBeCloseTo(half, 2);
+      expect(Math.abs(sample.mean - 360)).toBeLessThan(halfWidth);
+    }
+  }, 300_000);
+
+  it("on two-station under balancing unmet demand has sample mean 27.97 and sample standard deviation 3.00 over 100 replications, and 28.42 and 2.55 over the first 10", () => {
+    const unmet = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100).map(
+      (m) => m.unmetDemand / 1000,
+    );
+    const hundred = spread(unmet);
+    expect(hundred.mean).toBeCloseTo(27.97, 2);
+    expect(hundred.sd).toBeCloseTo(3.0, 2);
+    const ten = spread(unmet.slice(0, 10));
+    expect(ten.mean).toBeCloseTo(28.42, 2);
+    expect(ten.sd).toBeCloseTo(2.55, 2);
+  }, 300_000);
+
+  it("on two-station over 100 replications stalled production has mean 109.3 and standard deviation 0.92 under balancing and mean 48.4 and standard deviation 3.59 under drain-and-fill, with correlation 0.79, and the paired differences have mean 60.9 and standard deviation 2.92, against 3.71 for independent replications", () => {
+    const stalled = (source: string) =>
+      metricsOver("two-station", source, 100).map((m) => m.stalledProduction / 1000);
+    const a = stalled(BUILT_IN_POLICIES["balance-stock"]);
+    const b = stalled(DRAIN_FILL);
+    expect(spread(a).mean).toBeCloseTo(109.3, 1);
+    expect(spread(a).sd).toBeCloseTo(0.92, 2);
+    expect(spread(b).mean).toBeCloseTo(48.4, 1);
+    expect(spread(b).sd).toBeCloseTo(3.59, 2);
+    expect(correlation(a, b)).toBeCloseTo(0.79, 2);
+    const paired = spread(a.map((v, i) => v - (b[i] as number)));
+    expect(paired.mean).toBeCloseTo(60.9, 1);
+    expect(paired.sd).toBeCloseTo(2.92, 2);
     const sdA = spread(a).sd;
     const sdB = spread(b).sd;
-    const independent = Math.sqrt(sdA * sdA + sdB * sdB);
-    expect(difference.sd).toBeLessThan(independent / 2);
-    // t for 99 degrees of freedom at 97.5%.
-    const half = (1.984 * difference.sd) / 10;
-    expect(difference.mean - half).toBeGreaterThan(0);
+    expect(Math.sqrt(sdA * sdA + sdB * sdB)).toBeCloseTo(3.71, 2);
   }, 300_000);
 });
 
 describe("chapter 6, reviews, lead times and base-stock", () => {
-  const params = {
+  // The Shop of chapter 4 with Poisson demand, a lead time of one day and no order cost. It starts
+  // with its base-stock level on hand.
+  const shop = (days: number) => ({
     random: true,
-    demand: 4,
-    lead_time: 2 * DAY,
-    review_period: 6 * 3_600_000,
+    demand: 10,
+    lead_time: DAY,
     order_cost: 0,
-    duration: 30 * DAY,
+    initial: 15,
+    duration: days * DAY,
+  });
+  const orderUpTo = (level: number) =>
+    `return ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }`;
+  const costsPerDay = (days: number, source: string, replications: number) => {
+    const loaded = runtime.loadScript(templateCall("classic.reorder", shop(days)));
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const policy = runtime.createPolicy(source);
+    try {
+      return Array.from({ length: replications }, (_, i) => {
+        const out = runSimulation(loaded.scenario, policy, {
+          seed: replication(i),
+          detail: "summary",
+        });
+        return out.metrics.costs.total / 1000 / days;
+      });
+    } finally {
+      policy.close();
+    }
   };
 
-  it("the reorder template's base-stock reference for 4 a day, a 2-day lead time and 6-hour reviews orders up to 13 and expects 7.97 a day", () => {
-    const reference = classicTemplates.find((t) => t.name === "classic.reorder")?.reference(params);
-    expect(reference?.values.level).toBe(13);
-    expect(Math.round((reference?.expectedCostPerDay as number) * 100) / 100).toBe(7.97);
+  it("the reorder template's base-stock reference for the Shop with a 1-day lead time orders up to 15 and expects 6.20 a day over 60 days", () => {
+    const reference = classicTemplates
+      .find((t) => t.name === "classic.reorder")
+      ?.reference(shop(60));
+    expect(reference?.values.level).toBe(15);
+    expect(reference?.expectedCostPerDay as number).toBeCloseTo(6.2, 2);
   });
 
-  it("on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, over 100 replications", () => {
-    const loaded = runtime.loadScript(templateCall("classic.reorder", params));
-    if (!loaded.ok) throw new Error("the template should evaluate");
-    const costPerDay = (source: string) => {
-      const policy = runtime.createPolicy(source);
-      try {
-        const total = Array.from({ length: 100 }, (_, i) => {
-          const out = runSimulation(loaded.scenario, policy, {
-            seed: replication(i),
-            detail: "summary",
-          });
-          return out.metrics.costs.total / 1000 / 30;
-        }).reduce((a, b) => a + b, 0);
-        return total / 100;
-      } finally {
-        policy.close();
-      }
-    };
-    const position = costPerDay(
-      "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }",
+  it("on the Shop with a 1-day lead time, over 200 replications of 60 days, ordering up to 14, 15 and 16 costs about 6.16, 6.14 and 6.52 a day, and the paired differences from 15 have less than half the standard deviation of independent replications", () => {
+    const costs = new Map(
+      [14, 15, 16].map((level) => [level, costsPerDay(60, orderUpTo(level), 200)]),
     );
-    const onHand = costPerDay(`return { on_review = function(ctx)
-  local short = 13000 - ctx.here.stock.Goods
+    const at = (level: number) => costs.get(level) as number[];
+    expect(Math.abs(spread(at(14)).mean - 6.164)).toBeLessThan(0.01);
+    expect(Math.abs(spread(at(15)).mean - 6.135)).toBeLessThan(0.01);
+    expect(Math.abs(spread(at(16)).mean - 6.523)).toBeLessThan(0.01);
+    for (const other of [14, 16]) {
+      const paired = spread(at(other).map((cost, i) => cost - (at(15)[i] as number))).sd;
+      const sdA = spread(at(other)).sd;
+      const sdB = spread(at(15)).sd;
+      expect(paired).toBeLessThan(Math.sqrt(sdA * sdA + sdB * sdB) / 2);
+    }
+    // Ordering up to 16 costs more than 15: the interval for the paired difference excludes zero.
+    const difference = spread(at(16).map((cost, i) => cost - (at(15)[i] as number)));
+    expect(difference.mean).toBeCloseTo(0.39, 2);
+    expect(difference.mean - (1.972 * difference.sd) / Math.sqrt(200)).toBeGreaterThan(0);
+  }, 600_000);
+
+  it("on the Shop with a 1-day lead time, ordering up to 15 from the stock on hand costs about 100 a day over 100 replications of 30 days, more than fifteen times the cost of ordering from the inventory position", () => {
+    const position = mean(costsPerDay(30, orderUpTo(15), 100));
+    const onHand = mean(
+      costsPerDay(
+        30,
+        `return { on_review = function(ctx)
+  local short = 15000 - ctx.here.stock.Goods
   if short > 0 then ctx.order("Goods", short) end
-end }`);
-    expect(onHand).toBeGreaterThan(5 * position);
-  }, 300_000);
+end }`,
+        100,
+      ),
+    );
+    expect(onHand).toBeGreaterThan(95);
+    expect(onHand).toBeLessThan(106);
+    expect(onHand).toBeGreaterThan(15 * position);
+  }, 600_000);
 });
 
 describe("chapter 6, the double dispatch case study", () => {
@@ -434,6 +479,34 @@ describe("chapter 4, order quantities", () => {
     expect(Math.abs(costPerDay(20) - 20)).toBeLessThan(1);
     expect(Math.abs(costPerDay(10) - 25)).toBeLessThan(1);
     expect(Math.abs(costPerDay(40) - 25)).toBeLessThan(1);
+  }, 120_000);
+
+  it("on classic.reorder with its hourly reviews, ordering 10, 20 and 40 at a time costs 25.2, 20.4 and 25.4 a day, each between the model's cost and its bound, and meets all demand", () => {
+    const loaded = runtime.loadScript(templateCall("classic.reorder", {}));
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const costPerDay = (quantity: number) => {
+      const policy = runtime.createPolicy(
+        `return ops.policy { review = { target = ops.min_max { min = 417, max = ${417 + quantity * 1000} } } }`,
+      );
+      try {
+        const out = runSimulation(loaded.scenario, policy, { detail: "summary" });
+        expect(out.metrics.unmetDemand).toBe(0);
+        return out.metrics.costs.total / 1000 / 20;
+      } finally {
+        policy.close();
+      }
+    };
+    const model = (quantity: number) => 200 / quantity + quantity / 2;
+    for (const [quantity, cost] of [
+      [10, 25.2],
+      [20, 20.4],
+      [40, 25.4],
+    ] as const) {
+      const simulated = costPerDay(quantity);
+      expect(simulated).toBeCloseTo(cost, 1);
+      expect(simulated).toBeGreaterThan(model(quantity));
+      expect(simulated).toBeLessThan(model(quantity) + 10 / 24);
+    }
   }, 120_000);
 });
 
@@ -538,29 +611,58 @@ describe("chapter 7, the storm shock case study", () => {
 });
 
 describe("chapter 8, forecasting", () => {
-  it("on classic.forecasting the smoothing policy leaves customers waiting on every day from 40 to 59 with 17 units of safety stock, and on none of them with 18", () => {
-    const reference = (safety: number) =>
-      classicTemplates.find((t) => t.name === "classic.forecasting")?.reference({ safety })
-        .policy ?? "";
-    const loaded = runtime.loadScript("return classic.forecasting {}");
+  // The Shop's demand starts at 10 a day and grows by 1 a day, without noise, so each claim is
+  // about one run.
+  const template = classicTemplates.find((t) => t.name === "classic.forecasting");
+  const shop = (params: Record<string, number>) => ({ level: 10, ...params });
+  const run = (params: Record<string, number>, detail: "full" | "summary") => {
+    const loaded = runtime.loadScript(templateCall("classic.forecasting", shop(params)));
     if (!loaded.ok) throw new Error("the template should evaluate");
-    const waitingDays = (safety: number) => {
-      const policy = runtime.createPolicy(reference(safety));
-      try {
-        const out = runSimulation(loaded.scenario, policy, { detail: "full" });
-        const backorders = out.backorders as Int32Array;
-        const perDay = DAY / out.tickMs;
-        let days = 0;
-        for (let day = 40; day < 60; day++) {
-          if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
-        }
-        return days;
-      } finally {
-        policy.close();
-      }
-    };
-    expect(waitingDays(17)).toBe(20);
-    expect(waitingDays(18)).toBe(0);
+    const policy = runtime.createPolicy(template?.reference(shop(params)).policy ?? "");
+    try {
+      return runSimulation(loaded.scenario, policy, { detail });
+    } finally {
+      policy.close();
+    }
+  };
+  /** Days from 40 to 59 on which some demand is backordered. */
+  const waitingDays = (params: Record<string, number>) => {
+    const out = run(params, "full");
+    const backorders = out.backorders as Int32Array;
+    const perDay = DAY / out.tickMs;
+    let days = 0;
+    for (let day = 40; day < 60; day++) {
+      if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
+    }
+    return days;
+  };
+
+  it("on classic.forecasting with a starting demand of 10, from day 40 each smoothed forecast is within 0.01 of 5 below the demand of the day it forecasts and 4 below the latest demand", () => {
+    const out = run({}, "summary");
+    const forecast = out.records.forecast;
+    const used = out.records.demand;
+    if (!forecast || !used) throw new Error("the reference policy should record its forecasts");
+    let checked = 0;
+    forecast.t.forEach((t, i) => {
+      const day = Math.floor(t / DAY);
+      if (day < 40) return;
+      const f = forecast.v[i] as number;
+      expect(used.v[i]).toBeCloseTo(10 + (day - 1), 6);
+      expect(Math.abs(10 + day - f - 5)).toBeLessThan(0.01);
+      expect(Math.abs(10 + (day - 1) - f - 4)).toBeLessThan(0.01);
+      checked++;
+    });
+    expect(checked).toBe(20);
+  });
+
+  it("on classic.forecasting with a starting demand of 10, the smoothing policy leaves demand backordered on every day from 40 to 59 with a safety stock of 17 units, and on none of them with 18", () => {
+    expect(waitingDays({ safety: 17 })).toBe(20);
+    expect(waitingDays({ safety: 18 })).toBe(0);
+  }, 120_000);
+
+  it("on classic.forecasting with a starting demand of 10 and alpha 0.5, the smoothing policy leaves demand backordered on every day from 40 to 59 with a safety stock of 8 units, and on none of them with 9", () => {
+    expect(waitingDays({ alpha: 0.5, safety: 8 })).toBe(20);
+    expect(waitingDays({ alpha: 0.5, safety: 9 })).toBe(0);
   }, 120_000);
 });
 
@@ -652,6 +754,20 @@ describe("simulator exercises", () => {
     expect(twenty).toBeLessThan(ten);
   }, 300_000);
 
+  it("on classic.newsvendor over 100 replications, ordering 10, 15 and 20 costs 48.22, 41.15 and 42.79 a day on average, and each 95% interval contains the model's expected cost", () => {
+    const scenario = load(templateCall("classic.newsvendor", {}));
+    for (const [units, cost, model] of [
+      [10, 48.22, 430 / 9],
+      [15, 41.15, 370 / 9],
+      [20, 42.79, 385 / 9],
+    ] as const) {
+      const sample = spread(costsPerDay(scenario, orderUpTo(units * 1000), 100, 30));
+      expect(sample.mean).toBeCloseTo(cost, 2);
+      // t for 99 degrees of freedom at 97.5%.
+      expect(Math.abs(sample.mean - model)).toBeLessThan((1.984 * sample.sd) / 10);
+    }
+  }, 300_000);
+
   it("on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25", () => {
     const scenario = load(templateCall("classic.newsvendor", { lost_cost: 10 }));
     const at = (units: number) => mean(costsPerDay(scenario, orderUpTo(units * 1000), 100, 30));
@@ -697,6 +813,32 @@ describe("simulator exercises", () => {
     expect(short).toBeLessThan(0.9);
   }, 600_000);
 
+  it("on classic.safety_stock over 200 replications the share of cycles that end without backorders is 0.962 at level 113, 0.881 at 106 and 0.989 at 121, and 0.959 at 106 with a fixed 2-day lead time, and at 113 the mean backorders at the end of a cycle are 0.24 units", () => {
+    const variable = load(templateCall("classic.safety_stock", {}));
+    const fixed = load(templateCall("classic.safety_stock", { lead_time: 2 * DAY }));
+    expect(cycleServiceLevel(variable, 113, 200)).toBeCloseTo(0.962, 3);
+    expect(cycleServiceLevel(variable, 106, 200)).toBeCloseTo(0.881, 3);
+    expect(cycleServiceLevel(variable, 121, 200)).toBeCloseTo(0.989, 3);
+    expect(cycleServiceLevel(fixed, 106, 200)).toBeCloseTo(0.959, 3);
+    const policy = runtime.createPolicy(orderUpTo(113_000));
+    try {
+      let short = 0;
+      let cycles = 0;
+      for (let i = 0; i < 200; i++) {
+        const out = runSimulation(variable, policy, { seed: replication(i), detail: "full" });
+        const site = out.sites.findIndex((s) => s.station === "Shop" && s.resource === "Goods");
+        const backorders = out.backorders as Int32Array;
+        for (const d of out.events.filter((e) => e.kind === "delivery").slice(1)) {
+          short += (backorders[(d.t / out.tickMs - 1) * out.sites.length + site] as number) / 1000;
+          cycles++;
+        }
+      }
+      expect(short / cycles).toBeCloseTo(0.24, 2);
+    } finally {
+      policy.close();
+    }
+  }, 900_000);
+
   it("on classic.safety_stock over 200 replications level 121 meets a 0.99 cycle service level", () => {
     const template = classicTemplates.find((t) => t.name === "classic.safety_stock");
     expect(template?.reference({ target_service: 0.99 }).values.level).toBe(121);
@@ -704,26 +846,4 @@ describe("simulator exercises", () => {
       cycleServiceLevel(load(templateCall("classic.safety_stock", {})), 121, 200),
     ).toBeGreaterThan(0.985);
   }, 600_000);
-
-  it("on classic.forecasting with alpha 0.5 the smoothing policy leaves customers waiting on every day from 40 to 59 with 8 units of safety stock, and on none of them with 9", () => {
-    const template = classicTemplates.find((t) => t.name === "classic.forecasting");
-    const scenario = load(templateCall("classic.forecasting", { alpha: 0.5 }));
-    const waitingDays = (safety: number) => {
-      const policy = runtime.createPolicy(template?.reference({ alpha: 0.5, safety }).policy ?? "");
-      try {
-        const out = runSimulation(scenario, policy, { detail: "full" });
-        const backorders = out.backorders as Int32Array;
-        const perDay = DAY / out.tickMs;
-        let days = 0;
-        for (let day = 40; day < 60; day++) {
-          if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
-        }
-        return days;
-      } finally {
-        policy.close();
-      }
-    };
-    expect(waitingDays(8)).toBe(20);
-    expect(waitingDays(9)).toBe(0);
-  }, 120_000);
 });
