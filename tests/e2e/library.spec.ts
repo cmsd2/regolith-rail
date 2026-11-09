@@ -196,7 +196,8 @@ test.describe("library explorer", () => {
     const download = page.waitForEvent("download");
     await page.getByTestId("item-export").click();
     const file = await download;
-    expect(file.suggestedFilename()).toBe("balance-stock (copy).lua");
+    // WebKit's Ubuntu 26.04 build suggests the name with the space replaced by an underscore.
+    expect(file.suggestedFilename()).toMatch(/^balance-stock[ _]\(copy\)\.lua$/);
     expect(await readFile(await file.path(), "utf8")).toContain("Balance stock");
 
     await page.getByTestId("item-delete").click();
