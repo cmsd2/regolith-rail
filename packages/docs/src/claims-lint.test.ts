@@ -46,17 +46,55 @@ describe("claims lint", () => {
     expect(checkClaims([page(body)], tests)).toEqual([]);
   });
 
-  it("names the line of an equation with no check before the next heading or formula", () => {
+  it("names the line of an equation with no check citing it before the next heading", () => {
     const body = `Text.\n\n$$\nq = 1\n$$\n\nMore text.\n\n### Next\n\n$$\nr = 2\n$$\n\n$$\ns = 3\n$$\n\n<Check ref="test:known test" />\n\n${exercises}`;
     expect(checkClaims([page(body)], tests)).toEqual([
-      "book/newsvendor line 8: displayed mathematics has no <Check> before the next heading or formula",
-      "book/newsvendor line 16: displayed mathematics has no <Check> before the next heading or formula",
+      "book/newsvendor line 8: displayed mathematics has no <Check> citing it before the next heading",
+      "book/newsvendor line 16: displayed mathematics has no <Check> citing it before the next heading",
     ]);
   });
 
   it("lets one check after the worked numbers cover a formula and its numbers", () => {
     const body = `$$\nq = 1\n$$\n\nSo $q$ is 1.\n\n- A list.\n\n<Check ref="test:known test" />\n\n${exercises}`;
     expect(checkClaims([page(body)], tests)).toEqual([]);
+  });
+
+  it("lets one grouped check cover a derivation of several formulas", () => {
+    const tests3 = testTitles([
+      {
+        file: "packages/a.test.ts",
+        source: 'it("known test", () => {}); it("a", () => {}); it("b", () => {});',
+      },
+    ]);
+    const body = `$$\nC(Q) = KD/Q + hQ/2\n$$\n\nSetting the derivative to zero,\n\n$$\nQ^* = \\sqrt{2KD/h}\n$$\n\nand so\n\n$$\nC(Q)/C^* = 1\n$$\n\n<Check refs="\ntest:known test\ntest:a\ntest:b\n" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests3)).toEqual([]);
+  });
+
+  it("names a formula a grouped check leaves out", () => {
+    const tests2 = testTitles([
+      { file: "packages/a.test.ts", source: 'it("known test", () => {}); it("a", () => {});' },
+    ]);
+    const body = `$$\nq = 1\n$$\n\n$$\nr = 2\n$$\n\n$$\ns = 3\n$$\n\n<Check refs="\ntest:known test\ntest:a\n" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests2)).toEqual([
+      "book/newsvendor line 6: displayed mathematics has no <Check> citing it before the next heading",
+    ]);
+  });
+
+  it("resolves each reference in a grouped check", () => {
+    const body = `$$\nq = 1\n$$\n\n$$\nr = 2\n$$\n\n<Check refs="\ntest:known test\ntest:gone\n" />\n\n${exercises}`;
+    expect(checkClaims([page(body)], tests)).toEqual([
+      "book/newsvendor line 14: test:gone: no test with that title",
+    ]);
+  });
+
+  it("requires a check inside a table of predicted and simulated values", () => {
+    const table = "| Quantity | Model | Simulated |\n| --- | --- | --- |\n| Cost | 25 | 25.1 |";
+    const checked = `<Predicted>\n\n${table}\n\n<Check ref="test:known test" />\n\n</Predicted>\n\n${exercises}`;
+    expect(checkClaims([page(checked)], tests)).toEqual([]);
+    const unchecked = `<Predicted>\n\n${table}\n\n</Predicted>\n\n${exercises}`;
+    expect(checkClaims([page(unchecked)], tests)).toEqual([
+      "book/newsvendor line 6: <Predicted> needs a <Check> inside it for its numbers",
+    ]);
   });
 
   it("names a check cited twice outside the answers", () => {

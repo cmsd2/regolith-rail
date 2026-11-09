@@ -1,0 +1,106 @@
+---
+title: Notation
+description: Every symbol the book uses, what it stands for, its units and the chapter that introduces it.
+section: Book
+order: 100
+---
+
+Symbols keep one meaning throughout the book, with these exceptions, which the tables note. $L$ is the
+mean number present in Little's law and the lead time elsewhere. $D$ is a random demand, except in
+chapter 4, where it is a constant demand rate. $S$ is the total stock on a line in chapter 2 and an
+order-up-to level in Part II. An indexed $a_i$ is an arrival time in chapter 2, $a$ without an index is a
+load in chapter 1, and $a$ is the level of a demand model in chapter 8. $\alpha$ is a service target in
+chapter 7 and a smoothing constant in chapter 8. $\tau$ is the time of one leg in Part I, and in chapter 6
+the time since an order arrived. A symbol used only inside one proof or example, such as the stock at a
+named station, is defined where it appears and omitted here.
+
+Numbered statements are cited as, for example, Theorem 2.11: the chapter, then the statement's place in
+the chapter. Rates are per hour in Part I unless a day is stated, and per day in Part II. Costs are in
+whole cost units.
+
+## Part I: Foundations
+
+| Symbol | Meaning | Units | Introduced |
+| --- | --- | --- | --- |
+| $a$, $a^*$ | An amount loaded or unloaded at a stop, and its optimal value | units | [1](/docs/book/modelling) |
+| $(y)^+$ | The positive part of $y$, $\max(y, 0)$ | | [1](/docs/book/modelling) |
+| $x_k$ | The stock at a station when decision $k$ is made | units | [1](/docs/book/modelling) |
+| $a_k$ | Action $k$: the amount a vehicle unloads | units | [1](/docs/book/modelling) |
+| $\xi_k$ | The demand between decision $k$ and the next | units | [1](/docs/book/modelling) |
+| $w_k$ | The demand unmet between decision $k$ and the next | units | [1](/docs/book/modelling) |
+| $\pi$ | A policy, the rule that determines each action from what is observed | | [1](/docs/book/modelling) |
+| $J_n(\pi)$ | The objective of a policy over $n$ periods | as stated | [1](/docs/book/modelling) |
+| $\bar x$ | A station's capacity for a resource | units | [1](/docs/book/modelling) |
+| $\kappa$ | A vehicle's capacity | units | [1](/docs/book/modelling) |
+| $\tau$ | The time a vehicle takes for one leg | hours | [1](/docs/book/modelling) |
+| $t_0$, $t_1$ | The duration of a stop: $t_0 + t_1 q$ when $q$ units are moved | hours, hours a unit | [1](/docs/book/modelling) |
+| $u$, $v$ | The consumption rate at the dome and the production rate at the mine | units an hour | [1](/docs/book/modelling) |
+| $T(a)$ | The duration of a cycle with load $a$ | hours | [1](/docs/book/modelling) |
+| $f(a)$ | The throughput of a cycle with load $a$; $f(\kappa)$ is the capacity of the line | units an hour | [1](/docs/book/modelling) |
+| $\bar a$ | The load of the cycle that meets demand | units | [1](/docs/book/modelling) |
+| $\bar x_{\min}$ | The station capacity that balancing requires to meet demand | units | [1](/docs/book/modelling) |
+| $a_B$ | The load in the steady state under balancing | units | [1](/docs/book/modelling) |
+| $I(T)$, $O(T)$ | The total amounts entering and leaving a place in $[0, T]$ | units | [2](/docs/book/flows) |
+| $\lambda$ | A rate of flow or of arrival; for random demand, its mean rate | units per unit time | [2](/docs/book/flows) |
+| $\lambda_{\text{in}}$, $\lambda_{\text{out}}$ | The average rates of flow into and out of a place | units per unit time | [2](/docs/book/flows) |
+| $D_n$, $H_n$ | The amount delivered in $n$ round trips, and their duration | units, hours | [2](/docs/book/flows) |
+| $\rho$ | Utilisation, the ratio of demand to capacity | | [2](/docs/book/flows) |
+| $a_i$, $d_i$, $W_i$ | The arrival time and departure time of unit $i$, and its time in the system | hours | [2](/docs/book/flows) |
+| $N(t)$ | The number of units present at time $t$ | units | [2](/docs/book/flows) |
+| $A(t)$ | The number of units that arrive, or are demanded, in $[0, t]$ | units | [2](/docs/book/flows) |
+| $L$, $L_T$ | In Little's law, the mean number of units present, in the long run and over $[0, T]$ | units | [2](/docs/book/flows) |
+| $W$, $W_T$ | The mean time a unit spends in a system | hours | [2](/docs/book/flows) |
+| $S$ | The total stock on a line | units | [2](/docs/book/flows) |
+| $X$, $Y$ | The output of a run under a policy, as a random variable | as the output | [3](/docs/book/randomness) |
+| $\mu_X$, $\sigma_X^2$ | The mean and variance of the output $X$ | as the output | [3](/docs/book/randomness) |
+| $n$ | The number of replications | | [3](/docs/book/randomness) |
+| $\bar X_n$, $S_n^2$ | The sample mean and sample variance of $n$ replications | as the output | [3](/docs/book/randomness) |
+| $t_{n-1,\,0.975}$ | The 0.975 quantile of Student's $t$ distribution with $n - 1$ degrees of freedom | | [3](/docs/book/randomness) |
+| $z$ | A quantile of the standard normal distribution; 1.96 for a 95% interval | | [3](/docs/book/randomness) |
+| $\delta$ | The half-width of a confidence interval | as the output | [3](/docs/book/randomness) |
+| $\theta$ | A probability to be estimated | | [3](/docs/book/randomness) |
+| $\rho_{XY}$ | The correlation of two outputs under common random numbers | | [3](/docs/book/randomness) |
+| $Z_i$ | The difference of two outputs in replication $i$ | as the output | [3](/docs/book/randomness) |
+| $D$ | The total demand over a period, a random variable | units | [3](/docs/book/randomness) |
+
+## Part II: Inventory
+
+| Symbol | Meaning | Units | Introduced |
+| --- | --- | --- | --- |
+| $D$ | In chapter 4, a constant demand rate. From chapter 5, a random demand | units a day; units | [4](/docs/book/order-quantities) |
+| $K$ | The fixed cost of an order | cost units | [4](/docs/book/order-quantities) |
+| $h$ | The cost of holding one unit for one day | cost units a unit a day | [4](/docs/book/order-quantities) |
+| $Q$, $Q^*$ | An order quantity, and its optimal value | units | [4](/docs/book/order-quantities) |
+| $C(Q)$ | In chapter 4, the average cost of ordering $Q$ at a time. In chapter 5, the expected cost of the order $Q$ | cost units a day; cost units | [4](/docs/book/order-quantities) |
+| $L$ | The lead time, from placing an order to its arrival | days | [4](/docs/book/order-quantities) |
+| $r$ | A reorder point | units | [4](/docs/book/order-quantities) |
+| $R$ | The review period | days | [4](/docs/book/order-quantities) |
+| $s$, $S$ | A reorder level and an order-up-to level. From chapter 6, $S$ is a base-stock level | units | [4](/docs/book/order-quantities) |
+| $c$ | The cost of one unit ordered | cost units | [5](/docs/book/newsvendor) |
+| $p$ | The cost of unmet demand: per unit lost in chapter 5, and per unit per day backordered from chapter 6 | cost units | [5](/docs/book/newsvendor) |
+| $c_o$, $c_u$ | The overage cost of a unit ordered and not demanded, and the underage cost of a unit demanded and not ordered | cost units | [5](/docs/book/newsvendor) |
+| $F$ | The distribution function of the demand | | [5](/docs/book/newsvendor) |
+| $\mu$, $\sigma$ | The mean and standard deviation of a normal demand | units | [5](/docs/book/newsvendor) |
+| $Z$ | A standard normal random variable | | [5](/docs/book/newsvendor) |
+| $\phi$, $\Phi$ | The standard normal density and distribution function | | [5](/docs/book/newsvendor) |
+| $z^*$ | The standard normal quantile at the critical ratio | | [5](/docs/book/newsvendor) |
+| $G(z)$ | The standard normal loss function, $E[(Z - z)^+]$ | | [5](/docs/book/newsvendor) |
+| $\mathit{IL}(t)$, $\mathit{IP}(t)$ | The inventory level and the inventory position at time $t$ | units | [6](/docs/book/base-stock) |
+| $D(t, t']$ | The demand in the interval $(t, t']$ | units | [6](/docs/book/base-stock) |
+| $N_u$, $F_u$ | The demand over an interval of length $u$, and its distribution function | units | [6](/docs/book/base-stock) |
+| $g_u(S)$ | The expected rate of holding and backorder cost when the inventory level is $S - N_u$ | cost units a day | [6](/docs/book/base-stock) |
+| $\bar g(S)$ | The long-run average cost of the base-stock level $S$ | cost units a day | [6](/docs/book/base-stock) |
+| $S_u$, $S^*$ | The level that minimises $g_u$, and the level that minimises $\bar g$ | units | [6](/docs/book/base-stock) |
+| $T$, $D_T$ | The protection interval $R + L$ with a random lead time, and the demand over it | days, units | [7](/docs/book/safety-stock) |
+| $\mathrm{CSL}(S)$ | The cycle service level of the base-stock level $S$ | | [7](/docs/book/safety-stock) |
+| $\sigma_T$ | The standard deviation of $D_T$ | units | [7](/docs/book/safety-stock) |
+| $z_\alpha$ | The standard normal quantile for a service target $\alpha$ | | [7](/docs/book/safety-stock) |
+| $\beta(S)$ | The fill rate of the base-stock level $S$ | | [7](/docs/book/safety-stock) |
+| $d_t$ | The demand in period $t$ | units | [8](/docs/book/forecasting) |
+| $a$, $b$ | The level and the trend of a demand model | units, units a period | [8](/docs/book/forecasting) |
+| $\varepsilon_t$ | The random part of the demand in period $t$, with variance $\sigma^2$ | units | [8](/docs/book/forecasting) |
+| $f_{t+1}$, $e_{t+1}$ | The forecast of $d_{t+1}$, and its error $d_{t+1} - f_{t+1}$ | units | [8](/docs/book/forecasting) |
+| $M$ | The number of periods in a moving average | | [8](/docs/book/forecasting) |
+| $\hat a_t$, $\hat b_t$ | The estimates of the level and of the trend after period $t$ | units, units a period | [8](/docs/book/forecasting) |
+| $\alpha$, $\gamma$ | The smoothing constants for the level and for the trend | | [8](/docs/book/forecasting) |
+| $\sigma_e$ | The standard deviation of the forecast error | units | [8](/docs/book/forecasting) |

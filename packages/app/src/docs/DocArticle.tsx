@@ -1,5 +1,5 @@
 import "katex/dist/katex.min.css";
-import { chapterAt, partNumeral } from "@regolith-rail/docs";
+import { appendixAt, chapterAt, partNumeral } from "@regolith-rail/docs";
 import { DocPage, mdxComponents } from "./components.tsx";
 import { DocLink } from "./DocLink.tsx";
 import styles from "./docs.module.css";
@@ -9,12 +9,15 @@ import type { DocEntry } from "./registry.ts";
 export function DocArticle({ entry }: { entry: DocEntry }) {
   const { Content } = entry;
   const place = chapterAt(entry.slug);
+  const appendix = appendixAt(entry.slug);
   return (
     <article className={styles.article} data-testid="doc-article" data-slug={entry.slug}>
       <p className={styles.section}>
         {place
           ? `Part ${partNumeral(place.chapter.part.part)}: ${place.chapter.part.title} · Chapter ${place.chapter.chapter}`
-          : entry.section}
+          : appendix
+            ? `Book · Appendix ${appendix.letter}`
+            : entry.section}
       </p>
       <h1>{entry.title}</h1>
       {entry.description && <p className={styles.lead}>{entry.description}</p>}

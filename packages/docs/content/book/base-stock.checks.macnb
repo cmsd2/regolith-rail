@@ -18,63 +18,70 @@
   },
   {
    "cell_type": "code",
-   "source": "/* Base stock with Poisson demand: the smallest level whose chance of covering demand reaches a ratio. */\nload(distrib)$\nbase_stock(mean, ratio) := block([s: 0], while cdf_poisson(s, mean) < ratio do s: s + 1, s)$",
+   "source": "/* Base stock with Poisson demand. */\nload(distrib)$\n/* The smallest level whose chance of covering a Poisson demand of the given mean reaches a ratio. */\nbase_stock(mean, ratio) := block([s: 0], while cdf_poisson(s, mean) < ratio do s: s + 1, s)$\n/* The expected cost rate at level S when the demand N since the position was S is Poisson with mean m:\n   h E (S - N)^+ + p E (N - S)^+, with h = 1 and p = 10. E (N - S)^+ = m - S + E (S - N)^+. */\nh_: 1$  p_: 10$\nover(S, m) := sum((S - k) * pdf_poisson(k, m), k, 0, S)$\ng(S, m) := h_ * over(S, m) + p_ * (m - S + over(S, m))$\n/* The Shop: 10 units a day, a lead time of a day, hourly reviews. */\nlam: 10$  L: 1$  R: 1/24$\n/* The average over a cycle, taken at the middle of each of its 60 minutes. */\ngbar(S) := sum(g(S, float(lam * (L + (j + 1/2) / 60 * R))), j, 0, 59) / 60$\nFbar(S) := sum(cdf_poisson(S, float(lam * (L + (j + 1/2) / 60 * R))), j, 0, 59) / 60$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: inventory-position */\n/* On hand 5, 7 on order, 2 backordered: the position is 10, and ordering up to 13 orders 3. */\nposition(on_hand, on_order, backorders) := on_hand + on_order - backorders$\nexpect_equal(\"position\", position(5, 7, 2), 10);\nexpect_equal(\"order-to-level\", 13 - position(5, 7, 2), 3);",
+   "source": "/* check: inventory-position */\n/* Nothing on hand, 2 backordered and 12 on order: the level is -2 and the position is 10. */\nlevel(on_hand, backorders) := on_hand - backorders$\nposition(on_hand, on_order, backorders) := on_hand - backorders + on_order$\nexpect_equal(\"level\", level(0, 2), -2);\nexpect_equal(\"position\", position(0, 12, 2), 10);\n/* 5 on hand and 7 on order: the level is 5 and the position 12. */\nexpect_equal(\"level-in-stock\", level(5, 0), 5);\nexpect_equal(\"position-in-stock\", position(5, 7, 0), 12);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: protection-interval */\n/* Four a day over a lead time of 2 days and a review period of 6 hours. */\nexpect_equal(\"interval-days\", 2 + 6/24, 9/4);\nexpect_equal(\"interval-mean\", 4 * (2 + 6/24), 9);",
+   "source": "/* check: level-after-lead-time */\n/* A position of 15, as 6 on hand and 9 on order, and a demand of 11 during the lead time: everything on\n   order arrives and the demand is taken away, leaving 4. */\nexpect_equal(\"level-after-lead-time\", 6 + 9 - 11, position(6, 9, 0) - 11);\n/* A demand of 17 leaves a level of -2: two units backordered. */\nexpect_equal(\"backordered\", position(6, 9, 0) - 17, -2);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: critical-fractile */\nexpect_equal(\"fractile\", 10 / (10 + 1), 10/11);\nexpect_equal(\"fractile-general\", subst([b = 10, h = 1], b / (b + h)), 10/11);",
+   "source": "/* check: cycle-level */\n/* A review raises the position to 15. A demand of 3 in the next 40 minutes and of 8 in the lead time after\n   that leaves a level of 4, which is 15 less the demand over the whole interval. */\nposition_later: 15 - 3$\nexpect_equal(\"position-falls-with-demand\", position_later, 12);\nexpect_equal(\"level-in-cycle\", position_later - 8, 15 - (3 + 8));",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: base-stock-level */\nexpect_equal(\"level\", base_stock(9, 10/11), 13);\nexpect_equal(\"below-level\", is(cdf_poisson(12, 9) < 10/11), true);\nexpect_equal(\"at-level\", is(cdf_poisson(13, 9) >= 10/11), true);\nexpect_close(\"cover-at-level\", cdf_poisson(13, 9), 0.926, 0.0005);",
+   "source": "/* check: protection-interval */\nexpect_equal(\"interval-days\", L + R, 25/24);\nexpect_equal(\"interval-mean\", lam * (L + R), 125/12);\nexpect_close(\"interval-mean-decimal\", lam * (L + R), 10.42, 0.005);\nexpect_equal(\"lead-time-mean\", lam * L, 10);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: repeated-orders */\n/* Ordering from stock on hand repeats the same shortage at every review until the first order arrives. */\nexpect_equal(\"reviews-before-arrival\", 2 / (6/24), 8);",
+   "source": "/* check: cost-rate-definition */\n/* The stock on hand is (S - N)^+ and the backorders are (N - S)^+, and their means differ by S - m. */\nm_end: float(lam * (L + R))$\nfor S in [10, 15, 20] do block([on_hand, back],\n  on_hand: sum(max(S - k, 0) * pdf_poisson(k, m_end), k, 0, 80),\n  back: sum(max(k - S, 0) * pdf_poisson(k, m_end), k, 0, 80),\n  expect_close(\"mean-difference\", on_hand - back, S - m_end, 1e-9),\n  expect_close(\"cost-rate\", g(S, m_end), h_ * on_hand + p_ * back, 1e-9))$\nexpect_equal(\"definition-done\", 1, 1);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: longer-review */\n/* Reviewing once a day instead: demand over 3 days has mean 12. */\nexpect_equal(\"daily-mean\", 4 * (2 + 1), 12);\nexpect_equal(\"daily-level\", base_stock(12, 10/11), 17);",
+   "source": "/* check: cost-rate */\n/* The cost rate is a newsvendor cost with overage h and underage p: one more unit of S changes it by\n   (h + p) F(S) - p. */\nm_end: float(lam * (L + R))$\nfor S: 8 thru 20 do\n  expect_close(\"marginal-rate\", g(S + 1, m_end) - g(S, m_end), (h_ + p_) * cdf_poisson(S, m_end) - p_, 1e-9)$\nexpect_equal(\"critical-ratio\", p_ / (p_ + h_), 10/11);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: dearer-backorders */\nexpect_equal(\"dearer-ratio\", 20 / (20 + 1), 20/21);\nexpect_equal(\"dearer-level\", base_stock(9, 20/21), 14);",
+   "source": "/* check: base-stock-bounds */\n/* The quantiles at 10/11 of the demand over the lead time and over the protection interval. */\nexpect_equal(\"level-lead-time\", base_stock(lam * L, 10/11), 14);\nexpect_equal(\"level-protection-interval\", base_stock(float(lam * (L + R)), 10/11), 15);\nexpect_close(\"cover-14-lead-time\", cdf_poisson(14, 10), 0.9165, 0.00005);\nexpect_close(\"cover-14-interval\", cdf_poisson(14, m_end), 0.8930, 0.00005);\nexpect_close(\"cover-15-interval\", cdf_poisson(15, m_end), 0.9352, 0.00005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: shorter-lead-time */\nexpect_equal(\"short-lead-mean\", 4 * (1 + 6/24), 5);\nexpect_equal(\"short-lead-level\", base_stock(5, 10/11), 8);",
+   "source": "/* check: average-cost */\n/* Averaged over a cycle, a level of 14 covers the demand with a chance just under 10/11, so 15 is optimal. */\nexpect_close(\"average-cover-14\", Fbar(14), 0.9051, 0.00005);\nexpect_close(\"average-cover-15\", Fbar(15), 0.9435, 0.00005);\nexpect_equal(\"criterion\", is(Fbar(14) < 10/11 and Fbar(15) >= 10/11), true);\nexpect_close(\"average-cost-14\", gbar(14), 6.18, 0.005);\nexpect_close(\"average-cost-15\", gbar(15), 6.14, 0.005);\nexpect_close(\"average-cost-16\", gbar(16), 6.52, 0.005);\n/* At the end of a cycle the rates are 6.33, 6.16 and 6.44. */\nexpect_close(\"end-cost-14\", g(14, m_end), 6.33, 0.005);\nexpect_close(\"end-cost-15\", g(15, m_end), 6.16, 0.005);\nexpect_close(\"end-cost-16\", g(16, m_end), 6.44, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: on-hand-orders */\n/* With steady demand, the k-th review after the stock falls below S finds a shortfall of k lam R, and\n   nothing arrives during the first lead time, which holds L / R reviews. */\nreviews: L / R$\nexpect_equal(\"reviews-in-lead-time\", reviews, 24);\nordered: sum(k * lam * R, k, 1, reviews)$\nexpect_equal(\"ordered-in-lead-time\", ordered, 125);\nexpect_equal(\"demand-in-lead-time\", lam * L, 10);\nexpect_equal(\"ratio\", ordered / (lam * L), (reviews + 1) / 2);\nexpect_equal(\"ratio-value\", ordered / (lam * L), 25/2);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -82,6 +89,34 @@
   {
    "cell_type": "code",
    "source": "/* check: two-trains-travel */\n/* Two trains: legs of 30000 and 42000 at speed 5; the factory uses 40 and the dome 42 units a day. */\nfactory_leg: 30000 / 5$\ndome_trip: (30000 + 42000) / 5$\nexpect_equal(\"factory-leg-minutes\", factory_leg / 60, 100);\nexpect_equal(\"dome-trip-hours\", dome_trip / 3600, 4);\nexpect_close(\"factory-use-on-leg\", 40 * factory_leg / 86400, 2.78, 0.005);\nexpect_equal(\"dome-use-on-trip\", 42 * dome_trip / 86400, 7);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-position */\n/* On hand 0, 12 on order, 4 backordered: the level is -4 and the position 8, so ordering up to 15 orders 7. */\nexpect_equal(\"exercise-level\", level(0, 4), -4);\nexpect_equal(\"exercise-position\", position(0, 12, 4), 8);\nexpect_equal(\"exercise-order\", 15 - position(0, 12, 4), 7);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-two-day-lead */\n/* A lead time of 2 days: the two quantiles are 26 and 27, and averaged over a cycle 26 is the cheaper. */\ngbar2(S) := sum(g(S, float(lam * (2 + (j + 1/2) / 60 * R))), j, 0, 59) / 60$\nFbar2(S) := sum(cdf_poisson(S, float(lam * (2 + (j + 1/2) / 60 * R))), j, 0, 59) / 60$\nexpect_equal(\"two-day-lead-time-level\", base_stock(20, 10/11), 26);\nexpect_equal(\"two-day-interval-level\", base_stock(float(lam * (2 + R)), 10/11), 27);\nexpect_close(\"two-day-average-cover-26\", Fbar2(26), 0.9147, 0.00005);\nexpect_equal(\"two-day-criterion\", is(Fbar2(25) < 10/11 and Fbar2(26) >= 10/11), true);\nexpect_close(\"two-day-cost-26\", gbar2(26), 8.47, 0.005);\nexpect_close(\"two-day-cost-27\", gbar2(27), 8.53, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-normal-approximation */\n/* Demand over the protection interval, mean 125/12, as a normal variable with the same mean and variance. */\nsd_n: sqrt(125/12)$\nz_n: quantile_normal(10/11, 0, 1)$\nexpect_close(\"normal-z\", z_n, 1.335, 0.0005);\nexpect_close(\"normal-sd\", sd_n, 3.227, 0.0005);\nexpect_close(\"normal-level\", 125/12 + z_n * sd_n, 14.73, 0.005);\nexpect_close(\"normal-cost\", (h_ + p_) * sd_n * pdf_normal(z_n, 0, 1), 5.81, 0.005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: shorter-lead-time */\n/* Four a day, reviews every 6 hours and a lead time of a day: demand over the protection interval has mean 5. */\nexpect_equal(\"short-lead-mean\", 4 * (1 + 6/24), 5);\nexpect_equal(\"short-lead-level\", base_stock(5, 10/11), 8);\nexpect_equal(\"short-lead-lower\", base_stock(4, 10/11), 7);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

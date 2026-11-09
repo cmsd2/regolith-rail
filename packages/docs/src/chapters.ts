@@ -1,7 +1,7 @@
 import type { Root, RootContent } from "mdast";
 import { toString as textOf } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
-import { BOOK_CONTENTS } from "./book.ts";
+import { appendixAt, BOOK_CONTENTS } from "./book.ts";
 
 /** A chapter's second-level sections, in the order every chapter uses. */
 export const CHAPTER_SECTIONS = [
@@ -18,7 +18,9 @@ export const CHAPTER_SECTIONS = [
 export const CASE_STUDY = "Case study: ";
 
 const isChapter = (page: { slug: string; frontmatter: Record<string, unknown> }) =>
-  page.frontmatter.section === "Book" && page.slug !== BOOK_CONTENTS;
+  page.frontmatter.section === "Book" &&
+  page.slug !== BOOK_CONTENTS &&
+  appendixAt(page.slug) === undefined;
 
 /**
  * MDX elements with a name, block or inline, given as the positions of the top-level nodes that

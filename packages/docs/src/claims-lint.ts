@@ -3,6 +3,7 @@ import { toString as textOf } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
 import { BOOK_CONTENTS } from "./book.ts";
 import { checkElements, resolveCheck, workspaceTestTitles } from "./claims.ts";
+import { STATEMENT_ELEMENTS } from "./statements.ts";
 
 interface Page {
   slug: string;
@@ -13,6 +14,11 @@ interface Page {
 
 const isElement = (node: RootContent | undefined, name: string) =>
   (node?.type === "mdxJsxFlowElement" || node?.type === "mdxJsxTextElement") && node.name === name;
+
+const isStatement = (node: RootContent | undefined) =>
+  (node?.type === "mdxJsxFlowElement" || node?.type === "mdxJsxTextElement") &&
+  node.name !== null &&
+  STATEMENT_ELEMENTS.has(node.name);
 
 const lineOf = (node: { position?: { start: { line: number } } | undefined }) =>
   node.position?.start.line ?? 0;
@@ -26,17 +32,41 @@ function containsCheck(node: RootContent): boolean {
   return found;
 }
 
+/** How many references the checks inside a node cite. */
+function referencesIn(node: RootContent): number {
+  return checkElements({ type: "root", children: [node] }).length;
+}
+
 /**
- * Whether a check appears among the siblings after a displayed formula, before the next heading
- * or formula. A formula and the paragraph stating its worked numbers can then share one check.
+ * Displayed formulas that no check cites. Each formula waits for a check after it; a check citing
+ * n references covers the last n formulas still waiting, and a heading ends the wait. So a check
+ * after a formula's worked numbers covers it, and a grouped check can cover a derivation. A
+ * statement or a proof is part of the text around it: its formulas wait with those outside it, so
+ * one check after a theorem and its proof can cover both.
  */
-function checkedBeforeNext(children: RootContent[], from: number): boolean {
-  for (let i = from + 1; i < children.length; i++) {
-    const sibling = children[i] as RootContent;
-    if (sibling.type === "heading" || sibling.type === "math") return false;
-    if (containsCheck(sibling)) return true;
-  }
-  return false;
+function uncitedFormulas(children: RootContent[]): RootContent[] {
+  const uncited: RootContent[] = [];
+  let waiting: RootContent[] = [];
+  const walk = (nodes: RootContent[]) => {
+    for (const child of nodes) {
+      if (child.type === "heading") {
+        uncited.push(...waiting);
+        waiting = [];
+      } else if (child.type === "math") {
+        waiting.push(child);
+      } else if (isStatement(child)) {
+        walk((child as { children: RootContent[] }).children);
+      } else {
+        const n = referencesIn(child);
+        if (n > 0) {
+          uncited.push(...waiting.slice(0, Math.max(0, waiting.length - n)));
+          waiting = [];
+        }
+      }
+    }
+  };
+  walk(children);
+  return [...uncited, ...waiting];
 }
 
 /**
@@ -59,15 +89,23 @@ export function checkClaims(pages: Page[], tests = workspaceTestTitles()): strin
     if (page.frontmatter.section !== "Book" || page.slug === BOOK_CONTENTS) continue;
 
     visit(page.tree, (node) => {
-      if (!("children" in node)) return;
+      // A statement's formulas are counted with its parent's.
+      if (!("children" in node) || isStatement(node as RootContent)) return;
       const children = node.children as RootContent[];
-      children.forEach((child, i) => {
-        if (child.type === "math" && !checkedBeforeNext(children, i)) {
-          problems.push(
-            `${name} line ${lineOf(child)}: displayed mathematics has no <Check> before the next heading or formula`,
-          );
-        }
-      });
+      for (const formula of uncitedFormulas(children)) {
+        problems.push(
+          `${name} line ${lineOf(formula)}: displayed mathematics has no <Check> citing it before the next heading`,
+        );
+      }
+    });
+
+    // A table of predicted and simulated values carries the checks behind its numbers.
+    visit(page.tree, (node) => {
+      if (isElement(node as RootContent, "Predicted") && !containsCheck(node as RootContent)) {
+        problems.push(
+          `${name} line ${lineOf(node)}: <Predicted> needs a <Check> inside it for its numbers`,
+        );
+      }
     });
 
     // A check is cited once for a claim; answers may cite the same check as the text.

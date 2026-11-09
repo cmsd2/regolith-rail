@@ -368,6 +368,110 @@
   color: var(--muted);
 }
 
+.statement {
+  margin: 1.25rem 0;
+  padding: 0.125rem 0 0.125rem 1rem;
+  border-left: 3px solid var(--border);
+}
+
+.statement > p:first-of-type,
+.proof > p:first-of-type {
+  margin-top: 0;
+}
+
+.statement > :last-child {
+  margin-bottom: 0;
+}
+
+/* A statement that opens with a list or a table starts it below the label. */
+.statementLabel + ol,
+.statementLabel + ul,
+.statementLabel + table,
+.proofLabel + ol,
+.proofLabel + ul {
+  clear: left;
+}
+
+.statementResult {
+  border-left-color: var(--accent);
+}
+
+.statementDefinition {
+  border-left-color: var(--focus);
+}
+
+.statementLabel {
+  float: left;
+  margin-right: 0.4em;
+  font-weight: 600;
+}
+
+.statementName {
+  font-weight: 400;
+}
+
+.proof {
+  margin: 1rem 0 1.25rem;
+  padding-left: calc(1rem + 3px);
+}
+
+.proofLabel {
+  float: left;
+  margin-right: 0.4em;
+  font-style: italic;
+}
+
+.proof > p:last-of-type {
+  margin-bottom: 0;
+}
+
+.qed {
+  display: block;
+  margin-top: -0.25rem;
+  text-align: right;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.predicted {
+  margin: 1.5rem 0;
+  padding: 0.5rem 1rem 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.predicted table {
+  margin: 0.25rem 0 0.75rem;
+}
+
+.predicted td:not(:first-child),
+.predicted th:not(:first-child) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.appendix {
+  list-style: none;
+}
+
+.placeholder {
+  margin: 1.5rem 0;
+  padding: 0.5rem 1rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-left: 4px dashed var(--muted);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 14px;
+}
+
+.placeholderNeeds {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .check {
   margin: -0.25rem 0 1rem;
   font-size: 13px;

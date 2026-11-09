@@ -4,7 +4,10 @@ import type { RunOutput } from "./output.ts";
 
 const TICK = 60_000;
 
-/** A run of three intervals at one site: 6 unloaded at the start, 4 consumed in the second. */
+/**
+ * A run of three intervals at one site: 6 unloaded at the end of the first, which the row at that
+ * boundary already shows, and 4 consumed in the second.
+ */
 function output(): RunOutput {
   return {
     apiVersion: 2,
@@ -20,7 +23,15 @@ function output(): RunOutput {
     stock: Int32Array.from([10_000, 16_000, 12_000, 12_000]),
     cargo: Int32Array.from([0, 0, 4_000, 4_000]),
     events: [
-      { t: 0, kind: "transfer", stop: 1, train: "T", station: "A", resource: "X", amount: -6_000 },
+      {
+        t: TICK,
+        kind: "transfer",
+        stop: 1,
+        train: "T",
+        station: "A",
+        resource: "X",
+        amount: -6_000,
+      },
     ],
     records: {},
     samples: { t: [], stock: [], cargo: [] },
@@ -49,6 +60,26 @@ describe("run averages", () => {
       (((site?.stock as number) + 4_000 / 3) / (4_000 / days)) * 24,
       6,
     );
+  });
+
+  it("puts an event inside an interval, or on the boundary that ends it, in that interval", () => {
+    const inside = output();
+    inside.events = [
+      { ...(inside.events[0] as object), t: TICK / 2 } as RunOutput["events"][number],
+    ];
+    const [boundary] = runAverages(output()).sites;
+    const [within] = runAverages(inside).sites;
+    expect(within?.inPerDay).toBeCloseTo(boundary?.inPerDay as number, 6);
+    expect(within?.outPerDay).toBeCloseTo(boundary?.outPerDay as number, 6);
+  });
+
+  it("leaves out events at time 0, which the first row already shows", () => {
+    const start = output();
+    start.stock = Int32Array.from([16_000, 16_000, 12_000, 12_000]);
+    start.events = [{ ...(start.events[0] as object), t: 0 } as RunOutput["events"][number]];
+    const { sites, days } = runAverages(start);
+    expect(sites[0]?.inPerDay).toBe(0);
+    expect(sites[0]?.outPerDay).toBeCloseTo(4_000 / days, 6);
   });
 
   it("leaves the times undefined where nothing left", () => {

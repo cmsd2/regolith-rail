@@ -18,7 +18,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* Poisson demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal chance. */\nload(distrib)$\nrate: 10$\nreview: 7$\nleads: [1, 3]$\nlead_probs: [1/2, 1/2]$\ncsl(s) := sum(lead_probs[i] * cdf_poisson(s, rate * (review + leads[i])), i, 1, 2)$\nlevel_for(target) := block([s: 0], while csl(s) < target do s: s + 1, s)$",
+   "source": "/* Poisson demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal chance. */\nload(distrib)$\nrate: 10$\nreview: 7$\nleads: [1, 3]$\nlead_probs: [1/2, 1/2]$\ncsl(s) := sum(lead_probs[i] * cdf_poisson(s, rate * (review + leads[i])), i, 1, 2)$\nlevel_for(target) := block([s: 0], while csl(s) < target do s: s + 1, s)$\n/* The expected amount by which a Poisson demand of mean m exceeds s. */\nshort(s, m) := m - s + sum((s - n) * pdf_poisson(n, m), n, 0, s)$\nexpected_short(s) := sum(lead_probs[i] * short(s, rate * (review + leads[i])), i, 1, 2)$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -32,14 +32,28 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: service-level */\nexpect_equal(\"level-95\", level_for(0.95), 113);\nexpect_close(\"csl-at-113\", csl(113), 0.9546, 0.00005);\nexpect_equal(\"below-at-112\", is(csl(112) < 0.95), true);\nexpect_equal(\"safety-stock\", 113 - 90, 23);",
+   "source": "/* check: service-level */\nexpect_equal(\"level-95\", level_for(0.95), 113);\nexpect_close(\"csl-at-113\", csl(113), 0.9546, 0.00005);\nexpect_equal(\"below-at-112\", is(csl(112) < 0.95), true);\nexpect_equal(\"safety-stock\", 113 - 90, 23);\nexpect_close(\"csl-at-106\", csl(106), 0.8715, 0.00005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: interval-variance */\n/* Poisson demand over a random interval T: variance = rate E[T] + rate^2 Var(T). */\nmean_t: sum(lead_probs[i] * (review + leads[i]), i, 1, 2)$\nvar_t: sum(lead_probs[i] * (review + leads[i])^2, i, 1, 2) - mean_t^2$\nexpect_equal(\"mean-interval\", mean_t, 9);\nexpect_equal(\"var-interval\", var_t, 1);\nexpect_equal(\"demand-variance\", rate * mean_t + rate^2 * var_t, 190);\nexpect_close(\"demand-sd\", sqrt(190), 13.78, 0.005);",
+   "source": "/* check: random-interval-formula */\n/* Given T the demand is Poisson with mean and variance lam T, so the mean of the conditional variance is\n   lam E[T] and the variance of the conditional mean is lam^2 Var(T). For T equal to a or b with chances q and 1 - q: */\nkill(lam, a, b, q)$\nET: q * a + (1 - q) * b$\nVarT: q * a^2 + (1 - q) * b^2 - ET^2$\nsecond: q * (lam * a + (lam * a)^2) + (1 - q) * (lam * b + (lam * b)^2)$\nexpect_equal(\"mean-of-demand\", q * lam * a + (1 - q) * lam * b, lam * ET);\nexpect_equal(\"variance-of-demand\", ratsimp(second - (lam * ET)^2 - (lam * ET + lam^2 * VarT)), 0);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: total-variance */\n/* The variance of the demand over T, directly from the two cases, and by conditioning on T. */\nmeans: makelist(rate * (review + leads[i]), i, 1, 2)$\nsecond_moment: sum(lead_probs[i] * (means[i] + means[i]^2), i, 1, 2)$\ndirect: second_moment - (sum(lead_probs[i] * means[i], i, 1, 2))^2$\nexpect_equal(\"variance-direct\", direct, 190);\nmean_of_variances: sum(lead_probs[i] * means[i], i, 1, 2)$\nvariance_of_means: sum(lead_probs[i] * means[i]^2, i, 1, 2) - 90^2$\nexpect_equal(\"mean-of-variances\", mean_of_variances, 90);\nexpect_equal(\"variance-of-means\", variance_of_means, 100);\nexpect_equal(\"variance-by-conditioning\", mean_of_variances + variance_of_means, direct);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: interval-variance */\n/* Poisson demand over a random interval T: variance = rate E[T] + rate^2 Var(T). */\nmean_t: sum(lead_probs[i] * (review + leads[i]), i, 1, 2)$\nvar_t: sum(lead_probs[i] * (review + leads[i])^2, i, 1, 2) - mean_t^2$\nexpect_equal(\"mean-interval\", mean_t, 9);\nexpect_equal(\"var-interval\", var_t, 1);\nexpect_equal(\"demand-variance\", rate * mean_t + rate^2 * var_t, 190);\nexpect_close(\"demand-sd\", sqrt(190), 13.78, 0.005);\n/* With a fixed lead time of 2 days the variance is 90. */\nexpect_close(\"fixed-demand-sd\", sqrt(90), 9.49, 0.005);\nexpect_close(\"variance-ratio\", 190 / 90, 2.11, 0.005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -53,6 +67,13 @@
   },
   {
    "cell_type": "code",
+   "source": "/* check: service-table */\n/* Exact levels and safety stock for four targets, and the normal approximation z sqrt(190). */\nfor row in [[0.90, 108, 17.66], [0.95, 113, 22.67], [0.99, 121, 32.07], [0.999, 130, 42.60]] do block([target, lv, ss],\n  [target, lv, ss]: row,\n  expect_equal(\"exact-level\", level_for(target), lv),\n  expect_close(\"normal-safety-stock\", quantile_normal(target, 0, 1) * sqrt(190), ss, 0.005))$\nexpect_equal(\"safety-stock-90\", 108 - 90, 18);\nexpect_equal(\"safety-stock-999\", 130 - 90, 40);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
    "source": "/* check: fixed-lead-level */\n/* The same average lead time of 2 days, always. */\nfixed_level: block([s: 0], while cdf_poisson(s, 90) < 0.95 do s: s + 1, s)$\nexpect_equal(\"fixed-level\", fixed_level, 106);\nexpect_equal(\"variability-cost\", 113 - fixed_level, 7);",
    "metadata": {},
    "execution_count": null,
@@ -60,7 +81,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* check: fill-rate */\n/* Expected units short at the end of a cycle, over a week's demand: an approximation to the fill rate. */\nshort(s, m) := m - s + sum((s - n) * pdf_poisson(n, m), n, 0, s)$\nexpected_short: sum(lead_probs[i] * short(113, rate * (review + leads[i])), i, 1, 2)$\nfill: 1 - expected_short / (rate * review)$\nexpect_close(\"expected-short\", expected_short, 0.246, 0.0005);\nexpect_close(\"fill-rate\", fill, 0.996, 0.0005);",
+   "source": "/* check: fill-rate */\n/* Expected backorders at the end of a cycle, over a week's demand. */\nfill(s) := 1 - expected_short(s) / (rate * review)$\nexpect_close(\"expected-short\", expected_short(113), 0.246, 0.0005);\nexpect_close(\"fill-rate\", fill(113), 0.9965, 0.00005);\n/* The normal approximation: sigma G(z) with z = 23 / sqrt(190). */\nzf: 23 / sqrt(190)$\nloss: pdf_normal(zf, 0, 1) - zf * (1 - cdf_normal(zf, 0, 1))$\nexpect_close(\"normal-short\", sqrt(190) * loss, 0.272, 0.0005);\nexpect_close(\"normal-fill-rate\", 1 - sqrt(190) * loss / 70, 0.9961, 0.00005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -75,6 +96,20 @@
   {
    "cell_type": "code",
    "source": "/* check: twice-weekly */\nreview: 7/2$\nexpect_equal(\"twice-weekly-short-mean\", rate * (review + 1), 45);\nexpect_equal(\"twice-weekly-long-mean\", rate * (review + 3), 65);\nexpect_equal(\"twice-weekly-level\", level_for(0.95), 75);\nreview: 7$",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-fill-rate */\nexpect_close(\"short-at-106\", expected_short(106), 0.862, 0.0005);\nexpect_close(\"fill-at-106\", fill(106), 0.9877, 0.00005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-normal-99 */\nexpect_close(\"z-99\", quantile_normal(0.99, 0, 1), 2.326, 0.0005);\nexpect_close(\"normal-safety-stock-99\", quantile_normal(0.99, 0, 1) * sqrt(190), 32.07, 0.005);\nexpect_equal(\"exact-safety-stock-99\", level_for(0.99) - 90, 31);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

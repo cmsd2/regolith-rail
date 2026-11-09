@@ -18,56 +18,105 @@
   },
   {
    "cell_type": "code",
-   "source": "/* The economic order quantity: order Q whenever stock runs out, with demand D a day, order cost K and holding cost h. */\nassume(Q > 0, D > 0, K > 0, h > 0)$\ncost(Q) := K * D / Q + h * Q / 2$",
+   "source": "/* The economic order quantity: order Q whenever stock runs out, with demand D a day, order cost K and holding cost h. */\nassume(Q > 0, D > 0, K > 0, h > 0)$\ncost(Q) := K * D / Q + h * Q / 2$\nshop: [K = 20, D = 10, h = 1]$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: eoq-cost */\n/* Orders a day times the order cost, plus the average stock times the holding cost. */\norders_a_day: D / Q$\naverage_stock: Q / 2$\nexpect_equal(\"eoq-cost\", orders_a_day * K + average_stock * h, cost(Q));",
+   "source": "/* check: plan-cost */\n/* The Shop over 4 days, ordering 20 units at times 0 and 2: two orders, and stock that falls from 20 to 0 twice. */\norders_placed: 2$\nstock_area: 2 * (20 * 2 / 2)$\nexpect_equal(\"plan-cost\", subst(shop, K * orders_placed + h * stock_area), 80);\nexpect_equal(\"plan-cost-per-day\", subst(shop, (K * orders_placed + h * stock_area) / 4), 20);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: eoq */\neoq: rhs(first(sublist(solve(diff(cost(Q), Q) = 0, Q), lambda([e], is(rhs(e) > 0)))))$\nexpect_equal(\"eoq\", eoq, sqrt(2 * K * D / h));\nexpect_equal(\"eoq-minimum-cost\", cost(eoq), sqrt(2 * K * D * h));\nexpect_equal(\"eoq-minimum\", is(subst([K = 20, D = 10, h = 1], diff(cost(Q), Q, 2)) > 0), true);",
+   "source": "/* check: zero-stock-ordering */\n/* Delaying an order of q units, placed with y on hand, until the stock reaches zero holds the q units for\n   y / D less time and saves h q y / D. With D = 10, h = 1, q = 20 and y = 5: */\nearly: 25 * (25/10) / 2$                 /* stock falls from 25 to 0 over 2.5 days */\nlate: 5 * (5/10) / 2 + 20 * (20/10) / 2$   /* 5 falls to 0 over half a day, then 20 over 2 days */\nexpect_equal(\"holding-early\", early, 125/4);\nexpect_equal(\"holding-late\", late, 85/4);\nexpect_equal(\"saving\", early - late, 20 * 5 / 10);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: eoq-terms-balance */\n/* At the optimum the ordering and holding terms are equal. */\nexpect_equal(\"balance\", subst(Q = eoq, K * D / Q - h * Q / 2), 0);",
+   "source": "/* check: equal-quantities */\n/* An order of q units is used up over q / D with q / 2 in stock on average: holding cost h q^2 / (2 D). */\nkill(q, q1, q2)$\nexpect_equal(\"holding-of-one-order\", h * (q / 2) * (q / D), h * q^2 / (2 * D));\n/* For two orders with a fixed total, the sum of squares is least when they are equal. */\nexpect_equal(\"two-orders\", q1^2 + q2^2 - (q1 + q2)^2 / 2, (q1 - q2)^2 / 2);\n/* The Shop over 4 days: orders of 10 and 30 against two orders of 20. */\nexpect_equal(\"unequal\", (10^2 + 30^2) / (2 * 10), 50);\nexpect_equal(\"equal\", (20^2 + 20^2) / (2 * 10), 40);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: eoq-defaults */\ndefaults: [K = 20, D = 10, h = 1]$\nexpect_equal(\"default-quantity\", subst(defaults, eoq), 20);\nexpect_equal(\"default-cost\", subst(defaults, cost(20)), 20);\nexpect_equal(\"default-orders-per-day\", subst(defaults, D / 20), 1/2);",
+   "source": "/* check: eoq-cost */\n/* A cycle lasts Q / D and costs K to order and h Q^2 / (2 D) to hold. */\ncycle_cost: K + h * Q^2 / (2 * D)$\nexpect_equal(\"eoq-cost\", cycle_cost / (Q / D), cost(Q));",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: flat-cost */\n/* Relative to the optimum, ordering x times the optimal quantity costs (x + 1/x) / 2 times as much. */\nexpect_equal(\"relative-cost\", cost(x * eoq) / cost(eoq), (x + 1/x) / 2);\nexpect_equal(\"half-again\", (3/2 + 2/3) / 2, 13/12);\nexpect_close(\"half-again-percent\", 100 * (13/12 - 1), 8.33, 0.005);\nexpect_equal(\"double\", (2 + 1/2) / 2, 5/4);\nexpect_equal(\"half\", (1/2 + 2) / 2, 5/4);",
+   "source": "/* check: eoq */\neoq: sqrt(2 * K * D / h)$\nexpect_equal(\"eoq-minimum-cost\", cost(eoq), sqrt(2 * K * D * h));\nexpect_equal(\"terms-equal\", subst(Q = eoq, K * D / Q - h * Q / 2), 0);\n/* The first-order condition gives the same quantity, and the second derivative is positive. */\nfoc: rhs(first(sublist(solve(diff(cost(Q), Q) = 0, Q), lambda([e], is(rhs(e) > 0)))))$\nexpect_equal(\"first-order-condition\", foc, eoq);\nexpect_equal(\"second-derivative\", diff(cost(Q), Q, 2), 2 * K * D / Q^3);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: order-sizes */\nexpect_equal(\"cost-10\", subst([K = 20, D = 10, h = 1], cost(10)), 25);\nexpect_equal(\"cost-40\", subst([K = 20, D = 10, h = 1], cost(40)), 25);\nexpect_close(\"cost-30\", subst([K = 20, D = 10, h = 1], cost(30)), 21.67, 0.005);",
+   "source": "/* check: eoq-square */\n/* The cost exceeds sqrt(2 K D h) by a square, which vanishes when the two terms are equal. */\nexpect_equal(\"product-of-terms\", (K * D / Q) * (h * Q / 2), K * D * h / 2);\nexpect_equal(\"cost-as-square\", cost(Q) - sqrt(2 * K * D * h), (sqrt(K * D / Q) - sqrt(h * Q / 2))^2);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
   },
   {
    "cell_type": "code",
-   "source": "/* check: reorder-point */\n/* Steady demand of 10 a day over a lead time L and one review R, in thousandths of a unit, rounded up. */\nreorder_point(L_days, R_days) := ceiling(10 * 1000 * (L_days + R_days))$\nexpect_equal(\"point-hourly\", reorder_point(0, 1/24), 417);\nexpect_equal(\"point-minute\", reorder_point(0, 1/1440), 7);\nexpect_equal(\"order-up-to\", reorder_point(0, 1/24) + 20 * 1000, 20417);\nexpect_equal(\"point-two-days\", reorder_point(2, 1/24), 20417);",
+   "source": "/* check: eoq-all-plans */\n/* n equal orders at zero stock over [0, T] cost T C(D T / n), which is at least T sqrt(2 K D h). */\nkill(n, T)$\nassume(n > 0, T > 0)$\nexpect_equal(\"cost-of-n-orders\", n * K + n * h * (D * T / n)^2 / (2 * D), T * subst(Q = D * T / n, cost(Q)));\n/* The Shop over 20 days: 10 orders of 20 cost 400, and 5 orders of 40 or 20 orders of 10 cost 500. */\nplan_cost(n) := subst(shop, n * K + n * h * (D * 20 / n)^2 / (2 * D))$\nexpect_equal(\"ten-orders\", plan_cost(10), 400);\nexpect_equal(\"five-orders\", plan_cost(5), 500);\nexpect_equal(\"twenty-orders\", plan_cost(20), 500);\nexpect_equal(\"lower-bound\", subst(shop, 20 * sqrt(2 * K * D * h)), 400);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: eoq-shop */\nexpect_equal(\"shop-quantity\", subst(shop, eoq), 20);\nexpect_equal(\"shop-cost\", subst(shop, cost(20)), 20);\nexpect_equal(\"shop-cycle-days\", subst(shop, 20 / D), 2);\nexpect_equal(\"shop-ordering-part\", subst(shop, K * D / 20), 10);\nexpect_equal(\"shop-holding-part\", subst(shop, h * 20 / 2), 10);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: sensitivity */\n/* Ordering x times the optimal quantity costs (x + 1/x) / 2 times the optimal cost. */\nkill(x)$\nassume(x > 0)$\nexpect_equal(\"relative-cost\", cost(x * eoq) / cost(eoq), (x + 1/x) / 2);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: sensitivity-shop */\nexpect_equal(\"cost-10\", subst(shop, cost(10)), 25);\nexpect_equal(\"cost-40\", subst(shop, cost(40)), 25);\nexpect_equal(\"ratio-half-or-double\", (2 + 1/2) / 2, 5/4);\nexpect_close(\"cost-30\", subst(shop, cost(30)), 21.67, 0.005);\nexpect_equal(\"ratio-30\", (3/2 + 2/3) / 2, 13/12);\n/* An order cost taken to be twice its value gives sqrt(2) times the quantity, and 6% more cost. */\nexpect_close(\"ratio-wrong-k\", (sqrt(2) + 1 / sqrt(2)) / 2, 1.0607, 0.00005);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: waiting-time */\n/* Mean stock Q / 2 and flow D: by Little's law a unit waits Q / (2 D). */\nexpect_equal(\"waiting-time\", (Q / 2) / D, Q / (2 * D));\nexpect_equal(\"waiting-time-shop\", subst(shop, 20 / (2 * D)), 1);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: reorder-point */\n/* An order placed when the stock is D L arrives a lead time L later, as the stock reaches zero. */\nkill(L)$\nexpect_equal(\"stock-on-arrival\", D * L - D * L, 0);\nexpect_equal(\"reorder-point-shop\", subst(shop, D * 1), 10);\nexpect_equal(\"lead-time-within-cycle\", is(1 <= subst(shop, 20 / D)), true);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: periodic-review */\n/* Reviews every R: with s = D R the stock at an ordering review is between 0 and s, so the mean stock of a\n   cycle is at most (S + s) / 2 = Q / 2 + s, and orders exceed Q. */\nkill(R, s, S)$\nexpect_equal(\"mean-stock-bound\", ratsimp(subst([S = D * R + Q, s = D * R], (S + s) / 2)), Q / 2 + D * R);\nbound(q, r) := subst(shop, cost(q) + h * D * r)$\nexpect_close(\"bound-hourly-20\", bound(20, 1/24), 20.42, 0.005);\nexpect_close(\"bound-hourly-10\", bound(10, 1/24), 25.42, 0.005);\n/* In thousandths of a unit, hourly: the reorder level rounded up, and the order-up-to level. */\nexpect_equal(\"level-hourly\", ceiling(10 * 1000 / 24), 417);\nexpect_equal(\"order-up-to-hourly\", ceiling(10 * 1000 / 24) + 20 * 1000, 20417);\nexpect_equal(\"level-minute\", ceiling(10 * 1000 / 1440), 7);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: dispatch-interval */\n/* A train that departs every T days from a mine making lam a day, at F a trip and h a unit a day waiting. */\nkill(T, lam, F)$\nassume(T > 0, lam > 0, F > 0)$\ntrip_cost(T) := F / T + h * lam * T / 2$\nexpect_equal(\"same-form\", trip_cost(T), subst([K = F, D = lam, Q = lam * T], cost(Q)));\nTstar: sqrt(2 * F / (h * lam))$\nline: [F = 20, lam = 36, h = 1]$\nexpect_close(\"interval\", subst(line, Tstar), 1.054, 0.0005);\nexpect_close(\"load\", subst(line, lam * Tstar), 37.95, 0.005);\n/* The load may not exceed 30, so T <= 5/6: the constraint is binding. */\nexpect_equal(\"constrained-cost\", subst(line, trip_cost(5/6)), 39);\nexpect_close(\"unconstrained-cost\", subst(line, trip_cost(Tstar)), 37.95, 0.005);\nexpect_close(\"cost-of-constraint\", 39 / subst(line, trip_cost(Tstar)), 1.028, 0.0005);",
    "metadata": {},
    "execution_count": null,
    "outputs": []
@@ -82,6 +131,13 @@
   {
    "cell_type": "code",
    "source": "/* check: square-root-law */\nexpect_equal(\"quadruple-demand\", subst(D = 4 * D, eoq) / eoq, 2);",
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "code",
+   "source": "/* check: exercise-two-percent */\n/* (x + 1/x) / 2 <= 1.02 between the roots of x^2 - 2.04 x + 1. */\nroots: map(rhs, solve(x^2 - 204/100 * x + 1 = 0, x))$\nexpect_close(\"lower-root\", lmin(roots), 0.819, 0.0005);\nexpect_close(\"upper-root\", lmax(roots), 1.221, 0.0005);\nexpect_close(\"quantities\", 20 * lmin(roots), 16.4, 0.05);\nexpect_close(\"quantities-upper\", 20 * lmax(roots), 24.4, 0.05);",
    "metadata": {},
    "execution_count": null,
    "outputs": []

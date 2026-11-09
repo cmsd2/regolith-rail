@@ -1,6 +1,6 @@
 ---
 title: "One period under uncertainty: the newsvendor"
-description: Choosing one quantity before demand is known, when too much and too little both cost.
+description: The order that minimises expected cost when demand is random and the order is placed once, characterised by the critical ratio.
 section: Book
 part: 2
 chapter: 5
@@ -8,110 +8,293 @@ chapter: 5
 
 ## What you will learn
 
-- To write down the expected cost of a single order placed before random demand.
-- To find the best order by comparing the cost of one unit too many with one unit too
-  few, and to read that comparison as a probability, the critical ratio.
-- To run the classic newsvendor scenario, and to see in a batch comparison why the cost
-  curve is lopsided.
+- To formulate the expected cost of a single order placed before a random demand is known.
+- To prove that the expected cost is convex, and that the optimal order is the quantile of demand at the
+  critical ratio.
+- To compute the optimal order and its cost for discrete and for continuous demand.
+- To express the optimal cost under normal demand through the standard normal loss function, and to
+  identify the part of it that uncertainty causes.
 
 ## The problem
 
-Some decisions are made once, before the uncertainty they face is resolved. A bakery
-bakes before the shop opens. A stall buys newspapers at dawn. A depot stocks spare parts
-for a single season. What is left over at the end is worth little or nothing, and a
-customer who finds the shelf empty buys elsewhere.
+Chapter 4 chose an order quantity for a demand that was known. This chapter keeps the choice of a
+quantity and makes the demand random. It removes everything else. There is one period, and one order placed
+before the demand is observed. Stock left at the end of the period has no value,
+and demand that finds no stock is lost.
 
-Order too much and you pay for stock that is wasted. Order too little and you forgo
-sales you could have made. Neither mistake can be put right afterwards, so the question
-is how to balance them before demand is known. Operations research calls this the
-newsvendor problem, after the newspaper stall. It is the simplest setting in which
-uncertainty changes the right decision, and the reasoning it teaches runs through the
-rest of this part (Axsäter, 2015, pp. 95–97; Snyder and Shen, 2019, pp. 90–101).
+An order that is too large wastes the units left over. An order that is too small loses demand. The
+problem of choosing the order is the newsvendor problem, named for a seller of newspapers who buys the
+day's copies in the morning (Snyder and Shen, 2019, pp. 90–101; Axsäter, 2015, pp. 95–96). Its solution
+is the simplest case in which uncertainty changes the optimal decision, and chapter 6 reduces a problem
+with many periods to it.
 
 ## The model
 
-Let one unit cost $c$ to buy, and let each unit of demand that finds no stock cost $p$,
-the loss of an unmade sale. Demand $D$ is random with a known distribution. Order $Q$
-units, and the period costs $cQ$ for the purchase plus $p$ for each unit of demand above
-$Q$. The expected cost is
+### Expected cost
+
+<Assumption id="asm-newsvendor" name="The newsvendor">
+
+1. There is one period. The demand in the period is a random variable $D \ge 0$ with distribution
+   function $F$.
+2. The order $Q \ge 0$ is chosen before the demand is observed, and arrives before the period begins.
+3. Each unit ordered costs $c$.
+4. Each unit of demand that is not met costs $p$, where $p > c > 0$. Stock left at the end of the period
+   has no value.
+
+</Assumption>
+
+<Definition id="def-newsvendor-cost" name="Expected cost">
+
+With $(y)^+ = \max(y, 0)$, the **expected cost** of the order $Q$ is
 
 $$
-C(Q) = cQ + p\,\mathbb{E}\left[(D - Q)^+\right],
+C(Q) = cQ + p\,E\big[(D - Q)^+\big] .
 $$
 
-<Check ref="maxima:expected-cost" />
+</Definition>
 
-where $(x)^+$ means $\max(x, 0)$.
+The term $E[(D - Q)^+]$ is the expected shortfall. The cost can be divided differently, into a part that
+no order can avoid and the costs of the two kinds of error.
 
-### One more unit
+<Lemma id="lem-overage-underage" name="Overage and underage">
 
-Instead of minimising $C$ directly, ask what one more unit changes. Its purchase adds
-$c$ for certain. It saves $p$ only if demand turns out to be above $Q$, which happens
-with probability $P(D > Q)$. For whole units, the change is
-
-$$
-C(Q + 1) - C(Q) = c - p\,P(D > Q).
-$$
-
-<Check ref="maxima:marginal-cost" />
-
-As $Q$ grows, $P(D > Q)$ shrinks, so the change starts negative and turns positive.
-The best order is the first $Q$ at which adding a unit stops paying: the smallest $Q$
-with
+Let $c_o = c$ and $c_u = p - c$. Then
 
 $$
-P(D \le Q) \ge \frac{p - c}{p}.
+C(Q) = c\,E[D] + c_o\,E\big[(Q - D)^+\big] + c_u\,E\big[(D - Q)^+\big] .
 $$
 
-<Check ref="maxima:optimality-condition" />
+</Lemma>
+
+<Proof>
+
+By the identity $(y)^+ - (-y)^+ = y$ used for <Ref to="lem-conservation" />, with $y = Q - D$,
+$Q = D + (Q - D)^+ - (D - Q)^+$. Multiplying by $c$ and taking expectations expresses $cQ$ in terms of
+the two expected errors, and adding $p\,E[(D - Q)^+]$ gives the result.
+
+</Proof>
+
+The **overage cost** $c_o$ is the cost of a unit ordered and not demanded. The **underage cost** $c_u$
+is the cost of a unit demanded and not ordered: the penalty $p$, less the purchase cost $c$ that was not
+paid (Axsäter, 2015, p. 95).
+
+<Proposition id="prop-newsvendor-convex" name="Convexity">
+
+The expected cost $C$ is a convex function of $Q$.
+
+</Proposition>
+
+<Proof>
+
+For each fixed value $d$ of the demand, the function $Q \mapsto (d - Q)^+$ is convex. An expectation of
+convex functions is convex, and so is the sum of a convex function and the linear function $cQ$.
+
+</Proof>
+
+<Check refs="
+  maxima:expected-cost
+  maxima:overage-underage
+  maxima:convexity
+" />
 
 ### The critical ratio
 
-The right-hand side is the critical ratio. It is often written with two named costs:
-the underage cost $c_u$, what a unit too few gives up, here $p - c$; and the overage
-cost $c_o$, what a unit too many wastes, here $c$. Then the ratio is
+<Theorem id="thm-critical-ratio" name="Critical ratio, discrete demand">
+
+Let $D$ take values in the non-negative integers, and let $Q$ be an integer. Then
 
 $$
-\frac{c_u}{c_u + c_o} = \frac{p - c}{p}.
+C(Q + 1) - C(Q) = c - p\,P(D > Q),
 $$
 
-<Check ref="maxima:critical-ratio" />
-
-The ratio says how much protection is worth buying. When a lost sale costs much more
-than a wasted unit, the ratio is close to 1 and the order covers nearly every outcome.
-When the two costs are close, the order sits nearer the middle of the distribution.
-
-### A worked case
-
-Take demand of 5, 10, 15, 20 or 25 units with weights 1, 2, 3, 2 and 1, a unit cost of
-2 and a lost-demand cost of 5. The critical ratio is $3/5$. Demand is at most 10 with
-probability $1/3$ and at most 15 with probability $2/3$, so 15 is the smallest order
-that reaches the ratio.
-
-<Check ref="maxima:best-order" />
-
-The expected shortfall at 15 is $20/9$ units, and the expected cost is
+and the smallest $Q$ with
 
 $$
-C(15) = 2 \times 15 + 5 \times \frac{20}{9} = \frac{370}{9} \approx 41.11.
+F(Q) \ \ge\ \frac{p - c}{p} = \frac{c_u}{c_u + c_o}
 $$
 
-<Check ref="maxima:best-cost" />
+minimises $C$.
 
-The cost curve is not symmetric. Ordering 10 costs $430/9 \approx 47.78$, while ordering
-20 costs $385/9 \approx 42.78$. Falling short is dearer than overshooting, because a lost
-sale costs more than a wasted unit.
+</Theorem>
 
-<Check ref="maxima:cost-either-side" />
+<Proof>
+
+One more unit costs $c$. It reduces the shortfall by one unit when $D > Q$ and has no effect otherwise,
+since $(D - Q - 1)^+ - (D - Q)^+$ equals $-1$ when $D \ge Q + 1$ and 0 when $D \le Q$. Taking
+expectations gives the first equation.
+
+The probability $P(D > Q)$ does not increase with $Q$, so the difference $C(Q + 1) - C(Q)$ does not
+decrease. Hence $C$ falls while the difference is negative and does not fall after, and the first $Q$ at
+which $c - p\,P(D > Q) \ge 0$ is a minimiser. That condition is $1 - F(Q) \le c / p$.
+
+</Proof>
+
+The number $(p - c)/p$ is the **critical ratio**. The optimal order is the quantile of the demand at the
+critical ratio: the smallest quantity that covers the demand with at least that probability. When the
+penalty $p$ is large relative to the unit cost, the ratio is near 1 and the order covers almost every
+demand. When $p$ is near $c$, the ratio is near 0 and the order is small.
+
+<WorkedExample id="ex-stand" name="A newspaper stand">
+
+A stand's daily demand is 5, 10, 15, 20 or 25 units, with probabilities $\tfrac19, \tfrac29, \tfrac39,
+\tfrac29, \tfrac19$. A unit costs $c = 2$ and a unit of lost demand costs $p = 5$, so the critical ratio
+is $3/5$. Since $F(10) = 1/3$ and $F(15) = 2/3$, the optimal order is $Q^* = 15$. The expected shortfall
+at 15 is $\tfrac29 \times 5 + \tfrac19 \times 10 = 20/9$ units, and
+
+$$
+C(15) = 2 \times 15 + 5 \times \frac{20}{9} = \frac{370}{9} \approx 41.11 .
+$$
+
+The cost is not symmetric about the optimum: $C(10) = 430/9 \approx 47.78$ and
+$C(20) = 385/9 \approx 42.78$. An order 5 units too small costs 6.67 more, and an order 5 units too
+large costs 1.67 more. The demand is symmetric about 15, so the asymmetry comes from the costs:
+$c_u = 3$ exceeds $c_o = 2$.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:marginal-cost
+  maxima:optimality-condition
+  maxima:best-cost
+  maxima:critical-ratio
+  maxima:best-order
+  maxima:cost-either-side
+" />
+
+<Theorem id="thm-critical-ratio-continuous" name="Critical ratio, continuous demand">
+
+Let $F$ be continuous. Then $C$ is differentiable with
+
+$$
+C'(Q) = c - p\,\big(1 - F(Q)\big),
+$$
+
+and $Q^*$ minimises $C$ if and only if $F(Q^*) = (p - c)/p$.
+
+</Theorem>
+
+<Proof>
+
+The expectation of a non-negative random variable is the integral of its tail probabilities, so
+
+$$
+E\big[(D - Q)^+\big] = \int_Q^\infty \big(1 - F(t)\big)\,dt ,
+$$
+
+whose derivative with respect to $Q$ is $-(1 - F(Q))$. This gives $C'$. By
+<Ref to="prop-newsvendor-convex" /> $C$ is convex, so its minimisers are the points where $C'$ is zero.
+
+</Proof>
+
+<WorkedExample id="ex-uniform-demand">
+
+Let $D$ be uniform on $[0, 30]$, with $c = 2$ and $p = 5$. Then $F(Q) = Q / 30$, and $F(Q^*) = 3/5$ gives
+$Q^* = 18$. The expected shortfall is $\int_Q^{30} (1 - t/30)\,dt = (30 - Q)^2 / 60$, which is 2.4 at
+$Q^*$, and $C(18) = 36 + 5 \times 2.4 = 48$.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:continuous-demand
+  maxima:tail-integral
+" />
+
+### Normal demand
+
+Under normal demand the optimal order and its cost have closed forms. Let $Z$ be a standard normal random
+variable with density $\phi$ and distribution function $\Phi$.
+
+<Definition id="def-loss-function" name="Standard normal loss function">
+
+The **standard normal loss function** is $G(z) = E\big[(Z - z)^+\big]$, the expected amount by which $Z$
+exceeds $z$.
+
+</Definition>
+
+<Lemma id="lem-loss-function">
+
+$$
+G(z) = \phi(z) - z\,\big(1 - \Phi(z)\big), \qquad G'(z) = \Phi(z) - 1 .
+$$
+
+</Lemma>
+
+<Proof>
+
+By definition $G(z) = \int_z^\infty t\,\phi(t)\,dt - z \int_z^\infty \phi(t)\,dt$. The density satisfies
+$\phi'(t) = -t\,\phi(t)$, so the first integral is $\phi(z)$. The second is $1 - \Phi(z)$. Differentiating
+gives $G'(z) = -z\,\phi(z) - (1 - \Phi(z)) + z\,\phi(z) = \Phi(z) - 1$.
+
+</Proof>
+
+<Proposition id="prop-normal-demand" name="Normal demand">
+
+Let $D$ be normal with mean $\mu$ and standard deviation $\sigma$, and let $z^*$ satisfy
+$\Phi(z^*) = (p - c)/p$. Then the optimal order and its expected cost are
+
+$$
+Q^* = \mu + z^* \sigma, \qquad C(Q^*) = c\,\mu + p\,\sigma\,\phi(z^*) .
+$$
+
+</Proposition>
+
+<Proof>
+
+Write $D = \mu + \sigma Z$ and $Q = \mu + z\sigma$. Then $(D - Q)^+ = \sigma\,(Z - z)^+$, so the expected
+shortfall is $\sigma\,G(z)$ and $C(Q) = c\,(\mu + z\sigma) + p\,\sigma\,G(z)$. By
+<Ref to="thm-critical-ratio-continuous" /> the optimal $z$ satisfies $\Phi(z^*) = (p - c)/p$, that is,
+$1 - \Phi(z^*) = c / p$. Substituting <Ref to="lem-loss-function" />,
+
+$$
+C(Q^*) = c\,\mu + c\,z^* \sigma + p\,\sigma\,\phi(z^*) - p\,\sigma\,z^* \cdot \frac{c}{p}
+= c\,\mu + p\,\sigma\,\phi(z^*) .
+$$
+
+</Proof>
+
+<Check refs="
+  maxima:loss-function
+  maxima:normal-shortfall
+  maxima:normal-optimum
+" />
+
+The cost has two parts. The part $c\,\mu$ is the cost of buying the mean demand, which would be the whole
+cost if the demand were known. The part $p\,\sigma\,\phi(z^*)$ is the cost of uncertainty. It is
+proportional to the standard deviation of the demand and does not depend on its mean (Snyder and Shen,
+2019, pp. 97–99). A normal variable can be negative, so the model suits a demand whose mean is several
+standard deviations above zero.
+
+<WorkedExample id="ex-normal-demand">
+
+Let $\mu = 100$ and $\sigma = 20$, with $c = 2$ and $p = 5$. The critical ratio is $0.6$, so
+$z^* = 0.2533$ and $Q^* = 105.07$. With $\phi(z^*) = 0.3863$ the cost of uncertainty is
+$5 \times 20 \times 0.3863 = 38.63$, and $C(Q^*) = 238.63$. Ordering the mean, $z = 0$, costs
+$200 + 5 \times 20 \times G(0) = 239.89$, which is 1.26 more.
+
+With $p = 10$ the critical ratio is $0.8$, so $z^* = 0.8416$ and $Q^* = 116.83$. The cost of uncertainty
+is $10 \times 20 \times 0.2800 = 55.99$ at $Q^*$ and $79.79$ at the mean, a difference of 23.80. The
+value of ordering the right quantile grows as the critical ratio moves away from $1/2$.
+
+</WorkedExample>
+
+<Check ref="maxima:normal-example" />
+
+<Remark id="rem-salvage" name="Salvage value">
+
+If each unit left over can be sold for $v < c$, the overage cost becomes $c_o = c - v$ and the underage
+cost is unchanged, so the critical ratio is $(p - c)/(p - v)$. For the stand of <Ref to="ex-stand" />
+with $v = 1$ the ratio is $3/4$. Since $F(15) = 2/3$ and $F(20) = 8/9$, the optimal order rises to 20.
+
+</Remark>
+
+<Check ref="maxima:salvage" />
 
 ## In the simulator
 
-The `classic.newsvendor` template builds this problem as a scenario. One station stores
-the product with unlimited room. Each day's demand is drawn from a discrete
-distribution and spread over the day, and demand that finds no stock is lost. Stock
-expires at each daily review, so nothing carries over. At the review the station orders
-from an outside supplier with no lead time, and the order arrives before that day's
-demand. The defaults are the worked case above, over 30 days.
+The `classic.newsvendor` template is the stand of <Ref to="ex-stand" />, repeated for 30 days. One
+station stores the product. Each day's demand is drawn from the distribution of the example, demand that
+finds no stock is lost, and stock expires at the daily review. At the review the station orders from a
+supplier with no lead time, and the order arrives before the day's demand.
 
 <Scenario template="classic.newsvendor" />
 
@@ -119,8 +302,8 @@ demand. The defaults are the worked case above, over 30 days.
 return classic.newsvendor {}
 ```
 
-The reference policy orders up to the critical-ratio quantity at every review. Since
-the leftovers have just expired, that means ordering exactly 15 units:
+`ops.order_up_to { level = S }` sets a target of $S$ at every review, in thousandths of a unit. The stock
+has just expired, so the policy orders exactly $S$. The reference policy orders $Q^* = 15$:
 
 ```lua runnable scenario=classic.newsvendor
 return ops.policy {
@@ -128,98 +311,115 @@ return ops.policy {
 }
 ```
 
-Amounts in policies are in thousandths of a unit, so 15 units is `15000`. A test runs
-the template with this policy for 400 replications, and checks that the analytic 41.11 lies
-inside the 99% confidence interval of the simulated mean cost per day.
+Each day is one period of the model, so the mean of **Total cost** per day over a batch estimates $C(Q)$.
+In **Batch**, run 100 replications of the reference policy and of copies with `level = 10000` and
+`level = 20000`.
 
-<Check ref="test:reaches the analytic expected cost at the critical-ratio quantity over 400 replications" />
+<Predicted>
 
-To see the lopsided curve, open **Batch**, tick **Compare**, and compare the reference
-policy with copies ordering 10 and 20. The total cost metric rises on both sides of 15,
-by more below it than above: over 100 replications the three cost about 41, 43 and 48 a
-day, each within a unit of the model's 41.11, 42.78 and 47.78.
+| Cost a day | Model $C(Q)$ | Simulator, 100 replications |
+| --- | --- | --- |
+| $Q = 10$ | 47.78 | $48.22 \pm 0.85$ |
+| $Q = 15$ | 41.11 | $41.15 \pm 0.62$ |
+| $Q = 20$ | 42.78 | $42.79 \pm 0.27$ |
 
-<Check ref="test:on classic.newsvendor over 100 replications ordering 15 costs about 41 a day, 20 about 43 and 10 about 48, each within a unit of the model" />
+<Check refs="
+  test:on classic.newsvendor over 100 replications, ordering 10, 15 and 20 costs 48.22, 41.15 and 42.79 a day on average, and each 95% interval contains the model's expected cost
+  test:on classic.newsvendor over 100 replications ordering 15 costs about 41 a day, 20 about 43 and 10 about 48, each within a unit of the model
+  test:reaches the analytic expected cost at the critical-ratio quantity over 400 replications
+" />
+
+</Predicted>
+
+The intervals are those of <Ref to="def-confidence-interval" />, and each contains the model's value.
+
+<Placeholder needs="normal-per-period-demand">
+
+<Ref to="ex-normal-demand" /> has no run yet. A template with normal demand in each period would show
+the cost of 238.63 a day at an order of 105.07, and the difference of 1.26 between that order and an
+order of the mean.
+
+</Placeholder>
 
 ## Where the simulator differs
 
-- **Timing.** Demand arrives through the day rather than all at once. Only the day's
-  total affects the cost, so the expected cost is the same, but the station runs out
-  part way through a busy day rather than at its end.
-- **Whole cost units.** Costs are whole numbers per unit, so an example with prices in
-  fractions needs scaling.
-- **No salvage.** Unsold stock is worth nothing. It appears in the
-  [expired stock](/docs/metrics#expired-stock) metric, not as a cost, because its cost
-  was paid when it was bought.
+- **Demand through the day.** The simulator spreads each day's demand over the day. Only the day's total
+  affects the cost, so the expected cost is that of the model, although the station can run out before
+  the day ends.
+- **Whole cost units.** The simulator's unit costs are whole numbers, so an example with fractional costs
+  must be rescaled.
+- **Expired stock.** Stock left at the review appears under the metric
+  [Expired stock](/docs/metrics#expired-stock) and carries no cost of its own, since its purchase cost was
+  charged when it was ordered.
 
 ## Exercises
 
-1. With the worked case's demand and costs, how many units are left over on average
-   when you order 15?
+1. For the stand of <Ref to="ex-stand" />, compute the expected number of units left over when the order
+   is 15.
 
 <Answer>
 
-On average $20/9 \approx 2.22$ units, from $\mathbb{E}\left[(15 - D)^+\right]$: 10 left
-with probability $1/9$ and 5 left with probability $2/9$.
+$E[(15 - D)^+] = \tfrac19 \times 10 + \tfrac29 \times 5 = 20/9 \approx 2.22$ units.
 
 <Check ref="maxima:expected-leftover" />
 
 </Answer>
 
-2. Suppose unsold units can be sold off for 1 each at the end of the day. How does the
-   critical ratio change, and what is the best order for the worked case's demand?
+2. Let the demand be exponential with mean 15, so that $F(Q) = 1 - e^{-Q/15}$, with $c = 2$ and $p = 5$.
+   Find the optimal order.
 
 <Answer>
 
-A wasted unit now costs $c - s = 1$ instead of 2, while a lost sale still gives up
-$p - c = 3$. The ratio becomes $3 / (3 + 1) = 3/4$. Demand is at most 15 with
-probability $2/3$ and at most 20 with probability $8/9$, so the best order rises to 20.
+By <Ref to="thm-critical-ratio-continuous" />, $1 - e^{-Q^*/15} = 3/5$, so
+$Q^* = 15 \ln(5/2) \approx 13.74$. The optimal order is below the mean demand, because the median of an
+exponential distribution is below its mean and the critical ratio is close to $1/2$.
 
-<Check ref="maxima:salvage" />
+<Check ref="maxima:exercise-exponential" />
 
 </Answer>
 
-3. Demand is instead roughly normal, with mean 100 and standard deviation 20, and the
-   costs are as in the worked case. About how many units should be ordered?
+3. Let the demand be normal with $\mu = 100$ and $\sigma = 20$, and let $c = 2$ and $p = 4$. Find the
+   optimal order and the cost of uncertainty.
 
 <Answer>
 
-The order is the $3/5$ quantile of demand, $100 + 20z$ with $z \approx 0.2533$, which is
-about 105.07 units.
+The critical ratio is $(4 - 2)/4 = 1/2$, so $z^* = 0$ and $Q^* = \mu = 100$. By
+<Ref to="prop-normal-demand" /> the cost of uncertainty is
+$p\,\sigma\,\phi(0) = 4 \times 20 \times 0.3989 = 31.92$.
 
-<Check ref="maxima:normal-demand" />
+<Check ref="maxima:exercise-half-ratio" />
 
 </Answer>
 
-4. Raise the template's `lost_cost` to 10. What is the best order now, and what does it
-   cost a day against ordering 15 or 25?
+4. In the template, set `lost_cost = 10`. Compute the critical ratio and the optimal order, and the
+   expected costs of orders of 15, 20 and 25. Then compare the three orders in a batch of 100
+   replications.
 
 <Answer>
 
-The critical ratio becomes $(10 - 2)/10 = 4/5$, and 20 is the smallest order with
-$P(D \le Q) \ge 4/5$, since demand is at most 20 with probability $8/9$. Its expected cost
-is $410/9 \approx 45.56$ a day; ordering 15 costs $470/9 \approx 52.22$, and ordering 25,
-which covers every outcome, costs exactly 50. Over 100 replications the simulator agrees:
-about 45.6 for 20, and more for both 15 and 25.
+The critical ratio is $(10 - 2)/10 = 4/5$. Since $F(15) = 2/3$ and $F(20) = 8/9$, the optimal order is
+20, with $C(20) = 410/9 \approx 45.56$. The other orders cost $C(15) = 470/9 \approx 52.22$ and
+$C(25) = 50$. The batch gives a mean cost of about 45.6 a day for an order of 20, and more for 15 and
+for 25.
 
-<Check ref="maxima:lost-cost-ten" />
-
-<Check ref="test:on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25" />
+<Check refs="
+  maxima:lost-cost-ten
+  test:on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25
+" />
 
 </Answer>
 
 <GameNote>
 
-A rail line has no stock that expires, but the newsvendor's trade-off appears whenever
-a train leaves a station for a long round trip. Whatever the train leaves behind has to
-last until it returns. Leaving too little starves the consumers there. Leaving too much
-fills storage that the next delivery, or another station, could have used. Chapter 6
-returns to this as the protection interval.
+Stock on a rail line does not expire, but the newsvendor's trade-off arises whenever a train leaves a
+station for a long round trip. What the train leaves must last until it returns. Too little leaves the
+consumers short. Too much occupies storage and cargo that another station could have used. Chapter 6
+treats the time until the next delivery as the period of this chapter.
 
 </GameNote>
 
 ## References
 
 - Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
-- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
-  Hoboken, NJ: John Wiley & Sons.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn. Hoboken, NJ: John
+  Wiley & Sons.

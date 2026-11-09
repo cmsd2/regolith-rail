@@ -1,6 +1,6 @@
 ---
 title: "Order quantities: EOQ and (s, S)"
-description: How much to order when every order has a fixed cost, and the reorder point that says when.
+description: The economic order quantity as the minimiser of an average cost, and its use with a lead time and with periodic review.
 section: Book
 part: 2
 chapter: 4
@@ -8,116 +8,360 @@ chapter: 4
 
 ## What you will learn
 
-- To balance the fixed cost of ordering against the cost of holding stock, and derive
-  the economic order quantity.
-- To see why the cost barely changes near the best quantity, and what that means for
-  rounding and estimation errors.
-- To combine an order quantity with a reorder point in an (s, S) policy, and run it.
+- To formulate the choice of an order quantity as the minimisation of an average cost with a fixed part
+  for each order and a part for holding stock.
+- To prove that an optimal plan orders equal quantities at the moments when the stock is zero, and to
+  derive the economic order quantity.
+- To compute the cost of ordering a quantity other than the optimal one.
+- To extend the result to a lead time and to periodic review, where it takes the form of an $(s, S)$
+  policy.
 
 ## The problem
 
-Part I built a line and measured it. Part II turns to the decisions inside one station:
-how much to order, when, and how much to keep in reserve. It starts with the oldest of
-them. Many orders cost something whatever their size: a delivery, a set-up, paperwork.
-Ordering little and often wastes those fixed costs, while ordering a lot at once fills
-the shelves with stock that costs money to hold.
+Part I studied a line and the vehicle that serves it. Part II studies a single station that orders stock
+from a supplier, and asks how much it should order and when. This chapter takes the simplest case: demand
+is constant, and each order has a fixed cost that does not depend on its size.
 
-The economic order quantity answers how much to order when demand is steady. It is one
-of the oldest results in operations research, and its reasoning, trading a cost that
-falls with the quantity against one that rises, appears in many other decisions
-(Axsäter, 2015, pp. 45–48; Taha, 2017, pp. 507–510).
+A station that orders large quantities places few orders and has much stock. A station that orders small
+quantities has little stock and places many orders. The economic order quantity, due to Harris in 1913,
+minimises the sum of the two costs (Snyder and Shen, 2019, pp. 51–57; Axsäter, 2015, pp. 45–48). The
+argument, in which one cost falls as a quantity grows while another rises, recurs throughout this part.
 
 ## The model
 
-### Orders and reviews
+### The Shop
 
-Part I's decisions were made by a train at a stop. Part II's are made by a station that
-has a supplier to order from. An order placed with the supplier arrives after a lead
-time, which in this chapter is zero. The station does not watch its stock continuously:
-it reviews it on a schedule, once every review period, and only at a review can it place
-an order.
+<Assumption id="asm-shop" name="The Shop">
 
-In `ops`, a policy for such a station gives a `review` table with a target, just as a
-policy for a train gives a target for each stop. At each review the policy orders the
-difference between the target and what the station holds, when that difference is
-positive. `ops.order_up_to { level = S }` targets $S$ at every review, so every review
-orders whatever has been used since the last. `ops.min_max { min = s, max = S }` targets
-$S$ only at a review where the station holds less than $s$, and otherwise orders nothing.
-This chapter uses the second; chapter 5 the first. A policy in plain Lua does the same
-work in an `on_review` function, described under [reviews and orders](/docs/api/review).
+A station, the Shop, sells one product and has the following properties.
+
+1. Demand arrives at the constant rate $D$.
+2. The Shop orders from a supplier whose stock is unlimited. Each order costs $K$, whatever its size.
+3. Each unit in stock costs $h$ per unit time.
+4. An order arrives at the moment it is placed.
+5. All demand is met from stock.
+
+</Assumption>
+
+The chapter's examples and exercises use the following values, with time in days.
+
+| Parameter | Symbol | Value |
+| --- | --- | --- |
+| Demand rate | $D$ | 10 units a day |
+| Cost of an order | $K$ | 20 |
+| Cost of holding a unit | $h$ | 1 a day |
+
+The price paid for each unit is omitted from the model. Every plan that meets all demand buys the same
+number of units over a long period, so the price does not affect the comparison of plans (Snyder and Shen,
+2019, p. 52).
+
+<Definition id="def-plan" name="Plan and average cost">
+
+A **plan** specifies the times at which the Shop places orders and the quantity of each. Let the plan
+place $n(T)$ orders in $[0, T]$, and let $x(t)$ be the stock at time $t$. The cost of the plan over
+$[0, T]$ is
+
+$$
+K\,n(T) + h \int_0^T x(t)\,dt .
+$$
+
+The **average cost** of the plan is the limit of this cost divided by $T$ as $T \to \infty$.
+
+</Definition>
+
+<Check ref="maxima:plan-cost" />
+
+### The form of an optimal plan
+
+Two lemmas reduce the choice of a plan to the choice of one number. Snyder and Shen (2019, pp. 51–52)
+state both properties without proof.
+
+<Lemma id="lem-zero-stock" name="Orders at zero stock">
+
+A plan that places an order while the Shop has stock can be replaced by a plan of lower cost that places
+every order at a moment when the stock is zero.
+
+</Lemma>
+
+<Proof>
+
+Suppose the plan orders $q$ units at a time when $y > 0$ units are in stock. Delay that order until the
+$y$ units are used up, a time $y / D$ later, or until the next order of the plan, whichever is sooner.
+Demand is still met in the meantime. In the first case the plan places the same orders, and the $q$ units
+are in stock for a time $y / D$ less, which saves $h\,q\,y / D$. In the second case the two orders
+combine into one, which saves $K$, and the $q$ units are again in stock for less time. Repeating the step
+for each such order gives a plan that orders only at zero stock.
+
+</Proof>
+
+<Lemma id="lem-equal-quantities" name="Equal quantities">
+
+Consider the plans that order only at zero stock and place $n$ orders in an interval $[0, T]$ that begins
+and ends with no stock. Among them, the plan with $n$ equal orders has the least cost.
+
+</Lemma>
+
+<Proof>
+
+An order of $q$ units is used up in a time $q / D$, during which the mean stock is $q / 2$, so it incurs
+a holding cost of $h\,q^2 / (2D)$. The quantities $q_1, \dots, q_n$ sum to the demand $DT$, and every such
+plan pays $nK$ for its orders. With $\bar q = DT / n$,
+
+$$
+\sum_{i=1}^{n} q_i^2 = n\,\bar q^{\,2} + \sum_{i=1}^{n} (q_i - \bar q)^2 \ \ge\ n\,\bar q^{\,2},
+$$
+
+with equality only when every $q_i$ equals $\bar q$.
+
+</Proof>
+
+<Check refs="
+  maxima:zero-stock-ordering
+  maxima:equal-quantities
+" />
+
+It therefore suffices to consider the plans that order a fixed quantity $Q$ each time the stock reaches
+zero.
 
 ### The economic order quantity
 
-Let demand be a steady $D$ units a day, let each order cost $K$, and let each unit held
-cost $h$ a day. Order $Q$ units whenever stock runs out. There are $D/Q$ orders a day,
-and stock falls steadily from $Q$ to zero, so on average half an order is held. The cost
-a day is
+<Proposition id="prop-eoq-cost" name="Average cost of a fixed quantity">
+
+The plan that orders $Q$ units each time the stock reaches zero has the average cost
 
 $$
-C(Q) = \frac{KD}{Q} + \frac{hQ}{2}.
+C(Q) = \frac{KD}{Q} + \frac{hQ}{2} .
 $$
 
-<Check ref="maxima:eoq-cost" />
+</Proposition>
 
-The first term falls as $Q$ grows and the second rises. Setting the derivative to zero
-gives the economic order quantity and its cost:
+<Proof>
 
-$$
-Q^* = \sqrt{\frac{2KD}{h}}, \qquad C(Q^*) = \sqrt{2KDh}.
-$$
+The stock falls from $Q$ to zero in a time $Q / D$, and the pattern then repeats. One such cycle costs
+$K$ for its order and $h\,Q^2 / (2D)$ for holding, as in the proof of <Ref to="lem-equal-quantities" />.
+Dividing the cost of a cycle by its length $Q / D$ gives $C(Q)$.
 
-<Check ref="maxima:eoq" />
+</Proof>
 
-At $Q^*$ the two terms are equal: the best quantity spends as much on ordering as on
-holding.
+The first term is the cost of ordering: $D / Q$ orders per unit time at $K$ each. The second is the cost
+of holding a mean stock of $Q / 2$.
 
-<Check ref="maxima:eoq-terms-balance" />
+<Theorem id="thm-eoq" name="Economic order quantity">
 
-With $D = 10$, $K = 20$ and $h = 1$, the order is 20 units, placed every two days, and
-the cost is 20 a day.
-
-<Check ref="maxima:eoq-defaults" />
-
-### A flat bottom
-
-Order $x$ times the best quantity and the cost is
+For every $Q > 0$,
 
 $$
-\frac{C(xQ^*)}{C(Q^*)} = \frac{1}{2}\left(x + \frac{1}{x}\right)
+C(Q) \ \ge\ \sqrt{2KDh}, \qquad\text{with equality if and only if}\qquad Q = Q^* := \sqrt{\frac{2KD}{h}} .
 $$
 
-times the best. Ordering half again as much costs only about 8.3% more, and ordering
-double or half as much costs 25% more. An estimate of $D$ or $K$ that is somewhat wrong,
-or a quantity rounded to a convenient size, costs little.
+At $Q^*$ the cost of ordering equals the cost of holding.
 
-<Check ref="maxima:flat-cost" />
+</Theorem>
 
-For the worked case, ordering 10 or 40 at a time costs 25 a day, and ordering 30 costs
-about 21.67.
+<Proof>
 
-<Check ref="maxima:order-sizes" />
+The product of the two terms of $C(Q)$ is the constant $KDh / 2$, so twice the product of their square
+roots is $\sqrt{2KDh}$. Completing the square,
 
-### When to order: (s, S)
+$$
+C(Q) - \sqrt{2KDh} = \left(\sqrt{\frac{KD}{Q}} - \sqrt{\frac{hQ}{2}}\right)^2 \ \ge\ 0 .
+$$
 
-The quantity says how much. A station that can only order at a review, on a schedule,
-also needs a reorder point $s$: order when stock falls below the demand expected before
-the next review, and order up to $S = s + Q^*$. This is an (s, S) policy (Axsäter, 2015,
-pp. 115–116).
+The square is zero exactly when $KD / Q = hQ / 2$, that is, when the two costs are equal and
+$Q^2 = 2KD / h$.
 
-With 10 units a day, no lead time and hourly reviews, the next hour's demand is
-$10/24$ of a unit, 417 thousandths rounded up. The policy orders up to $417 + 20{,}000 =
-20{,}417$ thousandths whenever stock falls below 417.
+</Proof>
+
+<Check refs="
+  maxima:eoq-cost
+  maxima:eoq
+  maxima:eoq-square
+" />
+
+The quantity $Q^*$ is the **economic order quantity**. The first-order condition
+$C'(Q) = -KD/Q^2 + h/2 = 0$ gives the same quantity, and $C''(Q) = 2KD/Q^3 > 0$ shows that $C$ is convex
+(Snyder and Shen, 2019, pp. 53–54). With the two lemmas, the theorem bounds the cost of every plan.
+
+<Corollary id="cor-eoq-all-plans" name="Optimality among all plans">
+
+Every plan that meets all demand over $[0, T]$, and that begins and ends with no stock, costs at least
+$T\sqrt{2KDh}$ over the interval.
+
+</Corollary>
+
+<Proof>
+
+By <Ref to="lem-zero-stock" /> and <Ref to="lem-equal-quantities" />, the plan costs at least as much as
+the plan with the same number $n$ of orders, all equal and placed at zero stock. That plan orders
+$Q = DT / n$ each time and costs $nK + n\,h\,Q^2 / (2D) = T\,C(Q)$, which is at least $T\sqrt{2KDh}$ by
+<Ref to="thm-eoq" />.
+
+</Proof>
+
+<Check ref="maxima:eoq-all-plans" />
+
+<WorkedExample id="ex-eoq-shop">
+
+For the Shop, $Q^* = \sqrt{2 \times 20 \times 10 / 1} = 20$ units, ordered every $Q^* / D = 2$ days. The
+average cost is $C(Q^*) = \sqrt{2 \times 20 \times 10 \times 1} = 20$ a day, of which 10 is for ordering
+and 10 for holding.
+
+</WorkedExample>
+
+<Check ref="maxima:eoq-shop" />
+
+<Corollary id="cor-eoq-sensitivity" name="Sensitivity">
+
+For every $x > 0$,
+
+$$
+\frac{C(xQ^*)}{C(Q^*)} = \frac12 \left(x + \frac1x\right) .
+$$
+
+</Corollary>
+
+<Proof>
+
+At $Q^*$ each term of $C$ equals $C(Q^*) / 2$. Replacing $Q^*$ by $xQ^*$ divides the first term by $x$
+and multiplies the second by $x$.
+
+</Proof>
+
+<WorkedExample id="ex-eoq-sensitivity">
+
+Ordering half or twice the optimal quantity gives $\tfrac12 (2 + \tfrac12) = 1.25$. For the Shop, orders
+of 10 or of 40 units cost 25 a day against 20. Orders of 30 units give $\tfrac12 (\tfrac32 + \tfrac23) =
+13/12$, a cost of 21.67 a day.
+
+The cost is equally insensitive to errors in the parameters. If the order cost is taken to be twice its
+true value, the computed quantity is $\sqrt2\,Q^*$ and the cost is $\tfrac12 (\sqrt2 + 1/\sqrt2) = 1.061$
+times the optimal cost, an increase of 6%.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:sensitivity
+  maxima:sensitivity-shop
+" />
+
+<Remark id="rem-eoq-time">
+
+The plan has a mean stock of $Q / 2$ and a flow of $D$. By <Ref to="thm-littles-law-limit" /> a unit
+waits $Q / (2D)$ in stock on average, which is 1 day for the Shop at $Q^*$ (Axsäter, 2015, p. 52).
+
+</Remark>
+
+<Check ref="maxima:waiting-time" />
+
+### Lead time
+
+Suppose that, in place of the fourth property of <Ref to="asm-shop" />, an order arrives a **lead time**
+$L$ after it is placed.
+
+<Proposition id="prop-reorder-point" name="Reorder point">
+
+Let $L \le Q / D$. The plan that orders $Q$ units each time the stock falls to $r = DL$ has the same
+stock at every moment as the plan of <Ref to="prop-eoq-cost" />, and the same average cost.
+
+</Proposition>
+
+<Proof>
+
+During the lead time the demand is $DL$. An order placed when the stock is $DL$ therefore arrives at the
+moment the stock reaches zero. Since $L \le Q / D$, the previous order has arrived before the next is
+placed.
+
+</Proof>
+
+The level $r$ is the **reorder point** (Snyder and Shen, 2019, p. 56). For the Shop with $L = 1$ day,
+$r = 10$ units. When $L > Q / D$, an order is placed while an earlier one is still on its way, and the rule
+must count the stock on order. Chapter 6 does so.
 
 <Check ref="maxima:reorder-point" />
 
-When orders take time to arrive, the reorder point must cover that time too; chapter 6
-works it out as the protection interval. When demand is random, it also carries safety
-stock, which chapter 7 sets.
+### Periodic review
+
+A station that inspects its stock only at intervals cannot order at the exact moment the stock reaches a
+given level.
+
+<Definition id="def-s-s-policy" name="Periodic review and (s, S) policies">
+
+Under **periodic review** with **review period** $R$, the station inspects its stock at times
+$0, R, 2R, \dots$ and can order only then. An **$(s, S)$ policy**, with $s < S$, orders at a review if the
+stock is below the **reorder level** $s$, and then orders the quantity that raises the stock to the
+**order-up-to level** $S$.
+
+</Definition>
+
+<Proposition id="prop-periodic-review">
+
+Let the lead time be zero. The $(s, S)$ policy with $s = DR$ and $S = s + Q$ meets all demand, and its
+average cost is at most $C(Q) + hDR$.
+
+</Proposition>
+
+<Proof>
+
+A review that places no order finds a stock of at least $s = DR$, which lasts until the next review. A
+review that places an order raises the stock to $S > s$. Hence the stock is never exhausted between
+reviews.
+
+At a review that places an order the stock $y$ satisfies $0 \le y < s$, so the order $S - y$ exceeds
+$Q$. The policy therefore places at most $D / Q$ orders per unit time. Between two orders the stock falls
+linearly from $S$ to some $y < s$, so its mean is below $(S + s)/2 = Q/2 + DR$.
+
+</Proof>
+
+<WorkedExample id="ex-periodic-review">
+
+With hourly reviews, $R = 1/24$ day, the Shop's reorder level is $s = 10/24 \approx 0.417$ units. With
+$Q = Q^* = 20$ the order-up-to level is $S = 20.417$, and the average cost is at most
+$20 + 0.417 = 20.42$ a day. With reviews every minute the bound is $20.007$.
+
+</WorkedExample>
+
+<Check ref="maxima:periodic-review" />
+
+<Remark id="rem-random-demand">
+
+When demand is random and each order has a fixed cost, an
+$(s, S)$ policy is optimal under general conditions, a theorem of Scarf (Snyder and Shen, 2019,
+pp. 129–136). The reorder level must then also protect against the variation in demand, which chapters 6
+and 7 treat.
+
+</Remark>
+
+### The same trade-off on a line
+
+<WorkedExample id="ex-dispatch-interval" name="The interval between trips">
+
+A train collects from a mine that produces $\lambda = 36$ units a day. Each round trip costs $F = 20$, and
+each unit waiting at the mine costs $h = 1$ a day. If the train calls every $T$ days and takes all the
+stock, the mine's stock rises from zero to $\lambda T$ between calls and has mean $\lambda T / 2$. The
+average cost is
+
+$$
+\frac{F}{T} + \frac{h \lambda T}{2},
+$$
+
+which is $C(\lambda T)$ for an order cost $F$ and a demand rate $\lambda$. By <Ref to="thm-eoq" /> the best
+interval is $T^* = \sqrt{2F / (h\lambda)} = 1.054$ days, with a load of $\lambda T^* = 37.95$ units and a
+cost of 37.95 a day.
+
+A train of capacity $\kappa = 30$ cannot carry that load. The constraint $\lambda T \le \kappa$ is
+binding: $C$ is convex, so the least cost on $T \le 5/6$ is at $T = 5/6$ day, where it is
+$24 + 15 = 39$ a day. By <Ref to="cor-eoq-sensitivity" />, with $x = 30 / 37.95$, the constraint raises
+the cost by 2.8%.
+
+</WorkedExample>
+
+<Check ref="maxima:dispatch-interval" />
 
 ## In the simulator
 
-The `classic.reorder` template, with its default steady demand, is this model. Demand is
-10 units a day, orders cost 20 and arrive immediately, and holding costs 1 a unit a day.
+The `classic.reorder` template is the Shop of <Ref to="asm-shop" />: demand of 10 units a day, an order
+cost of 20, a holding cost of 1 per unit per day and no lead time, run for 20 days. The station reviews
+its stock every hour.
 
 <Scenario template="classic.reorder" />
 
@@ -125,7 +369,11 @@ The `classic.reorder` template, with its default steady demand, is this model. D
 return classic.reorder {}
 ```
 
-The reference policy is the (s, S) policy above:
+A policy for a station that orders has a `review` table with a target, as a policy for a train has a
+target for each stop. At each review the policy orders the difference between the target and the stock,
+when the difference is positive. `ops.min_max { min = s, max = S }` is the $(s, S)$ policy of
+<Ref to="def-s-s-policy" />, with amounts in thousandths of a unit. The template's reference policy is that of
+<Ref to="ex-periodic-review" />:
 
 ```lua runnable scenario=classic.reorder
 return ops.policy {
@@ -133,74 +381,93 @@ return ops.policy {
 }
 ```
 
-A test reviews every minute instead of every hour, so the reorder point is 7 thousandths,
-and checks that the simulated cost is within one cost unit of 20 a day, with no unmet
-demand.
+Run it, then run copies with `max = 10417` and `max = 40417`, which order 10 and 40 units at a time. The
+metric **Total cost**, divided by the 20 days of the run, is the average cost.
 
-<Check ref="test:costs the economic order quantity's analytic cost with steady demand and no lead time" />
+<Predicted>
 
-Now make two copies of the reference policy, one with `max = 10417` and one with
-`max = 40417`, and compare all three in **Batch**. Ordering 10 or 40 at a time costs 25 a
-day against 20, as the model predicts; the test that checks it reviews every minute, so
-that its reorder point is 7 thousandths and the cost is the model's.
+| Cost a day | $C(Q)$ | Bound $C(Q) + hDR$ | Simulator |
+| --- | --- | --- | --- |
+| $Q = 10$, hourly reviews | 25 | 25.42 | 25.2 |
+| $Q = 20$, hourly reviews | 20 | 20.42 | 20.4 |
+| $Q = 40$, hourly reviews | 25 | 25.42 | 25.4 |
+| $Q = 20$, reviews every minute | 20 | 20.01 | 20.0 |
 
-<Check ref="test:on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit" />
+<Check refs="
+  test:on classic.reorder with its hourly reviews, ordering 10, 20 and 40 at a time costs 25.2, 20.4 and 25.4 a day, each between the model's cost and its bound, and meets all demand
+  test:on steady-demand classic.reorder reviewed every minute, ordering 10 or 40 at a time costs 25 a day, and ordering 20 costs 20, each within one cost unit
+  test:costs the economic order quantity's analytic cost with steady demand and no lead time
+" />
+
+</Predicted>
+
+<Placeholder needs="mars-dispatch-interval">
+
+<Ref to="ex-dispatch-interval" /> has no run yet. A line whose train departs on a timetable, with a cost
+for each trip, would show the cost of 39 a day at an interval of $5/6$ day and higher costs at shorter
+intervals.
+
+</Placeholder>
 
 ## Where the simulator differs
 
-- **Whole orders in a finite run.** The model averages over an endless cycle. A run of
-  20 days places a whole number of orders, so quantities that do not divide the total
-  demand evenly cost a little more than the model says. Ordering 30 at a time places 7
-  orders for 200 units of demand, not $6\tfrac{2}{3}$.
-- **Reviews, not continuous watching.** Stock can only be ordered at a review. With
-  hourly reviews and no lead time, the reorder point covers one hour of demand so that
-  stock never runs out between reviews.
-- **Order costs are charged when an order is placed**, and holding costs each minute on
-  what is held.
+- **Whole orders in a finite run.** The average cost is a long-run limit. A run of 20 days places a whole
+  number of orders, so a quantity that does not divide the total demand costs more than $C(Q)$. Orders of
+  30 units make 7 orders for 200 units of demand, where the model averages $6\tfrac23$.
+- **Periodic review.** The station can order only at a review, as in <Ref to="def-s-s-policy" />. With the
+  template's hourly reviews the cost lies between $C(Q)$ and the bound of
+  <Ref to="prop-periodic-review" />.
+- **Timing of costs.** The simulator charges the order cost when an order is placed, and the holding cost
+  each minute on the stock present.
 
 ## Exercises
 
-1. The order cost doubles to 40. What are the new order quantity and cost a day?
+Each exercise uses the values in the table under [The Shop](#the-shop), except where it states
+otherwise.
+
+1. Let the order cost be $K = 40$. Compute the economic order quantity and its average cost.
 
 <Answer>
 
-$Q^* = 20\sqrt{2} \approx 28.28$, and the cost rises by the same factor of $\sqrt{2}$, to
-about 28.28 a day.
+$Q^* = \sqrt{2 \times 40 \times 10} = 20\sqrt2 \approx 28.28$ units, and
+$C(Q^*) = \sqrt{2 \times 40 \times 10} \approx 28.28$ a day. Doubling $K$ multiplies both by $\sqrt2$.
 
 <Check ref="maxima:dearer-orders" />
 
 </Answer>
 
-2. Demand quadruples. How does the order quantity change?
+2. Show that if the demand rate is multiplied by 4, the economic order quantity doubles. State what
+   happens to the time between orders.
 
 <Answer>
 
-It doubles. $Q^*$ grows with the square root of demand, so larger operations order
-relatively less often per unit.
+$Q^*$ is proportional to $\sqrt D$, so it doubles. The time between orders is
+$Q^* / D = \sqrt{2K / (hD)}$, which halves.
 
 <Check ref="maxima:square-root-law" />
 
 </Answer>
 
-3. With the defaults, how much more than the best does ordering 10 at a time cost?
+3. Find the range of order quantities whose average cost is within 2% of the optimal cost.
 
 <Answer>
 
-25 a day instead of 20, a quarter more: ordering half the best quantity costs
-$(1/2 + 2)/2 = 5/4$ times as much.
+By <Ref to="cor-eoq-sensitivity" /> the condition is $\tfrac12 (x + 1/x) \le 1.02$, that is,
+$x^2 - 2.04x + 1 \le 0$. The roots are $x = 0.819$ and $x = 1.221$, so any quantity from 16.4 to 24.4
+units is within 2% of the optimal cost.
 
-<Check ref="maxima:flat-cost" />
+<Check ref="maxima:exercise-two-percent" />
 
 </Answer>
 
-4. Order 30 at a time with the template's hourly reviews, `max = 30417`. What does it
-   cost a day, and why is it more than the model's 21.67?
+4. Run the reference policy with `max = 30417`, which orders 30 units at a time. Compare the cost a day
+   with $C(30) = 21.67$, and account for the difference.
 
 <Answer>
 
-About 22.8 a day. A run of 20 days uses 200 units and places 7 orders of 30, not the
-$6\tfrac{2}{3}$ the model averages over, so it pays for a seventh order and holds part of
-it to the end of the run.
+The run costs about 22.8 a day. In 20 days it uses 200 units and places 7 orders of 30, where the model
+averages $6\tfrac23$ orders. It pays for a seventh order and has part of it in stock at the end of the
+run.
 
 <Check ref="test:on classic.reorder with hourly reviews, ordering 30 at a time costs about 22.8 a day against the model's 21.67, because a 20-day run places 7 orders" />
 
@@ -208,15 +475,15 @@ it to the end of the run.
 
 <GameNote>
 
-Each stop costs a train time to dwell, and each unit moved adds to it, which plays a
-part like the fixed and per-unit costs of an order. A policy that tops a station up by a
-few units at every visit spends that time often; one that waits and delivers a full load
-spends it less often but leaves the station lower in between.
+Each stop costs a train time, and each unit moved adds to it, which corresponds to the fixed cost and the
+cost per unit of an order. A policy that tops a station up by a few units at every visit incurs the stop
+time often. One that delivers a full load at longer intervals incurs it less often, and the
+station's mean stock is higher.
 
 </GameNote>
 
 ## References
 
 - Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
-- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson
-  Education.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn. Hoboken, NJ: John
+  Wiley & Sons.

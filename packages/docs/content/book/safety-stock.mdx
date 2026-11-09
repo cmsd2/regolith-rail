@@ -1,6 +1,6 @@
 ---
 title: Safety stock and service levels
-description: How much stock to hold above average demand, and what "good enough service" means.
+description: The cycle service level and the fill rate of a base-stock level, and the safety stock that a service target requires.
 section: Book
 part: 2
 chapter: 7
@@ -8,113 +8,248 @@ chapter: 7
 
 ## What you will learn
 
-- To state a service target as a cycle service level or a fill rate, and to see why the
-  two can differ a great deal.
-- To set an order-up-to level that meets a cycle service level when demand is random and
-  the lead time varies.
-- To estimate safety stock with the normal approximation, and to see how much a variable
-  lead time adds.
+- To define the cycle service level and the fill rate, and to compute both for a base-stock level.
+- To prove the formula for the variance of demand over an interval of random length.
+- To compute the safety stock that a service target requires, exactly and by the normal approximation.
+- To measure how a variable lead time and a higher target increase the safety stock.
 
 ## The problem
 
-Chapter 6 set a base-stock level from costs: what a backorder costs against what a unit
-held costs. Often nobody can say what a backorder costs. A hospital pharmacy, a
-maintenance store or a spare-parts depot is instead given a target: run out in no more
-than one cycle in twenty, say, or meet 99% of demand straight from the shelf.
+Chapter 6 chose a base-stock level by weighing a holding cost against a backorder cost. The backorder
+cost is often unknown. A pharmacy or a store of spare parts is instead given a service target: a bound
+on how often it may run short, or a share of demand that it must meet from stock.
 
-A target like that is met with safety stock, stock held above what demand is expected to
-be before the next delivery. More variability, in demand or in how long the supplier
-takes, needs more of it, and the stock needed climbs steeply as the target approaches
-100% (Axsäter, 2015, pp. 79–81, 86–87; Snyder and Shen, 2019, pp. 105–113).
+A target is met by keeping more stock than the mean demand before the next delivery. The excess is the
+safety stock. This chapter defines two measures of service and computes each for a given base-stock
+level (Axsäter, 2015, pp. 79–81; Snyder and Shen, 2019, pp. 105–113). It then finds the safety stock
+that a target requires, and shows how that stock depends on the variability of the demand and of the
+lead time.
 
 ## The model
 
-### Two ways to measure service
+### The Shop with a service target
 
-With periodic review and an order-up-to level $S$, each order starts a cycle that ends
-when the next order arrives. Two common measures of service are:
+<Assumption id="asm-shop-service" name="The Shop with a service target">
 
-- **Cycle service level:** the chance that a cycle ends with no customer waiting.
-- **Fill rate:** the share of demand met straight from stock.
+The Shop of <Ref to="asm-shop-lead-time" /> is changed as follows.
 
-A cycle that runs short by one unit fails the first measure completely but barely dents
-the second, so for the same level the fill rate is usually much higher.
+1. Each order's lead time is drawn independently from a given distribution. Any two lead times differ by
+   less than the review period $R$, so orders arrive in the sequence in which they were placed.
+2. No backorder cost is given. The Shop uses a base-stock policy with level $S$, chosen to meet a
+   service target.
 
-### Cycle service level with a variable lead time
+</Assumption>
 
-An order placed at a review raises the inventory position to $S$. Everything ordered
-until then will have arrived by the time the next order does, and nothing ordered later
-will have. So the cycle ends with no one waiting exactly when demand over the review
-period $R$ and the next order's lead time $L$ is at most $S$. With Poisson demand at rate
-$\lambda$ and lead times $\ell$ drawn with chances $p_\ell$,
+The chapter's examples and exercises use the following values, with time in days.
+
+| Parameter | Symbol | Value |
+| --- | --- | --- |
+| Demand rate | $\lambda$ | 10 units a day |
+| Review period | $R$ | 7 days |
+| Lead time | $L$ | 1 day or 3 days, each with probability $1/2$ |
+
+### Two measures of service
+
+<Definition id="def-service" name="Cycle service level and fill rate">
+
+An **order cycle** is the interval between the arrivals of two successive orders. The **cycle service
+level** is the probability that a cycle ends with no backorders. The **fill rate** is the long-run
+fraction of demand that is met from stock on arrival, without waiting.
+
+</Definition>
+
+Snyder and Shen (2019, pp. 105–113) call these the type-1 and type-2 service levels. A cycle that ends
+one unit short counts fully against the first measure and removes one unit from the second, so the fill
+rate of a given level is usually much the higher.
+
+<Proposition id="prop-csl" name="Cycle service level of a base-stock level">
+
+Let $T = R + L$, where $L$ is a lead time, and let $D_T$ be the demand over an interval of length $T$.
+Under a base-stock policy with level $S$, the cycle service level is
 
 $$
-\text{CSL}(S) = \sum_{\ell} p_\ell \, P\big(\text{Poisson}(\lambda(R + \ell)) \le S\big).
+\mathrm{CSL}(S) = P(D_T \le S) = \sum_{\ell} P(L = \ell)\, F_{R + \ell}(S),
 $$
 
-This needs the orders not to overtake each other, which holds when lead times differ by
-less than a review period.
+where $F_u$ is the distribution function of the demand over an interval of length $u$.
 
-Take demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal
-chance. Demand over the review period and a lead time has mean 80 or 100, 90 on
-average.
+</Proposition>
 
-<Check ref="maxima:cycle-means" />
+<Proof>
 
-The smallest level with a cycle service level of at least 0.95 is 113, reaching 0.9546.
-Its safety stock is $113 - 90 = 23$ units.
+Let a review occur at time $t$, and let the order placed at the next review, at $t + R$, have lead time
+$L$. The cycle that this order ends finishes at $t + R + L$. By the first property of
+<Ref to="asm-shop-service" />, every order placed at or before $t$ has arrived by then, and no order
+placed after $t$ has. As in <Ref to="lem-level-after-lead-time" />, the inventory level just before the
+arrival is therefore $S - D(t, t + R + L]$. The cycle ends with no backorders exactly when that demand
+is at most $S$. The lead time is independent of the demand, so conditioning on its value $\ell$ gives the
+sum.
 
-<Check ref="maxima:service-level" />
+</Proof>
+
+<Definition id="def-safety-stock" name="Safety stock">
+
+The **safety stock** of a base-stock level $S$ is $S - E[D_T]$, the excess of the level over the mean
+demand before the next delivery.
+
+</Definition>
+
+<WorkedExample id="ex-csl">
+
+For the Shop, $T$ is 8 or 10 days, so $D_T$ is Poisson with mean 80 or 100, each with probability
+$1/2$, and $E[D_T] = 90$. The cycle service level is
+$\mathrm{CSL}(S) = \tfrac12 F_8(S) + \tfrac12 F_{10}(S)$. Then $\mathrm{CSL}(112) < 0.95$ and
+$\mathrm{CSL}(113) = 0.9546$, so a target of 0.95 requires $S = 113$ and a safety stock of 23 units.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:service-level
+  maxima:cycle-means
+" />
+
+### Demand over a random interval
+
+The safety stock depends on the variability of $D_T$, which has two sources: the demand varies, and so
+does the length of the interval.
+
+<Proposition id="prop-random-interval" name="Demand over a random interval">
+
+Let demand be a Poisson process with rate $\lambda$, and let $T \ge 0$ be a random variable independent
+of it. Then
+
+$$
+E[D_T] = \lambda\,E[T], \qquad \operatorname{Var}(D_T) = \lambda\,E[T] + \lambda^2 \operatorname{Var}(T) .
+$$
+
+</Proposition>
+
+<Proof>
+
+Given $T$, the demand $D_T$ is Poisson with mean and variance $\lambda T$. Taking the expectation of
+the conditional mean gives $E[D_T] = \lambda E[T]$. The variance of a random variable is the mean of its
+conditional variance plus the variance of its conditional mean:
+
+$$
+\operatorname{Var}(D_T) = E\big[\operatorname{Var}(D_T \mid T)\big] + \operatorname{Var}\big(E[D_T \mid T]\big)
+= E[\lambda T] + \operatorname{Var}(\lambda T) .
+$$
+
+</Proof>
+
+The first term is the variance that the demand contributes over an interval of the mean length. The
+second is the contribution of the interval. It grows with the square of the demand rate, so a variable
+lead time matters most where demand is high.
+
+<WorkedExample id="ex-random-interval">
+
+For the Shop $E[T] = 9$ and $\operatorname{Var}(T) = 1$, so
+
+$$
+\operatorname{Var}(D_T) = 10 \times 9 + 10^2 \times 1 = 190, \qquad \sqrt{190} \approx 13.78 .
+$$
+
+With a fixed lead time of 2 days, which has the same mean, the variance is 90 and the standard deviation
+is 9.49. The variation of one day in the lead time more than doubles the variance of the demand.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:random-interval-formula
+  maxima:total-variance
+  maxima:interval-variance
+" />
 
 ### The normal approximation
 
-Demand over an interval of random length $T$ has variance
+<Proposition id="prop-safety-stock-normal" name="Safety stock by the normal approximation">
+
+Let $D_T$ be approximated by a normal random variable with mean $E[D_T]$ and standard deviation
+$\sigma_T = \sqrt{\operatorname{Var}(D_T)}$, and let $z_\alpha$ satisfy $\Phi(z_\alpha) = \alpha$. Then a
+cycle service level of $\alpha$ requires a safety stock of
 
 $$
-\operatorname{Var}(D_T) = \lambda\,\mathbb{E}[T] + \lambda^2 \operatorname{Var}(T).
+S - E[D_T] = z_\alpha\,\sigma_T .
 $$
 
-The first term is the randomness of demand, the second the randomness of the interval.
-Here $\mathbb{E}[T] = 9$ days and $\operatorname{Var}(T) = 1$, so the variance is
-$90 + 100 = 190$ and the standard deviation about 13.78.
+</Proposition>
 
-<Check ref="maxima:interval-variance" />
+<Proof>
 
-Approximating demand as normal, safety stock for a 95% cycle service level is
-$z_{0.95}\,\sigma$, with $z_{0.95} \approx 1.645$:
+$P(D_T \le S) = \Phi\big((S - E[D_T]) / \sigma_T\big)$, which equals $\alpha$ when
+$(S - E[D_T]) / \sigma_T = z_\alpha$.
+
+</Proof>
+
+<WorkedExample id="ex-safety-stock">
+
+For a target of 0.95, $z_{0.95} = 1.645$ and the safety stock is $1.645 \times 13.78 = 22.67$ units,
+against the exact 23. With the fixed lead time of 2 days it is $1.645 \times 9.49 = 15.60$ units. The
+exact level for the fixed lead time is 106, so the variability of the lead time costs 7 units of stock.
+
+The safety stock rises steeply as the target approaches 1.
+
+| Target $\alpha$ | 0.90 | 0.95 | 0.99 | 0.999 |
+| --- | --- | --- | --- | --- |
+| $z_\alpha$ | 1.282 | 1.645 | 2.326 | 3.090 |
+| Safety stock, normal approximation | 17.66 | 22.67 | 32.07 | 42.60 |
+| Safety stock, exact | 18 | 23 | 31 | 40 |
+
+</WorkedExample>
+
+<Check refs="
+  maxima:normal-approximation
+  maxima:service-table
+  maxima:fixed-lead-level
+" />
+
+The distribution of $D_T$ for the Shop is a mixture of two Poisson distributions. The approximation is
+within one unit of the exact safety stock up to a target of 0.99, and overstates it by 2.6 units at
+0.999.
+
+### The fill rate
+
+<Proposition id="prop-fill-rate" name="Fill rate of a base-stock level">
+
+Suppose the backorders that remain just after an order arrives are negligible. Then the fill rate of a
+base-stock level $S$ is
 
 $$
-1.645 \times \sqrt{190} \approx 22.67,
+\beta(S) = 1 - \frac{E\big[(D_T - S)^+\big]}{\lambda R} .
 $$
 
-<Check ref="maxima:normal-approximation" />
+</Proposition>
 
-close to the exact 23. With a fixed lead time of 2 days, the same average, the variance
-is only 90 and the approximate safety stock 15.60. The exact level for a fixed lead time
-is 106, so the lead time's variability alone costs 7 units of stock.
+<Proof>
 
-<Check ref="maxima:fixed-lead-level" />
+By the proof of <Ref to="prop-csl" />, the backorders at the end of a cycle are $(D_T - S)^+$. If none
+remained at its start, these are the units of demand that had to wait during the cycle. The mean demand
+in a cycle is $\lambda R$, and the long-run fraction that waits is the ratio of the two means.
 
-### Fill rate
+</Proof>
 
-Each review period's demand is met by one order, so the fill rate is about one minus the
-expected shortfall at the end of a cycle divided by the demand in a review period:
+Under the normal approximation the expected backorders are $\sigma_T\,G(z)$ with
+$z = (S - E[D_T]) / \sigma_T$, by <Ref to="prop-normal-demand" />.
 
-$$
-\beta \approx 1 - \frac{\mathbb{E}\left[(D_T - S)^+\right]}{\lambda R}.
-$$
+<WorkedExample id="ex-fill-rate">
 
-At a level of 113 the expected shortfall is about 0.246 units against a week's demand of
-70, a fill rate of about 0.996. A level that lets one cycle in twenty end short still meets
-over 99% of demand from the shelf.
+For the Shop with $S = 113$, the expected backorders at the end of a cycle are
+$\tfrac12 E[(D_8 - 113)^+] + \tfrac12 E[(D_{10} - 113)^+] = 0.246$ units, and the demand in a cycle has
+mean 70. Hence $\beta(113) = 1 - 0.246/70 = 0.9965$. The normal approximation gives
+$13.78 \times G(1.669) = 0.272$ units and a fill rate of 0.9961.
+
+A level that lets one cycle in twenty end with backorders therefore meets 99.65% of the demand from
+stock. A statement of a service target must say which measure it means.
+
+</WorkedExample>
 
 <Check ref="maxima:fill-rate" />
 
 ## In the simulator
 
-The `classic.safety_stock` template has one store with Poisson demand, backorders, weekly
-reviews and a lead time that the supplier draws for each order. Its defaults are the
-worked case, over 10 weeks.
+The `classic.safety_stock` template is the Shop of <Ref to="asm-shop-service" />, run for 10 weeks. The
+supplier draws a lead time for each order. The template rejects lead times that differ by a review period
+or more, which the first property of the assumption excludes.
 
 <Scenario template="classic.safety_stock" />
 
@@ -124,10 +259,12 @@ return classic.safety_stock {
 }
 ```
 
-<Check ref="test:describes a store with Poisson demand, backorders and lead times of one and three days with equal weights" />
+<Check refs="
+  test:describes a store with Poisson demand, backorders and lead times of one and three days with equal weights
+  test:rejects lead times that differ by a review period or more
+" />
 
-The reference policy orders up to the level that meets the target cycle service level,
-113 for a target of 0.95:
+The reference policy is the base-stock policy with the level that a target of 0.95 requires:
 
 ```lua runnable scenario=classic.safety_stock
 return ops.policy {
@@ -135,57 +272,67 @@ return ops.policy {
 }
 ```
 
-A test runs it for 400 replications, and in each run counts the cycles that end with no one
-waiting, just before each delivery after the first. The analytic 0.9546 lies inside the
-99% confidence interval of the simulated share.
+The simulator reports backorders and costs, and does not yet report the two service measures. The values
+below are computed from the runs by a test, which counts a cycle as served when no demand is backordered
+in the minute before a delivery, and omits the first cycle of each run. To see the effect in the
+workbench, compare levels 113 and 106 in **Batch** and read the metrics **Backorders (average)** and
+**Backorders (peak)**.
 
-<Check ref="test:meets the analytic cycle service level of its reference level over 400 replications" />
+<Predicted>
 
-Now see what the lead time's variability costs. Order up to 106 instead, the level that a
-fixed two-day lead time needs, and compare the two in **Batch** over 200 replications: the
-backorder metrics rise. Counting cycles as the test does, level 106 ends only about 88%
-of cycles with no one waiting when the lead time varies, but about 96% when the template's
-`lead_time` is fixed at `days(2)`. Those seven units are the price of not knowing
-when the order will arrive.
+| 200 replications | Model | Simulator |
+| --- | --- | --- |
+| Cycle service level, $S = 113$ | 0.9546 | 0.962 |
+| Cycle service level, $S = 106$ | 0.8715 | 0.881 |
+| Cycle service level, $S = 121$ | 0.9910 | 0.989 |
+| Cycle service level, $S = 106$, lead time fixed at 2 days | 0.9561 | 0.959 |
+| Backorders at the end of a cycle, $S = 113$ | 0.246 | 0.24 |
 
-<Check ref="test:on classic.safety_stock over 200 replications level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88" />
+<Check refs="
+  test:on classic.safety_stock over 200 replications the share of cycles that end without backorders is 0.962 at level 113, 0.881 at 106 and 0.989 at 121, and 0.959 at 106 with a fixed 2-day lead time, and at 113 the mean backorders at the end of a cycle are 0.24 units
+  test:meets the analytic cycle service level of its reference level over 400 replications
+  test:on classic.safety_stock over 200 replications level 113 meets a 0.95 cycle service level with the variable lead time and level 106 meets it with a fixed 2-day lead time, while 106 with the variable lead time reaches only about 0.88
+" />
 
-The template refuses lead times that differ by a review period or more, because orders
-could then overtake each other and the formula above would no longer hold.
+</Predicted>
 
-<Check ref="test:rejects lead times that differ by a review period or more" />
+Each simulated service level is a proportion of 1,800 cycles. If the cycles are treated as independent,
+its standard error is at most 0.008 by <Ref to="prop-proportion" />, and each value is within two
+standard errors of the model's.
+
+<Placeholder needs="service-level-metrics">
+
+With the cycle service level and the fill rate as metrics, a batch would report both with confidence
+intervals, in place of the test's count. At $S = 113$ the model gives 0.9546 and 0.9965.
+
+</Placeholder>
 
 ## Case study: storm shock
 
-The `storm-shock` starter is chapter 1's line with a smaller mine, 40 units a day against
-the dome's 24, and a dust storm that arrives after three days. For one day the storm stops
-the mine: a supply shock. Half a day after it starts, repairs raise the dome's use to two
-and a half times normal, 60 units a day, for a day and a half: a demand shock. Both are
-states of the world, in which rates change while they last, and the timeline shows each as
-a band.
+The `storm-shock` starter is the two-station line with a mine that produces 40 units a day and a dome
+that consumes 24. A dust storm begins after three days. For one day it stops the mine. Half a day after
+it begins, repairs raise the dome's consumption to two and a half times its normal rate, 60 units a day,
+for a day and a half.
 
 <Scenario starter="storm-shock" />
 
-On a line, safety stock is what the demand station holds between visits. The train's
-round trip takes between eight and a third and nine and a third hours, so the dome uses
-eight to nine units between one visit and the next. Under balancing it holds about 10
-units when the storm begins, ten hours of normal use and four of the surge. Over 50
-replications its station runs dry about 17 hours into the storm, stands empty for about 24
-hours in all, is still empty into the day after the storm has passed, and about 53 units
-of demand go unmet.
+On a line, the stock at the demand station just after a visit corresponds to the base-stock level, and
+its excess over the consumption between visits is the safety stock. The train's round trip takes
+between $8\tfrac13$ and $9\tfrac13$ hours, in which the dome consumes 8 to 9 units. Under balancing the
+dome has about 10 units when the storm begins, a cover of 10 hours at the normal rate and of 4 hours at
+the raised rate. Over 50 replications its station runs out about 17 hours into the storm and is empty
+for about 24 hours in all, into the day after the storm, and about 53 units of demand are unmet.
 
 <Check ref="test:on storm-shock over 50 replications the balancing baseline holds about 10 units at the dome when the storm begins, the dome runs dry about 17 hours in and stands empty for about 24 hours, into the day after the storm, and about 53 units go unmet" />
 
-The shock is larger than any buffer a 30-unit station can hold. The storm takes away 40
-units of the mine's output and adds 54 units to the dome's demand, 94 units against a
-station that holds 30. No safety stock rides it out. What the buffer decides is when the
-shortage starts and how long it lasts: the mine comes back a day into the storm and
-deliveries resume, and a dome that still has stock when they do comes through with little
-or no shortage.
+The storm removes 40 units of production and adds 54 units of demand, a total of 94 units against a
+station capacity of 30. No stock at the dome can cover it. The stock determines when the shortage begins
+and how long it lasts. The mine resumes one day into the storm, and a dome that still has stock when
+deliveries resume passes through with little or no shortage.
 
 <Check ref="maxima:storm-shock" />
 
-So keep the dome full, with the roles policy of chapter 1:
+Drain-and-fill keeps the dome's stock as high as the line allows:
 
 ```lua runnable scenario=storm-shock fix
 return ops.policy {
@@ -194,12 +341,10 @@ return ops.policy {
 }
 ```
 
-Between visits the dome now falls from 30 to about 21, and it holds about 23 units when
-the storm begins, nine hours of the surge. That reaches the mine's return: the station
-runs dry only late on the fifth day, for under two hours, with nothing after the storm,
-and about 4 units go unmet. A min–max target that lets the dome fall to 20 before
-refilling it holds less on average, 19 units, and leaves about 12 unmet. The buffer it
-gives up between refills is cover the storm needed.
+Between visits the dome's stock then falls from 30 to about 21, and it is about 23 units when the storm
+begins, a cover of 9 hours at the raised rate. The station runs out only late on the fifth day, for less
+than two hours, and about 4 units are unmet. An $(s, S)$ target that lets the dome fall to 20 before
+refilling it keeps 19 units on average and leaves about 12 units unmet:
 
 ```lua runnable scenario=storm-shock
 return ops.policy {
@@ -213,65 +358,73 @@ return ops.policy {
 
 <Check ref="test:on storm-shock over 50 replications keeping the dome full holds about 23 units there when the storm begins, the dome stands empty for under 2 hours, none of it after the storm, and about 4 units go unmet, while a min-max target of 20 to 30 holds 19 on average and leaves about 12" />
 
-The chapter's method sizes safety stock for ordinary variability, and the few units that
-the dome's wandering use needs over a nine-hour visit are small beside a shock like this.
-A disruption is not variability. Part III returns to shocks of this size, and to what a
-line can do about them beyond holding a station full.
+The safety stock of this chapter is sized for the ordinary variation of demand and lead time. A shock of
+94 units lies outside that variation, and the calculation of <Ref to="prop-safety-stock-normal" /> does
+not apply to it.
 
 ## Where the simulator differs
 
-- **No service level metric yet.** The simulator reports backorders and costs, not the
-  cycle service level. The test above measures it from the run, counting a cycle as met
-  when no demand is waiting in the minute before a delivery, and leaves out the first
-  cycle, which starts from empty stock.
-- **Binomial arrivals.** Poisson demand is drawn in small sub-steps within each minute,
-  as chapter 3 describes, so its variance is very slightly lower than the model's.
-- **Backorders only.** With lost sales, stock that runs out also hides how much demand
-  there was, and the analysis changes.
+- **Service measures.** The simulator has no metric for the cycle service level or the fill rate. The
+  test described above computes them from the recorded backorders.
+- **Poisson demand.** The simulator draws Poisson demand in sub-steps of a minute, as chapter 3
+  describes, so its variance is slightly below the model's.
+- **Backorders.** The results assume that unmet demand waits. When it is lost, a station that runs out
+  also fails to record how much demand there was, and the analysis changes.
 
 ## Exercises
 
-1. The target rises to 0.99. What level does the worked case need?
+Each exercise uses the Shop's values in the table under
+[The Shop with a service target](#the-shop-with-a-service-target), except where it states otherwise.
+
+1. Find the base-stock level and the safety stock that a cycle service level of 0.99 requires, exactly
+   and by the normal approximation.
 
 <Answer>
 
-121, eight more units than for 0.95. The last few percent of service cost the most stock.
+Exactly, $\mathrm{CSL}(121) = 0.9910$ is the first value of at least 0.99, so $S = 121$ and the safety
+stock is 31 units. By <Ref to="prop-safety-stock-normal" />, $z_{0.99} = 2.326$ and the safety stock is
+$2.326 \times 13.78 = 32.07$ units.
 
-<Check ref="maxima:higher-target" />
+<Check refs="
+  maxima:higher-target
+  maxima:exercise-normal-99
+" />
 
 </Answer>
 
-2. Reviews happen twice a week instead, every 3.5 days. What level meets a 0.95 target?
+2. Let the Shop review twice a week, so that $R = 3.5$ days. Find the level that a cycle service level
+   of 0.95 requires.
 
 <Answer>
 
-Demand over the review period and a lead time now has mean 45 or 65, and the level
-falls to 75. More frequent reviews shorten the protection interval, and the stock needed
-falls with it.
+Now $T$ is 4.5 or 6.5 days and $D_T$ has mean 45 or 65. The smallest level with
+$\tfrac12 F_{4.5}(S) + \tfrac12 F_{6.5}(S) \ge 0.95$ is $S = 75$. A shorter review period shortens the
+protection interval, and both the mean demand over it and the safety stock fall.
 
 <Check ref="maxima:twice-weekly" />
 
 </Answer>
 
-3. Using the normal approximation, how much safety stock does a fixed lead time of 2 days
-   need for a 95% cycle service level?
+3. Compute the fill rate of the level $S = 106$.
 
 <Answer>
 
-About $1.645 \times \sqrt{90} \approx 15.60$ units, against about 22.67 when the lead time
-varies between 1 and 3 days.
+The expected backorders at the end of a cycle are $E[(D_T - 106)^+] = 0.862$ units, so
+$\beta(106) = 1 - 0.862/70 = 0.9877$. The level's cycle service level is 0.8715.
 
-<Check ref="maxima:normal-approximation" />
+<Check ref="maxima:exercise-fill-rate" />
 
 </Answer>
 
-4. Set the template's `target_service` to 0.99, so that the reference orders up to 121 as
-   in exercise 1, and run it over 200 replications. Is the target met?
+4. With `level = 121000` in the reference policy, the test of the simulator section finds over 200
+   replications that 0.989 of 1,800 cycles end without backorders. Decide whether this result is
+   consistent with a cycle service level of 0.9910.
 
 <Answer>
 
-Yes. About 99% of cycles end with no one waiting, matching the analytic 0.991 for level
-121. Going from 0.95 to 0.99 costs eight more units, over a third more safety stock.
+By <Ref to="prop-proportion" />, a proportion of 1,800 independent cycles with $\theta = 0.991$ has a
+standard error of $\sqrt{0.991 \times 0.009 / 1800} = 0.0022$. The difference of 0.002 is about one
+standard error, so the result is consistent with the model.
 
 <Check ref="test:on classic.safety_stock over 200 replications level 121 meets a 0.99 cycle service level" />
 
@@ -279,15 +432,15 @@ Yes. About 99% of cycles end with no one waiting, matching the analytic 0.991 fo
 
 <GameNote>
 
-A train's round trip plays the part of the lead time, and it varies: a train that stops
-longer to load or unload a big delivery takes longer to return. The more a line's visit
-interval varies, the more stock a station must hold to avoid running dry, even when its
-consumers use resources at a perfectly steady rate.
+A train's round trip corresponds to the lead time, and it varies: a train that takes longer to load or
+unload a large delivery returns later. By <Ref to="prop-random-interval" />, the more the interval
+between visits varies, the more stock a station needs to avoid running out, even when its consumers use
+the resource at a constant rate.
 
 </GameNote>
 
 ## References
 
 - Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer.
-- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn.
-  Hoboken, NJ: John Wiley & Sons.
+- Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd edn. Hoboken, NJ: John
+  Wiley & Sons.

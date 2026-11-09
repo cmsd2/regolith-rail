@@ -41,163 +41,207 @@ function metricsOver(scenarioId: string, source: string, seeds: number) {
 }
 
 describe("chapter 1, modelling operations", () => {
-  it("on two-station the balancing baseline leaves demand unmet while the mine's production stalls, in each of 20 replications", () => {
-    for (const metrics of metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 20)) {
-      expect(metrics.unmetDemand).toBeGreaterThan(0);
-      expect(metrics.stalledProduction).toBeGreaterThan(0);
-    }
-  });
-
-  it("on two-station taking everything from the mine and leaving everything at the dome meets all demand in each of 20 replications", () => {
-    const fix = `return ops.policy {
+  // Chapter 1 comes before replications, so each claim is about one run: steady demand, where the
+  // seed changes nothing, or seed 1.
+  const DRAIN_FILL = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
   target = { supply = ops.drain {}, demand = ops.fill {} },
 }`;
-    for (const metrics of metricsOver("two-station", fix, 20)) {
-      expect(metrics.unmetDemand).toBe(0);
-      expect(metrics.policyErrors).toBe(0);
+  const BALANCE = BUILT_IN_POLICIES["balance-stock"];
+  const TWO_STATION = STARTER_SCRIPTS["two-station"] as string;
+  const STEADY = TWO_STATION.replace("variability = 20", "variability = 0");
+  const withDays = (script: string, days: number) =>
+    script.replace("duration = sols(10)", `duration = sols(${days})`);
+
+  /** One run: its metrics, the loads at the mine and the time between the last mine stops. */
+  function once(script: string, source: string, seed = 1) {
+    const loaded = runtime.loadScript(script);
+    if (!loaded.ok) throw new Error("the script should evaluate");
+    const policy = runtime.createPolicy(source);
+    try {
+      const out = runSimulation(loaded.scenario, policy, { seed, detail: "summary" });
+      const loads = out.events.flatMap((e) =>
+        e.kind === "transfer" && e.station === "Mine" ? [e.amount / 1000] : [],
+      );
+      const arrivals = out.events.flatMap((e) =>
+        e.kind === "arrival" && e.station === "Mine" ? [e.t / 3_600_000] : [],
+      );
+      const n = arrivals.length;
+      const trip = ((arrivals[n - 1] as number) - (arrivals[n - 3] as number)) / 2;
+      return { metrics: out.metrics, loads, trip, unmet: out.metrics.unmetDemand / 1000 };
+    } finally {
+      policy.close();
     }
+  }
+  const settled = (loads: number[]) => loads.slice(-10);
+
+  it("on two-station with steady demand the drain-and-fill rule meets all demand, settling at 13.16 units a trip and a round trip of 8.77 hours, whatever the seed", () => {
+    const run = once(STEADY, DRAIN_FILL);
+    expect(run.unmet).toBe(0);
+    expect(run.metrics.policyErrors).toBe(0);
+    for (const load of settled(run.loads)) expect(load).toBeCloseTo(13.16, 1);
+    expect(run.trip).toBeCloseTo(8.77, 2);
+    expect(once(STEADY, DRAIN_FILL, 2).metrics).toEqual(run.metrics);
+  });
+
+  it("on two-station with steady demand balancing settles at 12.18 units a trip and a round trip of 8.74 hours, and from day 5 to day 20 leaves 2.53 units a day unmet while the mine stalls, whatever the seed", () => {
+    const run = once(withDays(STEADY, 20), BALANCE);
+    for (const load of settled(run.loads)) expect(load).toBeCloseTo(12.18, 1);
+    expect(run.trip).toBeCloseTo(8.74, 2);
+    const early = once(withDays(STEADY, 5), BALANCE);
+    const rate = (run.unmet - early.unmet) / 15;
+    expect(rate).toBeGreaterThan(2.5);
+    expect(rate).toBeLessThan(2.56);
+    const stalled = (run.metrics.stalledProduction - early.metrics.stalledProduction) / 1000 / 15;
+    expect(stalled).toBeGreaterThan(11);
+    expect(stalled).toBeLessThan(12);
+    expect(once(withDays(STEADY, 20), BALANCE, 2).metrics).toEqual(run.metrics);
+  });
+
+  it("on two-station seed 1 with variable demand, balancing leaves 25.3 units unmet with loads between 11 and 14, and the drain-and-fill rule meets all demand", () => {
+    const balance = once(TWO_STATION, BALANCE);
+    expect(balance.unmet).toBeCloseTo(25.3, 1);
+    for (const load of settled(balance.loads)) {
+      expect(load).toBeGreaterThan(11);
+      expect(load).toBeLessThan(14);
+    }
+    expect(once(TWO_STATION, DRAIN_FILL).unmet).toBe(0);
+  });
+
+  it("on two-station with steady demand and the line halved, balancing meets all demand at 6.84 units a trip", () => {
+    const run = once(STEADY.replace("distances = 72000", "distances = 36000"), BALANCE);
+    expect(run.unmet).toBe(0);
+    for (const load of settled(run.loads)) expect(load).toBeCloseTo(6.84, 1);
+  });
+
+  it("on two-station with steady demand and 60-unit stations, balancing leaves 4.84 units unmet in the first five days and none after, and has come down to 13.16 units a trip by day 10", () => {
+    const large = STEADY.replaceAll("small_station", "large_station");
+    const run = once(large, BALANCE);
+    for (const load of run.loads.slice(-3)) expect(load).toBeCloseTo(13.16, 1);
+    expect(run.unmet).toBeCloseTo(4.84, 2);
+    expect(once(withDays(large, 5), BALANCE).unmet).toBe(run.unmet);
   });
 });
 
 const DAY = 86_400_000;
 
-/** A run's average stock at each station, its average cargo, and its metrics, over seeds. */
-function stockOver(scenarioId: string, source: string, seeds: number) {
-  const result = validateScenario(starterScenarios.find((s) => s.id === scenarioId)?.document);
-  if (!result.ok) throw new Error(`invalid starter ${scenarioId}`);
-  const policy = runtime.createPolicy(source);
-  try {
-    return Array.from({ length: seeds }, (_, i) => {
-      const out = runSimulation(result.scenario, policy, { seed: replication(i), detail: "full" });
-      const stock = out.stock as Int32Array;
-      const rows = stock.length / out.sites.length;
-      const stations: Record<string, number> = {};
-      out.sites.forEach((site, s) => {
-        let sum = 0;
-        for (let r = 0; r < rows; r++) sum += stock[r * out.sites.length + s] as number;
-        stations[site.station] = sum / rows / 1000;
-      });
-      const cargo = (out.cargo as Int32Array).reduce((a, b) => a + b, 0) / rows / 1000;
-      return { stations, cargo, metrics: out.metrics, days: out.durationMs / DAY };
-    });
-  } finally {
-    policy.close();
-  }
-}
-
 const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
 
 describe("chapter 2, flows, rates and Little's law", () => {
+  // Like chapter 1, each claim is about one run with steady demand, where the seed changes nothing.
+  const DRAIN_FILL = `return ops.policy {
+  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
+  target = { supply = ops.drain {}, demand = ops.fill {} },
+}`;
   const ROLES = `return ops.policy {
   classify = ops.roles.manual { Mine = "supply", Junction = "relay", Dome = "demand" },
   target = { supply = ops.drain {}, relay = ops.pass_through {}, demand = ops.fill {} },
 }`;
+  const BALANCED = (STARTER_SCRIPTS["two-station"] as string)
+    .replace("rate = 45", "rate = 36")
+    .replace("variability = 20", "variability = 0");
+  const RELAY = (STARTER_SCRIPTS.relay as string).replace("variability = 20", "variability = 0");
+  const withDays = (script: string, days: number) =>
+    script.replace("duration = sols(10)", `duration = sols(${days})`);
+  const withSpeed = (script: string, speed: number) =>
+    script.replace('start = "Mine" }', `start = "Mine", speed = ${speed} }`);
+  const withStock = (script: string, units: number) =>
+    script.replaceAll("stock = { Metals = 15 }", `stock = { Metals = ${units} }`);
 
-  /** Little's law at one station on relay, from the run view's long-run averages. */
-  function littleAt(source: string, seed: number, station: string) {
-    const result = validateScenario(starterScenarios.find((s) => s.id === "relay")?.document);
-    if (!result.ok) throw new Error("invalid starter relay");
+  /** One run's long-run averages, in units, units a day and hours, with its metrics. */
+  function averages(script: string, source: string, seed = 1) {
+    const loaded = runtime.loadScript(script);
+    if (!loaded.ok) throw new Error("the script should evaluate");
     const policy = runtime.createPolicy(source);
     try {
-      const out = runSimulation(result.scenario, policy, { seed, detail: "full" });
-      const site = runAverages(out).sites.find((s) => s.station === station);
-      if (!site) throw new Error(`no site at ${station}`);
-      const hours = site.waitedHours as number;
+      const out = runSimulation(loaded.scenario, policy, { seed, detail: "full" });
+      const av = runAverages(out);
+      const site = (station: string) => {
+        const s = av.sites.find((x) => x.station === station);
+        if (!s) throw new Error(`no site at ${station}`);
+        return {
+          L: s.stock / 1000,
+          outPerDay: s.outPerDay / 1000,
+          hours: s.hours as number,
+          waited: s.waitedHours as number,
+        };
+      };
+      const line = av.line[0] as (typeof av.line)[number];
       return {
-        L: site.stock / 1000,
-        lambda: site.outPerDay / 1000,
-        hours,
-        lambdaW: ((site.outPerDay / 1000) * hours) / 24,
+        site,
+        stations: line.atStations / 1000,
+        aboard: line.aboard / 1000,
+        linePerDay: line.consumedPerDay / 1000,
+        lineHours: line.hours as number,
+        metrics: out.metrics,
       };
     } finally {
       policy.close();
     }
   }
 
-  it("on relay seed 1 under balancing, following each unit first in first out, the dome holds 6.4 units, uses 32.3 a day and a unit waits 4.7 hours there, so lambda W is within 3% of L, while at the junction a unit waits about 54 hours and lambda W comes to four fifths of L, and under roles a unit waits 15 hours at the dome", () => {
-    const dome = littleAt(BUILT_IN_POLICIES["balance-stock"], 1, "Dome");
-    expect(dome.L).toBeGreaterThan(6.2);
-    expect(dome.L).toBeLessThan(6.7);
-    expect(dome.lambda).toBeGreaterThan(32);
-    expect(dome.lambda).toBeLessThan(32.6);
-    expect(dome.hours).toBeGreaterThan(4.5);
-    expect(dome.hours).toBeLessThan(4.9);
-    expect(dome.lambdaW / dome.L).toBeGreaterThan(0.97);
-    expect(dome.lambdaW / dome.L).toBeLessThan(1);
-    const junction = littleAt(BUILT_IN_POLICIES["balance-stock"], 1, "Junction");
-    expect(junction.hours).toBeGreaterThan(50);
-    expect(junction.hours).toBeLessThan(58);
-    expect(junction.lambdaW / junction.L).toBeGreaterThan(0.77);
-    expect(junction.lambdaW / junction.L).toBeLessThan(0.84);
-    const roles = littleAt(ROLES, 1, "Dome");
-    expect(roles.hours).toBeGreaterThan(14.5);
-    expect(roles.hours).toBeLessThan(15.5);
-    expect(roles.lambdaW / roles.L).toBeGreaterThan(0.94);
-  }, 120_000);
+  it("on two-station with the mine making 36 a day and steady demand, drain-and-fill keeps 30 units on the line, 20 hours a unit, with about 6.6 at the mine, 6.6 aboard and 16.8 at the dome over 20 days, whatever the seed", () => {
+    const run = averages(withDays(BALANCED, 20), DRAIN_FILL);
+    expect(run.metrics.unmetDemand).toBe(0);
+    expect(run.metrics.stalledProduction).toBe(0);
+    expect(run.stations + run.aboard).toBeCloseTo(30, 2);
+    expect(run.lineHours).toBeCloseTo(20, 1);
+    expect(run.site("Mine").L).toBeCloseTo(6.57, 2);
+    expect(run.aboard).toBeCloseTo(6.63, 2);
+    expect(run.site("Dome").L).toBeCloseTo(16.8, 2);
+    expect(averages(withDays(BALANCED, 20), DRAIN_FILL, 2).metrics).toEqual(run.metrics);
+  });
 
-  it("on relay over 20 replications the balancing baseline keeps about 13 of the line's 52 units at the junction, three tenths of the station stock, and the dome goes short in every replication", () => {
-    const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
-    const junction = mean(runs.map((r) => r.stations.Junction as number));
-    expect(junction).toBeGreaterThan(12.5);
-    expect(junction).toBeLessThan(14.5);
-    const line = mean(
-      runs.map((r) => Object.values(r.stations).reduce((a, b) => a + b, 0) + r.cargo),
-    );
-    expect(line).toBeGreaterThan(50);
-    expect(line).toBeLessThan(54);
-    for (const run of runs) {
-      const stations = Object.values(run.stations).reduce((a, b) => a + b, 0);
-      expect((run.stations.Junction as number) / stations).toBeGreaterThan(0.29);
-      expect(run.metrics.unmetDemand).toBeGreaterThan(0);
-    }
-  }, 300_000);
+  it("on two-station with the mine making 36 a day, steady demand and the train at speed 10, drain-and-fill keeps 30 units on the line, 20 hours a unit, with about 3.4 at the mine, 3.5 aboard and 23.1 at the dome over 20 days", () => {
+    const run = averages(withSpeed(withDays(BALANCED, 20), 10), DRAIN_FILL);
+    expect(run.stations + run.aboard).toBeCloseTo(30, 2);
+    expect(run.lineHours).toBeCloseTo(20, 1);
+    expect(run.site("Mine").L).toBeCloseTo(3.43, 2);
+    expect(run.aboard).toBeCloseTo(3.47, 2);
+    expect(run.site("Dome").L).toBeCloseTo(23.1, 2);
+  });
 
-  it("on relay over 20 replications the balancing baseline delivers about 32.5 units a day, so by Little's law a unit spends about 38 hours on the line, 10 of them at the junction", () => {
-    const runs = stockOver("relay", BUILT_IN_POLICIES["balance-stock"], 20);
-    const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
-    expect(perDay).toBeGreaterThan(32);
-    expect(perDay).toBeLessThan(33);
-    const line = mean(
-      runs.map((r) => Object.values(r.stations).reduce((a, b) => a + b, 0) + r.cargo),
-    );
-    const hours = (line / perDay) * 24;
-    expect(hours).toBeGreaterThan(37);
-    expect(hours).toBeLessThan(40);
-    const junctionHours = (mean(runs.map((r) => r.stations.Junction as number)) / perDay) * 24;
-    expect(junctionHours).toBeGreaterThan(9);
-    expect(junctionHours).toBeLessThan(11);
-  }, 300_000);
+  it("on relay with steady demand, balancing keeps 13.29 units at the junction, where a unit waits 62.9 hours, and 6.27 at the dome, where a unit waits 4.53 hours; the line has 51.36 units in stock and delivers 32.86 a day, and the dome goes short", () => {
+    const run = averages(RELAY, BUILT_IN_POLICIES["balance-stock"]);
+    const junction = run.site("Junction");
+    const dome = run.site("Dome");
+    expect(junction.L).toBeCloseTo(13.29, 2);
+    expect(junction.waited).toBeCloseTo(62.9, 1);
+    expect(junction.outPerDay).toBeCloseTo(4.11, 2);
+    expect(dome.L).toBeCloseTo(6.27, 2);
+    expect(dome.waited).toBeCloseTo(4.53, 2);
+    expect(run.stations).toBeCloseTo(44.11, 2);
+    expect(run.aboard).toBeCloseTo(7.25, 2);
+    expect(run.linePerDay).toBeCloseTo(32.86, 2);
+    expect(run.metrics.unmetDemand).toBeGreaterThan(0);
+  });
 
-  it("on relay over 20 replications giving the junction the relay role holds nothing there, meets all demand, and keeps about 23 units at the dome, 16 hours of use", () => {
-    const runs = stockOver("relay", ROLES, 20);
-    for (const run of runs) {
-      expect(run.stations.Junction).toBe(0);
-      expect(run.metrics.unmetDemand).toBe(0);
-      expect(run.metrics.policyErrors).toBe(0);
-    }
-    const dome = mean(runs.map((r) => r.stations.Dome as number));
-    expect(dome).toBeGreaterThan(22);
-    expect(dome).toBeLessThan(24);
-    const perDay = mean(runs.map((r) => r.metrics.demandMet / 1000 / r.days));
-    expect((dome / perDay) * 24).toBeGreaterThan(15);
-    expect((dome / perDay) * 24).toBeLessThan(17);
-  }, 300_000);
+  it("on relay with steady demand, roles leave the junction empty and keep 23.00 units at the dome over 10 days, 16.24 hours of use, and 23.28 over 20; the line has 64.12 units in stock, delivers 34 a day and meets all demand", () => {
+    const run = averages(RELAY, ROLES);
+    expect(run.site("Junction").L).toBe(0);
+    expect(run.site("Dome").L).toBeCloseTo(23.0, 2);
+    expect(run.site("Dome").hours).toBeCloseTo(16.24, 2);
+    expect(averages(withDays(RELAY, 20), ROLES).site("Dome").L).toBeCloseTo(23.28, 2);
+    expect(run.stations).toBeCloseTo(42.98, 2);
+    expect(run.aboard).toBeCloseTo(21.14, 2);
+    expect(run.linePerDay).toBeCloseTo(34, 2);
+    expect(run.metrics.unmetDemand).toBe(0);
+  });
 
-  it("on relay over 20 replications giving the junction the any role with a balance target parks about 20 units there, while the mine and dome are served by their roles and all demand is met", () => {
-    const runs = stockOver(
-      "relay",
-      `return ops.policy {
-  classify = ops.roles.manual { Mine = "supply", Dome = "demand" },
-  target = { supply = ops.drain {}, demand = ops.fill {}, any = ops.balance {} },
-}`,
-      20,
-    );
-    const junction = mean(runs.map((r) => r.stations.Junction as number));
-    expect(junction).toBeGreaterThan(19);
-    expect(junction).toBeLessThan(21);
-    for (const run of runs) expect(run.metrics.unmetDemand).toBe(0);
-  }, 300_000);
+  it("on two-station with the mine making 36 a day, steady demand and the train at speed 2, drain-and-fill delivers 32.48 units a day, under the bound of 33.75, and the dome goes short", () => {
+    const run = averages(withSpeed(BALANCED, 2), DRAIN_FILL);
+    expect(run.linePerDay).toBeCloseTo(32.48, 2);
+    expect(run.linePerDay).toBeLessThan(33.75);
+    expect(run.metrics.unmetDemand).toBeGreaterThan(0);
+  });
+
+  it("on two-station with the mine making 36 a day and steady demand, starting with 10 units at each station, drain-and-fill keeps 20 units on the line, 13.33 hours a unit, with about 6.9 at the dome", () => {
+    const run = averages(withStock(BALANCED, 10), DRAIN_FILL);
+    expect(run.metrics.unmetDemand).toBe(0);
+    expect(run.stations + run.aboard).toBeCloseTo(20, 2);
+    expect(run.lineHours).toBeCloseTo(13.33, 2);
+    expect(run.site("Dome").L).toBeCloseTo(6.86, 2);
+  });
 });
 
 /** Mean and sample standard deviation. */
@@ -253,89 +297,134 @@ describe("chapter 3, randomness and simulation", () => {
     expect(empty.ratio).toBeGreaterThan(1);
   }, 300_000);
 
-  it("comparing base-stock levels 13 and 15 on the same 100 replications, paired differences spread less than half as much as independent runs, and level 15 costs more", () => {
-    const params = {
-      random: true,
-      demand: 4,
-      lead_time: 2 * DAY,
-      review_period: 6 * 3_600_000,
-      order_cost: 0,
-      duration: 30 * DAY,
-    };
-    const loaded = runtime.loadScript(templateCall("classic.reorder", params));
-    if (!loaded.ok) throw new Error("the template should evaluate");
-    const costs = (level: number) => {
-      const policy = runtime.createPolicy(
-        `return ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }`,
-      );
-      try {
-        return Array.from({ length: 100 }, (_, i) => {
-          const out = runSimulation(loaded.scenario, policy, {
-            seed: replication(i),
-            detail: "summary",
-          });
-          return out.metrics.costs.total / 1000 / 30;
-        });
-      } finally {
-        policy.close();
-      }
-    };
-    const a = costs(13);
-    const b = costs(15);
-    const difference = spread(b.map((cost, i) => cost - (a[i] as number)));
+  it("on two-station the same replication draws the same demand under balancing and under drain-and-fill", () => {
+    const demand = (source: string) =>
+      metricsOver("two-station", source, 100).map((m) => m.demandMet + m.unmetDemand);
+    expect(demand(BUILT_IN_POLICIES["balance-stock"])).toEqual(demand(DRAIN_FILL));
+  }, 300_000);
+
+  it("on two-station under drain-and-fill the demand met over 25, 100 and 400 replications has means 360.46, 360.42 and 360.26 and standard deviations 3.83, 3.70 and 3.80, and each 95% interval, of half-width 1.58, 0.73 and 0.37, contains 360", () => {
+    const met = metricsOver("two-station", DRAIN_FILL, 400).map((m) => m.demandMet / 1000);
+    const expected = [
+      { n: 25, mean: 360.46, sd: 3.83, t: 2.064, half: 1.58 },
+      { n: 100, mean: 360.42, sd: 3.7, t: 1.984, half: 0.73 },
+      { n: 400, mean: 360.26, sd: 3.8, t: 1.966, half: 0.37 },
+    ];
+    for (const { n, mean: m, sd, t, half } of expected) {
+      const sample = spread(met.slice(0, n));
+      expect(sample.mean).toBeCloseTo(m, 2);
+      expect(sample.sd).toBeCloseTo(sd, 2);
+      const halfWidth = (t * sample.sd) / Math.sqrt(n);
+      expect(halfWidth).toBeCloseTo(half, 2);
+      expect(Math.abs(sample.mean - 360)).toBeLessThan(halfWidth);
+    }
+  }, 300_000);
+
+  it("on two-station under balancing unmet demand has sample mean 27.97 and sample standard deviation 3.00 over 100 replications, and 28.42 and 2.55 over the first 10", () => {
+    const unmet = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 100).map(
+      (m) => m.unmetDemand / 1000,
+    );
+    const hundred = spread(unmet);
+    expect(hundred.mean).toBeCloseTo(27.97, 2);
+    expect(hundred.sd).toBeCloseTo(3.0, 2);
+    const ten = spread(unmet.slice(0, 10));
+    expect(ten.mean).toBeCloseTo(28.42, 2);
+    expect(ten.sd).toBeCloseTo(2.55, 2);
+  }, 300_000);
+
+  it("on two-station over 100 replications stalled production has mean 109.3 and standard deviation 0.92 under balancing and mean 48.4 and standard deviation 3.59 under drain-and-fill, with correlation 0.79, and the paired differences have mean 60.9 and standard deviation 2.92, against 3.71 for independent replications", () => {
+    const stalled = (source: string) =>
+      metricsOver("two-station", source, 100).map((m) => m.stalledProduction / 1000);
+    const a = stalled(BUILT_IN_POLICIES["balance-stock"]);
+    const b = stalled(DRAIN_FILL);
+    expect(spread(a).mean).toBeCloseTo(109.3, 1);
+    expect(spread(a).sd).toBeCloseTo(0.92, 2);
+    expect(spread(b).mean).toBeCloseTo(48.4, 1);
+    expect(spread(b).sd).toBeCloseTo(3.59, 2);
+    expect(correlation(a, b)).toBeCloseTo(0.79, 2);
+    const paired = spread(a.map((v, i) => v - (b[i] as number)));
+    expect(paired.mean).toBeCloseTo(60.9, 1);
+    expect(paired.sd).toBeCloseTo(2.92, 2);
     const sdA = spread(a).sd;
     const sdB = spread(b).sd;
-    const independent = Math.sqrt(sdA * sdA + sdB * sdB);
-    expect(difference.sd).toBeLessThan(independent / 2);
-    // t for 99 degrees of freedom at 97.5%.
-    const half = (1.984 * difference.sd) / 10;
-    expect(difference.mean - half).toBeGreaterThan(0);
+    expect(Math.sqrt(sdA * sdA + sdB * sdB)).toBeCloseTo(3.71, 2);
   }, 300_000);
 });
 
 describe("chapter 6, reviews, lead times and base-stock", () => {
-  const params = {
+  // The Shop of chapter 4 with Poisson demand, a lead time of one day and no order cost. It starts
+  // with its base-stock level on hand.
+  const shop = (days: number) => ({
     random: true,
-    demand: 4,
-    lead_time: 2 * DAY,
-    review_period: 6 * 3_600_000,
+    demand: 10,
+    lead_time: DAY,
     order_cost: 0,
-    duration: 30 * DAY,
+    initial: 15,
+    duration: days * DAY,
+  });
+  const orderUpTo = (level: number) =>
+    `return ops.policy { review = { target = ops.order_up_to { level = ${level * 1000} } } }`;
+  const costsPerDay = (days: number, source: string, replications: number) => {
+    const loaded = runtime.loadScript(templateCall("classic.reorder", shop(days)));
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const policy = runtime.createPolicy(source);
+    try {
+      return Array.from({ length: replications }, (_, i) => {
+        const out = runSimulation(loaded.scenario, policy, {
+          seed: replication(i),
+          detail: "summary",
+        });
+        return out.metrics.costs.total / 1000 / days;
+      });
+    } finally {
+      policy.close();
+    }
   };
 
-  it("the reorder template's base-stock reference for 4 a day, a 2-day lead time and 6-hour reviews orders up to 13 and expects 7.97 a day", () => {
-    const reference = classicTemplates.find((t) => t.name === "classic.reorder")?.reference(params);
-    expect(reference?.values.level).toBe(13);
-    expect(Math.round((reference?.expectedCostPerDay as number) * 100) / 100).toBe(7.97);
+  it("the reorder template's base-stock reference for the Shop with a 1-day lead time orders up to 15 and expects 6.20 a day over 60 days", () => {
+    const reference = classicTemplates
+      .find((t) => t.name === "classic.reorder")
+      ?.reference(shop(60));
+    expect(reference?.values.level).toBe(15);
+    expect(reference?.expectedCostPerDay as number).toBeCloseTo(6.2, 2);
   });
 
-  it("on classic.reorder with random demand, ordering up to 13 from stock on hand costs more than five times as much a day as ordering up to 13 from the inventory position, over 100 replications", () => {
-    const loaded = runtime.loadScript(templateCall("classic.reorder", params));
-    if (!loaded.ok) throw new Error("the template should evaluate");
-    const costPerDay = (source: string) => {
-      const policy = runtime.createPolicy(source);
-      try {
-        const total = Array.from({ length: 100 }, (_, i) => {
-          const out = runSimulation(loaded.scenario, policy, {
-            seed: replication(i),
-            detail: "summary",
-          });
-          return out.metrics.costs.total / 1000 / 30;
-        }).reduce((a, b) => a + b, 0);
-        return total / 100;
-      } finally {
-        policy.close();
-      }
-    };
-    const position = costPerDay(
-      "return ops.policy { review = { target = ops.order_up_to { level = 13000 } } }",
+  it("on the Shop with a 1-day lead time, over 200 replications of 60 days, ordering up to 14, 15 and 16 costs about 6.16, 6.14 and 6.52 a day, and the paired differences from 15 have less than half the standard deviation of independent replications", () => {
+    const costs = new Map(
+      [14, 15, 16].map((level) => [level, costsPerDay(60, orderUpTo(level), 200)]),
     );
-    const onHand = costPerDay(`return { on_review = function(ctx)
-  local short = 13000 - ctx.here.stock.Goods
+    const at = (level: number) => costs.get(level) as number[];
+    expect(Math.abs(spread(at(14)).mean - 6.164)).toBeLessThan(0.01);
+    expect(Math.abs(spread(at(15)).mean - 6.135)).toBeLessThan(0.01);
+    expect(Math.abs(spread(at(16)).mean - 6.523)).toBeLessThan(0.01);
+    for (const other of [14, 16]) {
+      const paired = spread(at(other).map((cost, i) => cost - (at(15)[i] as number))).sd;
+      const sdA = spread(at(other)).sd;
+      const sdB = spread(at(15)).sd;
+      expect(paired).toBeLessThan(Math.sqrt(sdA * sdA + sdB * sdB) / 2);
+    }
+    // Ordering up to 16 costs more than 15: the interval for the paired difference excludes zero.
+    const difference = spread(at(16).map((cost, i) => cost - (at(15)[i] as number)));
+    expect(difference.mean).toBeCloseTo(0.39, 2);
+    expect(difference.mean - (1.972 * difference.sd) / Math.sqrt(200)).toBeGreaterThan(0);
+  }, 600_000);
+
+  it("on the Shop with a 1-day lead time, ordering up to 15 from the stock on hand costs about 100 a day over 100 replications of 30 days, more than fifteen times the cost of ordering from the inventory position", () => {
+    const position = mean(costsPerDay(30, orderUpTo(15), 100));
+    const onHand = mean(
+      costsPerDay(
+        30,
+        `return { on_review = function(ctx)
+  local short = 15000 - ctx.here.stock.Goods
   if short > 0 then ctx.order("Goods", short) end
-end }`);
-    expect(onHand).toBeGreaterThan(5 * position);
-  }, 300_000);
+end }`,
+        100,
+      ),
+    );
+    expect(onHand).toBeGreaterThan(95);
+    expect(onHand).toBeLessThan(106);
+    expect(onHand).toBeGreaterThan(15 * position);
+  }, 600_000);
 });
 
 describe("chapter 6, the double dispatch case study", () => {
@@ -390,6 +479,34 @@ describe("chapter 4, order quantities", () => {
     expect(Math.abs(costPerDay(20) - 20)).toBeLessThan(1);
     expect(Math.abs(costPerDay(10) - 25)).toBeLessThan(1);
     expect(Math.abs(costPerDay(40) - 25)).toBeLessThan(1);
+  }, 120_000);
+
+  it("on classic.reorder with its hourly reviews, ordering 10, 20 and 40 at a time costs 25.2, 20.4 and 25.4 a day, each between the model's cost and its bound, and meets all demand", () => {
+    const loaded = runtime.loadScript(templateCall("classic.reorder", {}));
+    if (!loaded.ok) throw new Error("the template should evaluate");
+    const costPerDay = (quantity: number) => {
+      const policy = runtime.createPolicy(
+        `return ops.policy { review = { target = ops.min_max { min = 417, max = ${417 + quantity * 1000} } } }`,
+      );
+      try {
+        const out = runSimulation(loaded.scenario, policy, { detail: "summary" });
+        expect(out.metrics.unmetDemand).toBe(0);
+        return out.metrics.costs.total / 1000 / 20;
+      } finally {
+        policy.close();
+      }
+    };
+    const model = (quantity: number) => 200 / quantity + quantity / 2;
+    for (const [quantity, cost] of [
+      [10, 25.2],
+      [20, 20.4],
+      [40, 25.4],
+    ] as const) {
+      const simulated = costPerDay(quantity);
+      expect(simulated).toBeCloseTo(cost, 1);
+      expect(simulated).toBeGreaterThan(model(quantity));
+      expect(simulated).toBeLessThan(model(quantity) + 10 / 24);
+    }
   }, 120_000);
 });
 
@@ -494,29 +611,58 @@ describe("chapter 7, the storm shock case study", () => {
 });
 
 describe("chapter 8, forecasting", () => {
-  it("on classic.forecasting the smoothing policy leaves customers waiting on every day from 40 to 59 with 17 units of safety stock, and on none of them with 18", () => {
-    const reference = (safety: number) =>
-      classicTemplates.find((t) => t.name === "classic.forecasting")?.reference({ safety })
-        .policy ?? "";
-    const loaded = runtime.loadScript("return classic.forecasting {}");
+  // The Shop's demand starts at 10 a day and grows by 1 a day, without noise, so each claim is
+  // about one run.
+  const template = classicTemplates.find((t) => t.name === "classic.forecasting");
+  const shop = (params: Record<string, number>) => ({ level: 10, ...params });
+  const run = (params: Record<string, number>, detail: "full" | "summary") => {
+    const loaded = runtime.loadScript(templateCall("classic.forecasting", shop(params)));
     if (!loaded.ok) throw new Error("the template should evaluate");
-    const waitingDays = (safety: number) => {
-      const policy = runtime.createPolicy(reference(safety));
-      try {
-        const out = runSimulation(loaded.scenario, policy, { detail: "full" });
-        const backorders = out.backorders as Int32Array;
-        const perDay = DAY / out.tickMs;
-        let days = 0;
-        for (let day = 40; day < 60; day++) {
-          if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
-        }
-        return days;
-      } finally {
-        policy.close();
-      }
-    };
-    expect(waitingDays(17)).toBe(20);
-    expect(waitingDays(18)).toBe(0);
+    const policy = runtime.createPolicy(template?.reference(shop(params)).policy ?? "");
+    try {
+      return runSimulation(loaded.scenario, policy, { detail });
+    } finally {
+      policy.close();
+    }
+  };
+  /** Days from 40 to 59 on which some demand is backordered. */
+  const waitingDays = (params: Record<string, number>) => {
+    const out = run(params, "full");
+    const backorders = out.backorders as Int32Array;
+    const perDay = DAY / out.tickMs;
+    let days = 0;
+    for (let day = 40; day < 60; day++) {
+      if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
+    }
+    return days;
+  };
+
+  it("on classic.forecasting with a starting demand of 10, from day 40 each smoothed forecast is within 0.01 of 5 below the demand of the day it forecasts and 4 below the latest demand", () => {
+    const out = run({}, "summary");
+    const forecast = out.records.forecast;
+    const used = out.records.demand;
+    if (!forecast || !used) throw new Error("the reference policy should record its forecasts");
+    let checked = 0;
+    forecast.t.forEach((t, i) => {
+      const day = Math.floor(t / DAY);
+      if (day < 40) return;
+      const f = forecast.v[i] as number;
+      expect(used.v[i]).toBeCloseTo(10 + (day - 1), 6);
+      expect(Math.abs(10 + day - f - 5)).toBeLessThan(0.01);
+      expect(Math.abs(10 + (day - 1) - f - 4)).toBeLessThan(0.01);
+      checked++;
+    });
+    expect(checked).toBe(20);
+  });
+
+  it("on classic.forecasting with a starting demand of 10, the smoothing policy leaves demand backordered on every day from 40 to 59 with a safety stock of 17 units, and on none of them with 18", () => {
+    expect(waitingDays({ safety: 17 })).toBe(20);
+    expect(waitingDays({ safety: 18 })).toBe(0);
+  }, 120_000);
+
+  it("on classic.forecasting with a starting demand of 10 and alpha 0.5, the smoothing policy leaves demand backordered on every day from 40 to 59 with a safety stock of 8 units, and on none of them with 9", () => {
+    expect(waitingDays({ alpha: 0.5, safety: 8 })).toBe(20);
+    expect(waitingDays({ alpha: 0.5, safety: 9 })).toBe(0);
   }, 120_000);
 });
 
@@ -564,33 +710,6 @@ describe("simulator exercises", () => {
     }
   };
 
-  it("on two-station with 60-unit stations, balancing leaves about 5 units unmet over 20 replications instead of about 28, but the dome still goes short in every replication", () => {
-    const large = load(
-      (STARTER_SCRIPTS["two-station"] as string).replaceAll("small_station", "large_station"),
-    );
-    const policy = runtime.createPolicy(BUILT_IN_POLICIES["balance-stock"]);
-    try {
-      const unmet = Array.from(
-        { length: 20 },
-        (_, i) =>
-          runSimulation(large, policy, { seed: replication(i), detail: "summary" }).metrics
-            .unmetDemand / 1000,
-      );
-      expect(mean(unmet)).toBeGreaterThan(4);
-      expect(mean(unmet)).toBeLessThan(6.5);
-      for (const u of unmet) expect(u).toBeGreaterThan(0);
-    } finally {
-      policy.close();
-    }
-    const small = mean(
-      metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 20).map(
-        (m) => m.unmetDemand / 1000,
-      ),
-    );
-    expect(small).toBeGreaterThan(26);
-    expect(small).toBeLessThan(30);
-  }, 300_000);
-
   it("on two-station over 10 replications the paired difference in unmet demand between the drain-and-fill rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero", () => {
     const balance = metricsOver("two-station", BUILT_IN_POLICIES["balance-stock"], 10);
     const drainFill = metricsOver("two-station", DRAIN_FILL, 10);
@@ -633,6 +752,20 @@ describe("simulator exercises", () => {
     expect(Math.abs(ten - 430 / 9)).toBeLessThan(1);
     expect(fifteen).toBeLessThan(twenty);
     expect(twenty).toBeLessThan(ten);
+  }, 300_000);
+
+  it("on classic.newsvendor over 100 replications, ordering 10, 15 and 20 costs 48.22, 41.15 and 42.79 a day on average, and each 95% interval contains the model's expected cost", () => {
+    const scenario = load(templateCall("classic.newsvendor", {}));
+    for (const [units, cost, model] of [
+      [10, 48.22, 430 / 9],
+      [15, 41.15, 370 / 9],
+      [20, 42.79, 385 / 9],
+    ] as const) {
+      const sample = spread(costsPerDay(scenario, orderUpTo(units * 1000), 100, 30));
+      expect(sample.mean).toBeCloseTo(cost, 2);
+      // t for 99 degrees of freedom at 97.5%.
+      expect(Math.abs(sample.mean - model)).toBeLessThan((1.984 * sample.sd) / 10);
+    }
   }, 300_000);
 
   it("on classic.newsvendor with a lost-demand cost of 10, ordering 20 costs about 45.6 a day over 100 replications, less than ordering 15 or 25", () => {
@@ -680,6 +813,32 @@ describe("simulator exercises", () => {
     expect(short).toBeLessThan(0.9);
   }, 600_000);
 
+  it("on classic.safety_stock over 200 replications the share of cycles that end without backorders is 0.962 at level 113, 0.881 at 106 and 0.989 at 121, and 0.959 at 106 with a fixed 2-day lead time, and at 113 the mean backorders at the end of a cycle are 0.24 units", () => {
+    const variable = load(templateCall("classic.safety_stock", {}));
+    const fixed = load(templateCall("classic.safety_stock", { lead_time: 2 * DAY }));
+    expect(cycleServiceLevel(variable, 113, 200)).toBeCloseTo(0.962, 3);
+    expect(cycleServiceLevel(variable, 106, 200)).toBeCloseTo(0.881, 3);
+    expect(cycleServiceLevel(variable, 121, 200)).toBeCloseTo(0.989, 3);
+    expect(cycleServiceLevel(fixed, 106, 200)).toBeCloseTo(0.959, 3);
+    const policy = runtime.createPolicy(orderUpTo(113_000));
+    try {
+      let short = 0;
+      let cycles = 0;
+      for (let i = 0; i < 200; i++) {
+        const out = runSimulation(variable, policy, { seed: replication(i), detail: "full" });
+        const site = out.sites.findIndex((s) => s.station === "Shop" && s.resource === "Goods");
+        const backorders = out.backorders as Int32Array;
+        for (const d of out.events.filter((e) => e.kind === "delivery").slice(1)) {
+          short += (backorders[(d.t / out.tickMs - 1) * out.sites.length + site] as number) / 1000;
+          cycles++;
+        }
+      }
+      expect(short / cycles).toBeCloseTo(0.24, 2);
+    } finally {
+      policy.close();
+    }
+  }, 900_000);
+
   it("on classic.safety_stock over 200 replications level 121 meets a 0.99 cycle service level", () => {
     const template = classicTemplates.find((t) => t.name === "classic.safety_stock");
     expect(template?.reference({ target_service: 0.99 }).values.level).toBe(121);
@@ -687,26 +846,4 @@ describe("simulator exercises", () => {
       cycleServiceLevel(load(templateCall("classic.safety_stock", {})), 121, 200),
     ).toBeGreaterThan(0.985);
   }, 600_000);
-
-  it("on classic.forecasting with alpha 0.5 the smoothing policy leaves customers waiting on every day from 40 to 59 with 8 units of safety stock, and on none of them with 9", () => {
-    const template = classicTemplates.find((t) => t.name === "classic.forecasting");
-    const scenario = load(templateCall("classic.forecasting", { alpha: 0.5 }));
-    const waitingDays = (safety: number) => {
-      const policy = runtime.createPolicy(template?.reference({ alpha: 0.5, safety }).policy ?? "");
-      try {
-        const out = runSimulation(scenario, policy, { detail: "full" });
-        const backorders = out.backorders as Int32Array;
-        const perDay = DAY / out.tickMs;
-        let days = 0;
-        for (let day = 40; day < 60; day++) {
-          if (backorders.subarray(day * perDay, (day + 1) * perDay).some((b) => b > 0)) days++;
-        }
-        return days;
-      } finally {
-        policy.close();
-      }
-    };
-    expect(waitingDays(8)).toBe(20);
-    expect(waitingDays(9)).toBe(0);
-  }, 120_000);
 });

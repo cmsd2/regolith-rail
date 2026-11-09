@@ -73,6 +73,21 @@ export const BOOK: readonly BookPart[] = [
   },
 ];
 
+/** An appendix to the book, listed on the contents page after the parts. */
+export interface BookAppendix {
+  letter: string;
+  title: string;
+  slug: string;
+}
+
+export const APPENDICES: readonly BookAppendix[] = [
+  { letter: "A", title: "Notation", slug: "book/notation" },
+];
+
+/** The appendix with a slug. */
+export const appendixAt = (slug: string, appendices: readonly BookAppendix[] = APPENDICES) =>
+  appendices.find((a) => a.slug === slug);
+
 /** Roman numerals for part numbers. */
 export const partNumeral = (part: number) =>
   ["I", "II", "III", "IV", "V", "VI"][part - 1] ?? String(part);
@@ -111,17 +126,27 @@ export function chapterAt(
 
 /**
  * Problems with book pages: a Book page the contents doesn't list, frontmatter that disagrees
- * with the contents, or a listed chapter with no page.
+ * with the contents, or a listed chapter or appendix with no page.
  */
 export function checkBook(
   pages: { slug: string; frontmatter: Record<string, unknown> }[],
   book: readonly BookPart[] = BOOK,
+  appendices: readonly BookAppendix[] = APPENDICES,
 ): string[] {
   const problems: string[] = [];
   const chapters = new Map(writtenChapters(book).map((c) => [c.slug, c]));
   const slugs = new Set(pages.map((p) => p.slug));
   for (const { slug, frontmatter } of pages) {
     if (frontmatter.section !== "Book" || slug === BOOK_CONTENTS) continue;
+    const appendix = appendixAt(slug, appendices);
+    if (appendix) {
+      if (frontmatter.title !== appendix.title) {
+        problems.push(
+          `${slug}: title ${JSON.stringify(frontmatter.title)} but the contents says ${JSON.stringify(appendix.title)}`,
+        );
+      }
+      continue;
+    }
     const chapter = chapters.get(slug);
     if (!chapter) {
       problems.push(`${slug}: a Book page that the book's contents doesn't list`);
@@ -143,7 +168,7 @@ export function checkBook(
       );
     }
   }
-  for (const slug of chapters.keys()) {
+  for (const slug of [...chapters.keys(), ...appendices.map((a) => a.slug)]) {
     if (!slugs.has(slug)) problems.push(`${slug}: listed in the book's contents but has no page`);
   }
   return problems;

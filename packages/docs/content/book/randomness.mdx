@@ -1,6 +1,6 @@
 ---
 title: Randomness and simulation
-description: Random arrivals, estimating means by simulation, and telling a real difference from luck.
+description: Random demand, the estimation of a mean from independent replications, and the comparison of two policies with common random numbers.
 section: Book
 part: 1
 chapter: 3
@@ -8,152 +8,384 @@ chapter: 3
 
 ## What you will learn
 
-- To describe random arrivals with the Poisson process, and to work out the mean and
-  spread of demand over a stretch of time.
-- To estimate an expected cost by averaging many simulated runs, and to say how precise
-  that estimate is with a standard error and a confidence interval.
-- To compare two policies fairly by running them on the same random numbers, and to see
-  why that needs far fewer runs than comparing independent runs.
+- To model random demand, and to compute the mean and variance of the demand over an interval.
+- To estimate the mean of a simulated output from independent replications, and to compute a confidence
+  interval for it.
+- To determine the number of replications that a required precision needs.
+- To compare two policies with common random numbers, and to determine when pairing reduces the variance
+  of the comparison.
 
 ## The problem
 
-Real operations are noisy. Customers arrive when they arrive, machines break when they
-break, and the same policy run twice in the real world gives two different results. A
-single run of a simulation is one draw from that noise. It can make a poor policy look
-good, or a good one look poor.
+Chapters 1 and 2 took demand to be constant. The starter scenarios draw demand at random, and the output
+of a run, such as its unmet demand, then depends on the random numbers drawn. A single run is one
+observation of a random variable.
 
-The remedy is to treat a simulation as an experiment. Run it many times with different
-random numbers, take the mean of the results, and measure how much that mean could still
-move.
-When comparing two policies, run both on the same random numbers so the comparison sees
-their difference and not the luck of the draw (Law, 2015; Wasserman, 2004).
+A simulation is therefore a statistical experiment, and its output requires the methods of statistical
+inference (Taha, 2017, p. 728). This chapter models random demand, estimates the mean of an output from
+independent replications of a run, and quantifies the error of the estimate. It then compares two policies
+through the difference of their outputs, and shows how running both on the same random numbers changes the
+variance of that difference.
+
+The chapter assumes the Poisson and normal distributions, the mean and variance of a sum of independent
+random variables, the central limit theorem and Student's $t$ distribution. It recalls each where it is
+used.
 
 ## The model
 
-### Random arrivals
+### Random demand
 
-When arrivals are independent and happen at a steady mean rate $\lambda$, the number
-that occur in a time $t$ follows the Poisson distribution with mean $m = \lambda t$:
+<Definition id="def-poisson-process" name="Poisson process">
+
+Let $A(t)$ be the number of units demanded in $[0, t]$. The demand is a **Poisson process** with rate
+$\lambda$ if $A(0) = 0$, the numbers demanded in disjoint intervals are independent, and the number
+demanded in any interval of length $t$ has the Poisson distribution with mean $\lambda t$:
 
 $$
-P(N = k) = \frac{e^{-m} m^k}{k!}, \qquad k = 0, 1, 2, \ldots
+P\big(A(t) = k\big) = \frac{e^{-\lambda t} (\lambda t)^k}{k!}, \qquad k = 0, 1, 2, \dots
 $$
 
-Its mean and its variance are both $m$, so the standard deviation is $\sqrt{m}$. Demand
-with a mean of 9 units over a stretch of time typically lands within 3 units of that.
+</Definition>
+
+The mean and the variance of $A(t)$ both equal $\lambda t$.
 
 <Check ref="maxima:poisson-mean-variance" />
 
-The chance of no arrival at all in a gap of length $s$ is the Poisson chance of zero,
+<WorkedExample id="ex-shortage" name="Shortage between deliveries">
+
+A station has $x$ units in stock when a vehicle departs, and the next delivery arrives after a time $T$.
+Demand is a Poisson process with $\lambda T = 10$. The station runs short before the delivery if
+$A(T) > x$, which has probability
 
 $$
-P(\text{no arrival in } s) = e^{-\lambda s},
+P\big(A(T) > x\big) = 1 - \sum_{k=0}^{x} \frac{e^{-10}\, 10^k}{k!} .
 $$
 
-so the gaps between arrivals are exponential, with mean $1/\lambda$.
+| Stock $x$ | 10 | 12 | 15 | 18 |
+| --- | --- | --- | --- | --- |
+| $P(A(T) > x)$ | 0.4170 | 0.2084 | 0.0487 | 0.0072 |
 
-<Check ref="maxima:exponential-gap" />
+A stock equal to the mean demand leaves a probability of shortage above 0.4. Chapter 7 chooses the stock
+that makes this probability acceptably small.
 
-### Estimating by simulation
+</WorkedExample>
 
-Run a simulation $n$ times, each replication with fresh random numbers, and take the
-sample mean of the costs. The sample mean $\bar{X}$ estimates the expected cost. If one
-run's cost has standard deviation $\sigma$, the mean of $n$ independent runs has standard
-deviation
+<Check ref="maxima:shortage-probability" />
+
+<WorkedExample id="ex-line-demand" name="Demand on the two-station line">
+
+On the two-station line of <Ref to="asm-line" />, let the dome's consumption rate be constant within each
+two-hour block and equal to $u\,(1 + U_j)$ in block $j$, where the $U_j$ are independent and uniformly
+distributed on $[-0.2, 0.2]$. Then $E[U_j] = 0$ and $\operatorname{Var}(U_j) = 0.4^2 / 12 = 1/75$. With
+$u = 3/2$ units an hour, the demand in block $j$ is $3\,(1 + U_j)$ units. A run of 10 days has 120 blocks,
+and its total demand $D = \sum_{j=1}^{120} 3\,(1 + U_j)$ has
 
 $$
-\operatorname{SE}(\bar{X}) = \frac{\sigma}{\sqrt{n}},
+E[D] = 120 \times 3 = 360, \qquad \operatorname{Var}(D) = 120 \times 9 \times \frac{1}{75} = 14.4, \qquad
+\sqrt{\operatorname{Var}(D)} \approx 3.79 .
 $$
 
-its standard error. Precision grows only with the square root of the effort: four times
-as many runs halve the standard error.
+As a sum of 120 independent terms, $D$ is approximately normal by the central limit theorem.
+
+</WorkedExample>
+
+<Check ref="maxima:line-demand" />
+
+### Replications
+
+Fix a scenario and a policy, and choose an output of a run, such as the unmet demand over the run. The
+value $X$ of the output depends on the random numbers drawn during the run, so $X$ is a random variable. Write
+$\mu_X$ for its mean and $\sigma_X^2$ for its variance. The aim is to estimate $\mu_X$.
+
+<Definition id="def-replication" name="Replications">
+
+A **replication** is a run whose random numbers are drawn independently of those of every other run.
+The outputs $X_1, \dots, X_n$ of $n$ replications are independent and have the distribution of $X$.
+Their **sample mean** and **sample variance** are
+
+$$
+\bar X_n = \frac{1}{n} \sum_{i=1}^{n} X_i, \qquad S_n^2 = \frac{1}{n - 1} \sum_{i=1}^{n} \big(X_i - \bar X_n\big)^2 .
+$$
+
+</Definition>
+
+<Proposition id="prop-sample-mean" name="Mean and variance of the sample mean">
+
+$$
+E\big[\bar X_n\big] = \mu_X, \qquad \operatorname{Var}\big(\bar X_n\big) = \frac{\sigma_X^2}{n} .
+$$
+
+</Proposition>
+
+<Proof>
+
+The mean of a sum is the sum of the means, so $E[\bar X_n] = \frac{1}{n} \sum_i E[X_i] = \mu_X$. The
+replications are independent, so the variance of their sum is the sum of their variances, $n \sigma_X^2$.
+Dividing the sum by $n$ divides its variance by $n^2$.
+
+</Proof>
+
+<Check refs="
+  maxima:sample-statistics
+  maxima:sample-mean
+" />
+
+The proposition is Theorem 3.17 of Wasserman (2004, p. 52). It makes $\bar X_n$ an **unbiased** estimator
+of $\mu_X$, and its standard deviation $\sigma_X / \sqrt{n}$ is the **standard error** of the estimate.
+The independence of the replications is what the proof uses. Observations taken from successive intervals
+of a single long run are not independent, and the variance formula does not apply to them (Taha, 2017,
+pp. 728–729).
+
+<Corollary id="cor-root-n">
+
+The standard error is proportional to $1 / \sqrt{n}$. Halving it requires four times as many
+replications.
+
+</Corollary>
 
 <Check ref="maxima:standard-error" />
 
-We do not know $\sigma$, so we estimate it with the sample standard deviation $s$, and
-build a 95% confidence interval from Student's t distribution:
+<Definition id="def-confidence-interval" name="Confidence interval for a mean">
+
+By the central limit theorem, $\bar X_n$ is approximately normal with mean $\mu_X$ and standard deviation
+$\sigma_X / \sqrt{n}$ when $n$ is large. With $S_n$ in place of the unknown $\sigma_X$, the interval
 
 $$
-\bar{X} \pm t_{0.975,\,n-1} \frac{s}{\sqrt{n}}.
+\bar X_n \pm t_{n-1,\,0.975}\, \frac{S_n}{\sqrt{n}}
 $$
+
+is an approximate **95% confidence interval** for $\mu_X$, where $t_{n-1,\,0.975}$ is the 0.975 quantile
+of Student's $t$ distribution with $n - 1$ degrees of freedom. Its **half-width** is
+$t_{n-1,\,0.975}\, S_n / \sqrt{n}$.
+
+</Definition>
+
+In repeated experiments about 95% of such intervals contain $\mu_X$ (Wasserman, 2004, pp. 77, 92). The
+interval is exact when $X$ is normal. The quantile is 2.262 for $n = 10$, 2.064 for $n = 25$, 1.984 for
+$n = 100$ and 1.966 for $n = 400$, and it tends to the normal quantile 1.960.
 
 <Check ref="python:t-critical" />
 
-Here $t_{0.975,\,n-1}$ is the critical value of Student's t distribution with $n - 1$
-degrees of freedom: 97.5% of the distribution lies below it, so 2.5% lies beyond it in
-each tail and 95% between. Some books write it $t_{\alpha/2,\,n-1}$, with $\alpha = 0.05$
-the chance left outside. For 30 runs $t_{0.975,29} \approx 2.045$, and for 100 runs
-$t_{0.975,99} \approx 1.984$, close to the normal value 1.96. With 100 runs, a mean of 7.9
-and $s = 1.4$, the interval is $7.9 \pm 0.28$, from 7.62 to 8.18.
+<WorkedExample id="ex-known-mean" name="A mean that is known">
 
-<Check ref="python:interval-example" />
+Let $X$ be the total demand $D$ of <Ref to="ex-line-demand" />, so that $\mu_X = 360$ and
+$\sigma_X \approx 3.79$ are known. The standard error of $\bar X_n$ and the half-width of the interval,
+with $\sigma_X$ in place of $S_n$, are as follows.
 
-The same idea estimates any mean. The share of random points in a square that land
-inside a quarter circle estimates $\pi/4$, and with 400,000 points its standard error, as
-an estimate of $\pi$, is about 0.0026.
+| Replications $n$ | 25 | 100 | 400 |
+| --- | --- | --- | --- |
+| Standard error $\sigma_X / \sqrt{n}$ | 0.759 | 0.379 | 0.190 |
+| Half-width | 1.57 | 0.75 | 0.37 |
 
-<Check ref="python:monte-carlo-pi" />
+An output with a known mean tests the method. The interval computed from simulated replications should
+contain 360, and its half-width should be close to the value above. The simulator section carries out the
+test.
 
-### Comparing on the same streams
+</WorkedExample>
 
-To compare policies A and B, look at the difference $D = X_B - X_A$. If the two are run
-on unrelated random numbers, the variances simply add. If they are run on the same streams,
-so both face the same arrivals, their costs move together with correlation $\rho$, and
+<Check refs="
+  maxima:known-mean
+  python:known-mean-intervals
+" />
+
+<Corollary id="cor-replications" name="Replications for a given half-width">
+
+For large $n$ the half-width is approximately $z\,\sigma_X / \sqrt{n}$ with $z = 1.96$. A half-width of at
+most $\delta$ therefore requires approximately
 
 $$
-\operatorname{Var}(D) = \sigma_A^2 + \sigma_B^2 - 2\rho\,\sigma_A \sigma_B.
+n \ \ge\ \left(\frac{z\,\sigma_X}{\delta}\right)^2
 $$
 
-With equal spreads and $\rho = 0.9$, the variance of the difference is a tenth of what
-independent runs give, so the same precision needs a tenth of the runs. This technique is
-called common random numbers. For two policies each with a standard deviation of 1.4,
-the difference's standard deviation falls from 1.98 to 0.63.
+replications.
 
-<Check ref="maxima:paired-variance" />
+</Corollary>
 
-<Check ref="python:paired-example" />
+<WorkedExample id="ex-pilot" name="A mean that is not known">
+
+Let $X$ be the unmet demand of the two-station line under balancing over a run of 10 days, with the
+demand of <Ref to="ex-line-demand" />. Its mean is not known. A batch of 100 replications gives
+$\bar X_{100} = 27.97$ and $S_{100} = 3.00$ units. The standard error is $3.00 / \sqrt{100} = 0.30$, and the
+95% confidence interval is $27.97 \pm 1.984 \times 0.30$, from 27.37 to 28.57.
+
+The batch also serves as a pilot for a more precise estimate. With $S_{100}$ as an estimate of $\sigma_X$,
+a half-width of 0.25 requires about $(1.96 \times 3.00 / 0.25)^2 \approx 553$ replications.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:replications-needed
+  python:interval-example
+  test:on two-station under balancing unmet demand has sample mean 27.97 and sample standard deviation 3.00 over 100 replications, and 28.42 and 2.55 over the first 10
+" />
+
+### Estimating a probability
+
+The probability of an event is the mean of its indicator, so the same method estimates it.
+
+<Proposition id="prop-proportion" name="Estimating a probability">
+
+Let $X = 1$ if an event occurs in a run and $X = 0$ otherwise, and let $\theta$ be the probability of the
+event. Then $\mu_X = \theta$ and
+
+$$
+\sigma_X^2 = \theta\,(1 - \theta) \le \frac14, \qquad\text{so}\qquad
+\sqrt{\operatorname{Var}\big(\bar X_n\big)} = \sqrt{\frac{\theta\,(1 - \theta)}{n}} \le \frac{1}{2\sqrt{n}} .
+$$
+
+</Proposition>
+
+<Proof>
+
+Since $X^2 = X$, both $E[X]$ and $E[X^2]$ equal $\theta$, and $\sigma_X^2 = \theta - \theta^2$. The
+function $\theta\,(1 - \theta)$ has its maximum on $[0, 1]$ at $\theta = 1/2$, where it equals $1/4$. The
+standard error follows from <Ref to="prop-sample-mean" />.
+
+</Proof>
+
+<WorkedExample id="ex-proportion">
+
+For the shortage of <Ref to="ex-shortage" /> with $x = 12$, $\theta = 0.2084$. With 400 replications the
+standard error of the estimated probability is $\sqrt{0.2084 \times 0.7916 / 400} = 0.0203$. A half-width
+of 0.01 requires about $1.96^2 \times 0.2084 \times 0.7916 / 0.01^2 \approx 6337$ replications.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:bernoulli-variance
+  maxima:proportion-example
+" />
+
+### Comparing two policies
+
+Let $X$ and $Y$ be the same output under two policies. The comparison estimates $\mu_X - \mu_Y$. Its
+precision depends on how the pairs of runs are drawn.
+
+<Proposition id="prop-difference" name="Variance of a difference">
+
+Let $X$ and $Y$ have variances $\sigma_X^2$ and $\sigma_Y^2$ and correlation $\rho_{XY}$. Then
+
+$$
+\operatorname{Var}(X - Y) = \sigma_X^2 + \sigma_Y^2 - 2\rho_{XY}\,\sigma_X \sigma_Y .
+$$
+
+If $X$ and $Y$ are independent, $\rho_{XY} = 0$ and the variance is $\sigma_X^2 + \sigma_Y^2$.
+
+</Proposition>
+
+<Proof>
+
+$\operatorname{Var}(X - Y) = \operatorname{Var}(X) + \operatorname{Var}(Y) - 2\operatorname{Cov}(X, Y)$, and
+by the definition of the correlation $\operatorname{Cov}(X, Y) = \rho_{XY}\,\sigma_X \sigma_Y$.
+
+</Proof>
+
+<Definition id="def-crn" name="Common random numbers">
+
+The method of **common random numbers** runs replication $i$ of both policies with the same random
+numbers, so that both policies face the same disturbances. The pairs $(X_i, Y_i)$ are independent of one
+another, and within a pair $X_i$ and $Y_i$ have correlation $\rho_{XY}$. The differences
+$Z_i = X_i - Y_i$ have sample mean $\bar Z_n$ and sample standard deviation $S_Z$, and
+
+$$
+\bar Z_n \pm t_{n-1,\,0.975}\, \frac{S_Z}{\sqrt{n}}
+$$
+
+is an approximate 95% confidence interval for $\mu_X - \mu_Y$.
+
+</Definition>
+
+Law (2015, ch. 11) treats the method among the techniques of variance reduction. The interval is that of
+<Ref to="def-confidence-interval" /> applied to the differences, which are independent of one another
+although $X_i$ and $Y_i$ are not.
+
+<Corollary id="cor-crn">
+
+Common random numbers give $\bar Z_n$ a smaller variance than independent replications of the two
+policies if and only if $\rho_{XY} > 0$. If $\sigma_X = \sigma_Y$, the variance is multiplied by
+$1 - \rho_{XY}$.
+
+</Corollary>
+
+<Proof>
+
+By <Ref to="prop-difference" /> and <Ref to="prop-sample-mean" />, the variance of $\bar Z_n$ is
+$(\sigma_X^2 + \sigma_Y^2 - 2\rho_{XY}\,\sigma_X\sigma_Y)/n$ with common random numbers and
+$(\sigma_X^2 + \sigma_Y^2)/n$ with independent replications. The first is smaller exactly when
+$\rho_{XY} > 0$. With $\sigma_X = \sigma_Y = \sigma$ their ratio is
+$2\sigma^2 (1 - \rho_{XY}) / 2\sigma^2 = 1 - \rho_{XY}$.
+
+</Proof>
+
+<WorkedExample id="ex-crn" name="Production lost at the mine">
+
+Let $X$ and $Y$ be the production that the mine loses over a run of 10 days under balancing and under
+drain-and-fill. In 100 replications with common random numbers the sample standard deviations are 0.92
+and 3.59 units, and the sample correlation is 0.786. A replication with low demand leaves more production
+undelivered under either policy, so the two outputs rise and fall together. With these values,
+
+$$
+\sqrt{0.92^2 + 3.59^2} = 3.71, \qquad
+\sqrt{0.92^2 + 3.59^2 - 2 \times 0.786 \times 0.92 \times 3.59} = 2.92 .
+$$
+
+The paired differences have standard deviation 2.92, against 3.71 for independent replications. The
+variance is smaller by the factor $2.92^2 / 3.71^2 = 0.62$, so the paired comparison attains a given
+precision with 62% of the replications. The half-width of the interval for the difference in means is
+0.58 with pairing and 0.74 without.
+
+</WorkedExample>
+
+<Check refs="
+  maxima:paired-variance
+  python:paired-intervals
+  maxima:paired-example
+  test:on two-station over 100 replications stalled production has mean 109.3 and standard deviation 0.92 under balancing and mean 48.4 and standard deviation 3.59 under drain-and-fill, with correlation 0.79, and the paired differences have mean 60.9 and standard deviation 2.92, against 3.71 for independent replications
+" />
+
+<Remark id="rem-crn-negative">
+
+Common random numbers increase the variance when $\rho_{XY} < 0$. On the same line the share of distance
+that the train travels empty has a negative correlation between the two policies, and its paired
+differences vary more than differences of independent replications would. The sign of the correlation
+depends on how the two outputs respond to the same disturbances, and the replications themselves provide
+an estimate of it.
+
+</Remark>
+
+<Check ref="test:on two-station over 100 replications the two policies' stalled production rises and falls together with a correlation of about 0.8, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more" />
+
+### Runs of finite length
+
+<Remark id="rem-transient">
+
+A replication estimates the mean of an output over a run of a given length from a given initial state.
+That mean depends on both. The initial period of a run, before the effect of the initial state has faded,
+is its **transient** period, and each replication includes it (Taha, 2017, pp. 728–730). Chapter 2 gave an
+instance: on the relay line the dome's mean stock was 23.00 units over 10 days and 23.28 over 20, against
+23.56 in the steady state. An estimate of a steady-state mean requires long runs, or the removal of the
+transient period from each run.
+
+</Remark>
 
 ## In the simulator
 
-The simulator makes randomness repeatable. Every run takes a seed, and the same scenario,
-policy and seed give exactly the same run.
+Every run takes a seed. For a given scenario and policy, the same seed gives the same run. A batch takes
+a base seed and a number of replications. Each replication draws its random numbers from its own stream, derived
+from the base seed and the replication's number, so the replications are independent and a batch can be
+repeated exactly. A comparison runs both policies on the same streams, which is the method of
+<Ref to="def-crn" />.
 
-<Check ref="test:repeats every format 2 run exactly" />
+<Check refs="
+  test:repeats every format 2 run exactly
+  test:derives batch seeds from base seed and count only
+  test:compares two policies on the same seeds
+  test:on two-station the same replication draws the same demand under balancing and under drain-and-fill
+" />
 
-Poisson arrivals are drawn from the seed, whole units at a time, at their stated mean
-rate.
-
-<Check ref="test:gives Poisson arrivals their mean rate over many days" />
-
-<Check ref="test:keeps Poisson arrivals whole and repeatable for the same seed" />
-
-A batch takes one seed and a number of replications. Each replication draws its random
-numbers from its own stream, derived from the seed and the replication's number, so the
-replications are independent of one another, as if one long stream ran on from
-replication to replication, and each can be rerun on its own. A batch run again gives the
-same results, and the same streams serve both policies in a comparison.
-
-<Check ref="test:derives batch seeds from base seed and count only" />
-
-Chapter 1's line is the place to see what a seed changes. The `two-station` starter's
-dome uses 36 units a day on average, but its rate is redrawn every two hours, up to 20%
-either way, from the seed. Open it with the balancing baseline, run seed 1, then seed 2:
-the unmet demand differs, and neither figure is the policy's unmet demand. Each is one
-draw.
+The `two-station` starter has the demand of <Ref to="ex-line-demand" />.
 
 <Scenario starter="two-station" />
-
-Switch to **Batch**, keep the seed at 1, and run `balance-stock` for 100 replications.
-The batch reports a mean and a median for each metric; the mean is the one the rest of
-this chapter works with. The sample mean of unmet demand is 28.0 units, with a sample
-standard deviation of 3.0, so its standard error is 0.30 and the 95% interval runs from
-about 27.4 to 28.6. The single runs range over more than ten units, so a single run can
-sit ten units from the mean.
-
-<Check ref="test:on two-station over 100 replications the sample mean of unmet demand under balancing is 28 units with a standard error of 0.3, single runs range over more than 10 units, and the drain-and-fill rule meets all demand in every replication" />
-
-Now tick **Compare**, choose chapter 1's drain-and-fill rule as the second policy, and
-run again.
 
 ```lua runnable scenario=two-station
 return ops.policy {
@@ -162,115 +394,138 @@ return ops.policy {
 }
 ```
 
-The batch runs both policies on the same streams, and reports each metric's paired
-difference with a 95% confidence interval.
+**A known mean.** Under drain-and-fill no demand is unmet, so the metric **Demand met** is the total
+demand $D$ of <Ref to="ex-line-demand" />. Open the policy above and switch to **Batch**. With
+**Base seed** set to 1, run with **Seeds**, the number of replications, set to 25, then 100, then 400.
+Each interval contains the known mean of 360, and the half-widths agree with <Ref to="ex-known-mean" />.
 
-<Check ref="test:compares two policies on the same seeds" />
+<Predicted>
 
-Pairing makes no difference to the comparison of unmet demand, because under the
-drain-and-fill rule unmet demand is zero in every replication. The paired difference in a
-replication is therefore just the baseline's unmet demand in that replication, and the
-interval for the difference is the baseline's own, $28.0 \pm 0.6$, which leaves out zero by
-a wide margin. Stalled production is where pairing makes a difference. Both policies stall the mine more in a replication where
-the dome happens to use less, so their stalls rise and fall together, with a correlation
-of about 0.8. The paired differences have a standard deviation of 2.9 units, against the
-3.7 that independent runs would give: a fifth less, so the same precision needs about two
-thirds as many runs.
+| Demand met, drain-and-fill | Model | Simulator |
+| --- | --- | --- |
+| Mean | 360 | 360.46, 360.42, 360.26 |
+| Standard deviation | 3.79 | 3.83, 3.70, 3.80 |
+| Half-width, 25 replications | 1.57 | 1.58 |
+| Half-width, 100 replications | 0.75 | 0.73 |
+| Half-width, 400 replications | 0.37 | 0.37 |
 
-Pairing can also hurt. The two policies' empty running moves in opposite directions with
-demand: balancing runs emptier on a replication where the dome uses less, and the
-drain-and-fill rule on one where it uses more. Their correlation is negative, and the paired differences
-spread more than independent runs would. Common random numbers reduce variance when
-the policies respond to the noise in the same direction, which is the usual case, but it
-is worth checking.
+<Check ref="test:on two-station under drain-and-fill the demand met over 25, 100 and 400 replications has means 360.46, 360.42 and 360.26 and standard deviations 3.83, 3.70 and 3.80, and each 95% interval, of half-width 1.58, 0.73 and 0.37, contains 360" />
 
-<Check ref="test:on two-station over 100 replications the two policies' stalled production rises and falls together with a correlation of about 0.8, so paired differences spread a fifth less than independent runs, while their empty running moves in opposite directions and pairing spreads more" />
+</Predicted>
 
-Chapter 6 compares two order-up-to levels on the same streams. There both policies answer
-the same demand in the same direction, and the paired spread falls to less than half.
+**An unknown mean.** Put `balance-stock` in the Policy slot and run 100 replications. The metric
+**Unmet demand** has the sample mean and the interval of <Ref to="ex-pilot" />. Single replications range
+over more than 10 units, so one run can differ from the mean by several units.
+
+<Check ref="test:on two-station over 100 replications the sample mean of unmet demand under balancing is 28 units with a standard error of 0.3, single runs range over more than 10 units, and the drain-and-fill rule meets all demand in every replication" />
+
+**A comparison.** Open the drain-and-fill policy again and tick **Compare with policy B**. Choose
+`balance-stock` as policy B. The column **B − A** reports each metric's paired difference with its 95%
+confidence interval. For unmet demand, drain-and-fill gives zero in every replication, so the difference
+is the baseline's unmet demand, $27.97 \pm 0.60$. For **Stalled production**, the production lost at the
+mine, the difference is $60.9 \pm 0.58$, the paired interval of <Ref to="ex-crn" />.
+
+<Placeholder needs="mars-poisson-consumer">
+
+The shortage probability of <Ref to="ex-shortage" /> has a known value, 0.2084 for $x = 12$. A run of the
+line with Poisson demand at the dome would estimate it as the share of replications in which the dome
+runs short between two deliveries, with the standard error of <Ref to="ex-proportion" />.
+
+</Placeholder>
 
 ## Where the simulator differs
 
-- **Arrivals are a close approximation.** Exact Poisson sampling needs floating-point
-  functions that differ between browsers, so the simulator splits each minute into at
-  least eight sub-steps and gives each a small chance of an arrival. The mean is exact.
-  The variance is lower than a Poisson count's by a factor of one minus the chance per
-  sub-step, which at 4 arrivals a day is $1/2880$.
+- **Poisson demand.** Where a scenario specifies Poisson demand, the simulator divides each minute into
+  at least eight sub-steps and gives each a small probability of an arrival, because exact Poisson
+  sampling needs floating-point functions that differ between browsers. The count has the exact mean.
+  Its variance is below the Poisson variance by the factor one minus the probability per sub-step, which
+  is $1 - 1/2880$ at 4 arrivals a day.
 
-  <Check ref="maxima:binomial-substeps" />
-
-- **A table of t values.** The batch view reads critical values from a table and uses
-  the nearest smaller number of runs, so its intervals are never narrower than they
-  should be.
+  <Check refs="
+    maxima:binomial-substeps
+    test:gives Poisson arrivals their mean rate over many days
+  " />
+- **Critical values.** The batch view takes $t_{n-1,\,0.975}$ from a table and uses the entry for the
+  nearest smaller number of replications, so its intervals are never narrower than the exact ones.
 
   <Check ref="test:uses conservative t critical values" />
-
-- **Batches repeat.** Each replication's stream comes from the seed and the replication's
-  number alone, so running the same batch again gives the same results, and adding
-  replications leaves the earlier ones unchanged.
+- **Labels.** The batch view calls the number of replications **Seeds**. Each replication's stream
+  depends only on the base seed and the replication's number, so adding replications leaves the earlier
+  ones unchanged.
 
 ## Exercises
 
-1. A batch of 100 runs gives a confidence interval of a certain width. How many runs
-   would halve that width?
+1. Demand is a Poisson process with a rate of 4 units a day. Compute the probability that no unit is
+   demanded in a day, and the probability that at most two are.
 
 <Answer>
 
-About 400. The width is proportional to $1/\sqrt{n}$, so halving it needs four times the
-runs.
+$P(A(1) = 0) = e^{-4} \approx 0.0183$, and
+$P(A(1) \le 2) = e^{-4}\,(1 + 4 + 8) = 13\,e^{-4} \approx 0.2381$.
 
-<Check ref="maxima:standard-error" />
+<Check ref="maxima:exercise-poisson" />
 
 </Answer>
 
-2. Two policies' costs correlate at 0.75 when run on the same streams, and have equal
-   spreads. Compared with independent runs, how many runs does a paired comparison need
-   for the same precision?
+2. A batch of 100 replications gives a confidence interval with half-width 0.60. Estimate the number of
+   replications that would give a half-width of 0.30, and of 0.25.
 
 <Answer>
 
-A quarter as many. The variance of the difference is $2\sigma^2(1 - 0.75)$, a quarter of
-the $2\sigma^2$ that independent runs give.
+By <Ref to="cor-root-n" /> the half-width is proportional to $1/\sqrt{n}$, so halving it to 0.30 requires
+about 400 replications. For 0.25, <Ref to="cor-replications" /> with $\sigma_X \approx 3.00$ gives
+$(1.96 \times 3.00 / 0.25)^2 \approx 553.2$, so 554 replications.
 
-<Check ref="maxima:paired-variance" />
+<Check refs="
+  maxima:standard-error
+  maxima:replications-needed
+" />
 
 </Answer>
 
-3. Arrivals average 4 a day. What is the chance that a whole day passes with none?
+3. Two policies' outputs have equal variances and a correlation of 0.75 under common random numbers.
+   Compare the number of replications that a paired comparison needs with the number that independent
+   replications need for the same precision.
 
 <Answer>
 
-$e^{-4} \approx 0.0183$, a little under 2%.
+By <Ref to="cor-crn" /> the variance of the paired difference is $1 - 0.75 = 1/4$ of the variance with
+independent replications. The variance of a sample mean is inversely proportional to $n$, so the paired
+comparison needs a quarter of the replications.
 
-<Check ref="maxima:no-arrival-day" />
+<Check ref="maxima:exercise-equal-variances" />
 
 </Answer>
 
-4. Run the comparison of the drain-and-fill rule with balancing with 10 replications instead of
-   100. Does the interval for the difference in unmet demand still leave out zero?
+4. Repeat the comparison of the simulator section with 10 replications in place of 100. Decide whether
+   the interval for the difference in unmet demand still excludes zero.
 
 <Answer>
 
-Easily. With 10 replications the difference is about 28 units and the 95% half-width is
-under 2. Ten replications are plenty when the difference is large beside the spread of
-single runs; it is a small difference that needs many.
+It does. Over the first 10 replications the difference has sample mean 28.42 and sample standard
+deviation 2.55, so the half-width is $2.262 \times 2.55 / \sqrt{10} = 1.82$ and the interval runs from
+26.6 to 30.2. A difference that is large relative to the standard deviation of a single replication needs
+few replications. A small difference needs many.
 
-<Check ref="test:on two-station over 10 replications the paired difference in unmet demand between the drain-and-fill rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero" />
+<Check refs="
+  python:paired-intervals
+  test:on two-station over 10 replications the paired difference in unmet demand between the drain-and-fill rule and balancing is about 28 units with a 95% half-width under 2, so ten replications already leave out zero
+" />
 
 </Answer>
 
 <GameNote>
 
-Colonies in the rail game do not use resources at a perfectly steady rate, and the
-starter scenarios model that with rates that vary from hour to hour. A single run of a
-line is one possible colony. Before deciding one dispatch rule beats another, compare
-them in **Batch** over many replications and check the interval leaves out zero.
+Colonies in the rail game do not consume resources at a constant rate, and the starter scenarios model
+this with rates that vary from one two-hour block to the next. A single run of a line is one possible
+history of the colony. A comparison of two dispatch rules needs a batch of replications and an interval
+for the difference that excludes zero.
 
 </GameNote>
 
 ## References
 
-- Law, A.M. (2015) *Simulation modeling and analysis*. 5th edn. New York: McGraw-Hill
-  Education.
-- Wasserman, L. (2004) *All of statistics: a concise course in statistical inference*.
-  New York: Springer.
+- Law, A.M. (2015) *Simulation modeling and analysis*. 5th edn. New York: McGraw-Hill Education.
+- Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Harlow: Pearson Education.
+- Wasserman, L. (2004) *All of statistics: a concise course in statistical inference*. New York:
+  Springer.
