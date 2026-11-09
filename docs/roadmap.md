@@ -483,7 +483,8 @@ something players can read or use.
 
 - **Reinforcement learning.** A Gymnasium-compatible environment over the
   engine, trained agents as reference policies, and distillation into
-  decision trees emitted as readable Lua.
+  decision trees emitted as readable Lua. §8.9 outlines the book chapters this
+  work supports.
 - **Genetic programming.** Evolving `ops` pipelines and custom functions, with
   size limits and simplification, offered as a "beat the evolved policy"
   challenge.
@@ -787,6 +788,8 @@ visits is the review period, and the travel time for cargo is the lead time.
   (Sutton and Barto, 2015, pp. 32–33, 38–39, 64–65, 154–158, 226, 257–261; Albertos
   and Mareels, 2010, p. 274).
 
+§8.9 outlines the chapters that would teach these entries.
+
 ### 8.8 Capabilities the book waits for
 
 Some of the book's examples need things the simulator cannot yet do. The chapter keeps the example and its
@@ -816,6 +819,431 @@ Cycle service level and fill rate as run and batch metrics. Chapter 7 compares b
 
 A seasonal demand profile smoother than two levels. Chapter 8 uses it for seasonal indices, which Winters'
 method estimates.
+
+### 8.9 Outline for a part on decisions and learning
+
+This subsection outlines seven chapters that would form a sixth part of the book,
+with the working title *Decisions and learning*. It expands §8.7 and the learning
+entries of §8.4 and §8.5 into chapters. The part belongs to the research track, and
+Parts III to V come first. If Part IV or Part V takes dynamic programming, D1 and
+D2 move there and the other five chapters stand as they are.
+
+The labels D1 to D7 are provisional and follow the order of dependence. The
+outlines below group the chapters by topic.
+
+| Label | Chapter | Topic | Builds on | Scenario |
+|---|---|---|---|---|
+| D1 | Many periods: dynamic programming | Dynamic programming and reinforcement learning | Chapters 4 to 6 | `classic.reorder`, cut down |
+| D2 | The long run: discounted and average cost | Dynamic programming and reinforcement learning | D1, chapter 2 | A two-station line with every state listed |
+| D3 | Bayesian estimation of demand | Bayesian forecasting and filtering | Chapters 5, 7 and 8 | `classic.newsvendor` with an unknown rate |
+| D4 | Hidden states and filtering | Bayesian forecasting and filtering | D2, D3, chapter 8 | A line with a bursty consumer; `classic.forecasting` |
+| D5 | Choosing among policies: bandits | Bandits and simulation optimisation | Chapter 3, D3 | `two-station` with four candidate policies |
+| D6 | Learning values from runs | Dynamic programming and reinforcement learning | D2, D5 | The line of D2, model withheld |
+| D7 | Tuning a policy: simulation optimisation | Bandits and simulation optimisation | D5, D6 | One site with lost sales; `classic.serial_chain` |
+
+Each outline lists the statements of the chapter's model section, its simulations
+and what the simulator lacks. A statement marked *prove* has a short proof that
+uses a technique the reader meets again. A statement marked *cite* appears with
+its source and no proof, as the book's style guide directs. Every simulation sets
+a value the model predicts beside the value a batch measures, in a `<Predicted>`
+table with a simulator check.
+
+#### Dynamic programming and reinforcement learning
+
+Part II takes the form of a good policy as given: order up to a level, or reorder
+at a minimum. Dynamic programming derives those forms, and gives exact answers on
+small scenarios. Reinforcement learning estimates the same quantities from runs
+when no transition model is at hand. The exact answers of D1 and D2 are the
+predictions that D6 is tested against.
+
+**D1. Many periods: dynamic programming**
+
+Chapter 5 solves one period. Chapters 4 and 6 state a many-period policy and tune
+it. This chapter derives the policy by backward induction.
+
+*Model*
+- Definition: a finite-horizon Markov decision process, with states, actions, a
+  transition law, a cost per period and a horizon. A policy is one decision rule
+  per period.
+- Theorem (backward induction), *prove* by induction on the periods remaining. The
+  optimal cost-to-go satisfies `V_t(x) = min_a { c(x, a) + E V_{t+1}(X') }`, and a
+  rule that attains the minimum in every period is optimal (Snyder and Shen, 2019,
+  ch. 4; Taha, 2017, p. 489).
+- Running example: one site reviewed every period, no lead time, backorders, unit
+  ordering cost `c`, holding cost `h`, backorder cost `p` and demand `D` per period.
+- Lemma (convexity is preserved), *prove*. If `V_{t+1}` is convex, then so are
+  `y ↦ L(y) + E V_{t+1}(y − D)` and `V_t`, where `L` is the one-period cost of
+  chapter 5.
+- Theorem (base-stock policies are optimal), *prove* from the lemma. Every period
+  has a level `S_t`, and the optimal order raises the inventory position to `S_t`
+  whenever it is below.
+- Proposition (the myopic level), *prove* by telescoping the ordering cost. With
+  stationary demand, leftover stock credited at `c` when the horizon ends and
+  starting stock at most `S`, every `S_t` equals the newsvendor level `S` with
+  `F(S) = p / (p + h)`.
+- Theorem (Scarf), *cite*. With a fixed cost `K` per order the cost-to-go is
+  K-convex, and an `(s_t, S_t)` policy is optimal (Scarf, 1960; Simchi-Levi, Chen
+  and Bramel, 2014, pp. 155–157).
+- Remark: with lost sales and a lead time the state holds every outstanding order,
+  and no base-stock or `(s, S)` form is optimal (§8.1; Zipkin, 2008).
+- Remark: the number of states grows as a power of the number of sites and
+  outstanding orders, which confines exact solution to small scenarios.
+
+*Simulations*
+- Scenario: `classic.reorder` cut down to a short horizon, a review every period
+  and a demand table of a few values, so that a check script runs the recursion.
+- Run the order-up-to policy at the computed level, then one step above and one
+  step below. The recursion predicts each expected total cost.
+- Add a fixed cost per order. Run the min–max policy at the computed `(s, S)` and
+  the order-up-to policy. The recursion predicts both costs.
+- Exercise: lost sales with a lead time of one period. The recursion on the
+  two-part state gives a cost at or below the best order-up-to level's, and the
+  exercise measures the gap.
+
+*Needs*
+- No engine change. Per-period demand tables, order costs, holding costs and
+  backorder costs exist in format 2.
+- The recursion as a Python check, and a statement in "Where the simulator
+  differs" of how the engine accrues holding cost within a period.
+
+**D2. The long run: discounted and average cost**
+
+Runs are long, and the simulator reports long-run averages. This chapter replaces
+the horizon with a stationary problem and gives two algorithms that solve it.
+
+*Model*
+- Definitions: a stationary policy, the discounted cost with factor `γ`, the
+  long-run average cost, and the Bellman operator `T`.
+- Theorem (contraction), *prove* in two lines, with Banach's theorem *cite*. `T`
+  contracts the supremum norm by `γ`, so it has one fixed point `V*`, and the policy
+  that is greedy for `V*` is optimal (Hernández-Lerma et al., 2023, pp. 38, 46–49).
+- Corollary (value iteration), *prove*. After `k` sweeps the error is at most `γ^k`
+  times the starting error, and the gap between two successive iterates bounds
+  the error that remains.
+- Proposition (policy evaluation), *prove*. The cost of a stationary policy solves
+  the linear system `(I − γ P_π) V_π = c_π`.
+- Theorem (policy iteration), *prove* the improvement step. Each step returns a
+  policy at least as good, and with finitely many policies the method stops at an
+  optimal one (Hernández-Lerma et al., 2023, pp. 51–54; Sutton and Barto, 2015,
+  pp. 96–98).
+- Theorem (average-cost optimality equation), *cite*. Under a unichain assumption
+  a constant `g` and a function `h` satisfy `g + h(x) = min_a { c(x, a) + E h(X') }`.
+  The constant is the least long-run average cost, and relative value iteration
+  computes the pair (Puterman, 1994, ch. 8; Hernández-Lerma et al., 2023, sec. 2.5
+  and 3.7).
+- Remark: stops and reviews fall at irregular times, so the simulator's decision
+  process is semi-Markov. The equation becomes
+  `h(x) = min_a { c(x, a) − g τ(x, a) + E h(X') }`, with `τ` the expected time to
+  the next decision (Puterman, 1994, ch. 11; Sutton and Barto, 2015, p. 288).
+- Remark: `g` is the quantity a batch's long-run average cost estimates, and the
+  flow balance of chapter 2 constrains every stationary policy.
+
+*Simulations*
+- Scenario: a two-station line with one shuttle, stock counted in a few train
+  loads and demand per period, small enough to list every state. §8.7 already
+  plans this scenario.
+- Run the two policies of chapter 1, balancing and drain-and-fill, and then the
+  policy that policy iteration returns. The linear system predicts each policy's
+  average cost per sol.
+- Plot the error of value iteration after each sweep against `γ^k`.
+- Exercise: raise the backorder cost and rerun the solver. The solver predicts how
+  much more stock the optimal policy keeps at the demand station.
+
+*Needs*
+- A transition model for a small scenario: listed from the scenario by a tool, or
+  written by hand and checked against the engine on every transition.
+- The in-browser solver that §8.7 plans, and total cost per sol as a batch metric.
+
+**D6. Learning values from runs**
+
+D2 needs the transition model. This chapter estimates the same values from
+simulated runs alone.
+
+*Model*
+- Definition: Monte Carlo evaluation, the average of the cost that followed each
+  visit to a state.
+- Proposition, *prove*. The running mean is the update `V ← V + (G − V)/n`, and a
+  constant step in place of `1/n` is the exponential smoothing of chapter 8
+  (Sutton and Barto, 2015, pp. 36–39).
+- Theorem (Robbins and Monro), *cite*. With step sizes whose sum diverges and whose
+  squares have a finite sum, the noisy iteration converges to the root it seeks
+  (Robbins and Monro, 1951; Sutton and Barto, 2015, p. 39).
+- Definition: the temporal-difference error and TD(0).
+- Proposition, *prove*. The expected TD(0) update is zero exactly at the solution
+  of D2's linear system.
+- Theorem (convergence of TD(0)), *cite*. Tabular TD(0) converges to `V_π` with
+  probability one under the Robbins–Monro step sizes (Sutton and Barto, 2015,
+  p. 148).
+- Definitions: action values, Sarsa and Q-learning.
+- Theorem (Watkins and Dayan), *cite*. Tabular Q-learning converges to the optimal
+  action values with probability one when every state–action pair recurs and the
+  step sizes meet the same conditions (Watkins and Dayan, 1992; Sutton and Barto,
+  2015, pp. 157–159).
+- Definition: an afterstate, the stock after an order or a load and before demand.
+  Values on afterstates need one table entry per stock level in place of one per
+  state–action pair (Sutton and Barto, 2015, pp. 160–161).
+- Remark: average-cost learning replaces the discount with a running estimate of
+  `g`, which matches D2's criterion (Sutton and Barto, 2015, pp. 260–263).
+- Definition: a linear value approximation `V(x) ≈ θ·φ(x)` and semi-gradient TD(0).
+- Theorem (Tsitsiklis and Van Roy), *cite*. On-policy linear TD(0) converges, and
+  its error is within the factor `1/(1 − γ)` of the best approximation the features
+  allow (Tsitsiklis and Van Roy, 1997).
+- Remark: off-policy updates that bootstrap through an approximation can diverge
+  (Baird, 1995).
+- Remark: exploring on a live line costs service (§8.7).
+
+*Simulations*
+- Scenario: the line of D2, with the transition model withheld from the learner.
+- Evaluate the balancing baseline by Monte Carlo and by TD(0) at two step sizes.
+  D2's linear system predicts the limit, and the chapter plots the
+  root-mean-square error against the number of runs.
+- Train Sarsa and Q-learning. D2 predicts the least average cost `g*`; the chapter
+  reports each greedy policy's cost beside it, and the cost paid while exploring.
+- A five-station line beyond exact solution: linear TD(0) on stock per site, stock
+  on order, cargo and train position. The comparison is the best tuned base-stock
+  policy of D7 and the perfect-foresight bound of M8.
+
+*Needs*
+- A training loop that carries a table or weights from run to run, since a
+  policy's `memory` lasts one run. The research track's environment over the engine
+  serves, or a `cli` command.
+- An exporter that writes a learned table as a Lua policy, so the workbench runs
+  and shares it. `ctx.rand()` already gives policies seeded exploration.
+
+#### Bayesian forecasting and filtering
+
+Chapter 8 forecasts a mean and chapter 7 sizes safety stock around it. These two
+chapters carry a whole distribution: over an unknown demand rate in D3, and over
+a state the policy cannot see in D4. Exponential smoothing reappears as the
+steady state of a Kalman filter.
+
+**D3. Bayesian estimation of demand**
+
+Chapters 5 to 7 take the demand distribution as known. This chapter carries the
+uncertainty about its rate into the order.
+
+*Model*
+- Definitions: prior, likelihood, posterior and posterior predictive distribution.
+- Proposition (gamma–Poisson), *prove*. A Gamma(`a`, `b`) prior on a Poisson rate
+  and a total demand `s` over `n` periods give a Gamma(`a + s`, `b + n`) posterior.
+  Its mean is a weighted average of the prior mean and the sample mean (Wasserman,
+  2004, p. 179; MacKay, 2003, p. 319).
+- Proposition (predictive demand), *prove*. The next period's demand is negative
+  binomial with mean `(a + s)/(b + n)` and a variance larger than the mean by the
+  factor `1 + 1/(b + n)`.
+- Corollary: the critical-ratio quantile of the predictive distribution replaces
+  the Poisson quantile at the estimated rate, and the two agree as `n` grows.
+- Proposition (censoring), *prove*. With lost sales, a period that ends empty
+  records `min(D, y)` for starting stock `y`. Its mean is below `E D`, so an
+  estimate that treats sales as demand is biased low. The likelihood of such a
+  period is the tail probability `P(D ≥ y)`.
+- Remark: under censoring the gamma prior is no longer conjugate, and a grid over
+  the rate gives the posterior.
+- Remark: a larger order reveals more demand, so the order also buys information.
+  D1's recursion on the pair of stock and posterior parameters prices it, and D5
+  studies the same trade.
+
+*Simulations*
+- Scenario: `classic.newsvendor` with Poisson demand at a rate the policy does not
+  know. The policy keeps `a` and `b` in `memory`.
+- Run the plug-in policy, which orders the Poisson quantile at the sample mean,
+  and the predictive policy over the first periods. Exact enumeration predicts
+  each expected cost per period, and the gap closes as periods pass.
+- Switch to lost sales. Run an estimator that treats sales as demand and one that
+  uses the censored likelihood. The model predicts the bias of the first (§8.5,
+  forecast error and censored demand).
+
+*Needs*
+- No engine change: format 2 has Poisson flows and lost sales.
+- An `ops` estimate block that holds posterior parameters (the estimate stage of
+  M4 and M10).
+
+**D4. Hidden states and filtering**
+
+A bursty consumer is on or off, and a policy sees only the stock it has drawn.
+This chapter computes what the policy can know about the hidden state.
+
+*Model*
+- Definition: a hidden Markov model, a Markov chain the policy cannot see with an
+  observation whose distribution depends on the chain's state.
+- Running example: a consumer that switches on with chance `a` and off with chance
+  `b` per game minute, observed through the stock drawn between visits.
+- Proposition (two-state chain), *prove* from the eigenvalues. The long-run share
+  of time on is `a/(a + b)`, and the memory of the starting state decays as
+  `(1 − a − b)^k` (§8.4; Brémaud, 2020, pp. 86, 159).
+- Theorem (filtering recursion), *prove* from Bayes' rule and the Markov property.
+  Predict with the transition matrix, then multiply by the likelihood of the
+  observation and normalise (Särkkä, 2013, pp. 54, 62; Rabiner, 1989).
+- Definition: the local level model, a level that follows a random walk with
+  variance `q` per period, observed with noise of variance `r`.
+- Theorem (Kalman filter), *prove* in the scalar case as a normal–normal update,
+  with the general case *cite* (Särkkä, 2013, pp. 56–59).
+- Proposition (steady state), *prove* by solving a quadratic. With `ρ = q/r` the
+  gain converges to `α = (√(ρ² + 4ρ) − ρ)/2`, and the filter is then simple
+  exponential smoothing with constant `α` (Muth, 1960; Särkkä, 2013, p. 62).
+- Corollary: chapter 8's smoothing constant has an optimal value for given `q` and
+  `r`, and the one-step forecast error then has variance `r/(1 − α)`.
+- Remark: between irregular visits the level's variance grows with the time
+  elapsed, so the gain is larger after a long gap (§8.5, Kalman filtering).
+- Definition: a belief state. Theorem, *cite*: a decision process with a partly
+  hidden state is a Markov decision process on beliefs (Smallwood and Sondik,
+  1973). The `local` information level hides other stations' stock, so a `local`
+  policy that filters approaches a `line` policy (§8.2, local versus central
+  control; §8.6, partial information and observers).
+
+*Simulations*
+- Scenario: a two-station line whose consumer has `bursts` variability with known
+  switching chances.
+- Run an order-up-to policy sized for the long-run mean rate, and one whose level
+  follows the filtered chance that the consumer is on. The model predicts the
+  share of time on, and the filter's calibration: among stops where it reports a
+  chance near `x`, the consumer is on in a share `x`.
+- Scenario: `classic.forecasting` with a random-walk level supplied as a trace. Run
+  exponential smoothing at the steady-state `α` and at two other constants. The
+  model predicts the forecast error variance at each.
+- Run the filtering policy at `local` and the unfiltered policy at `line`. The
+  difference in cost measures what the filter recovers.
+
+*Needs*
+- A trace generated offline for the random-walk level. Normal per-period demand
+  (`normal-per-period-demand` in §8.8) would let a scenario script build it.
+- The share of time a bursty flow is on, as a run output.
+
+#### Bandits and simulation optimisation
+
+Chapter 3 compares two policies on a fixed number of seeds. These two chapters
+decide where to spend runs: among a few policies in D5, and across a policy's
+parameters in D7. Both lean on chapter 3's confidence intervals and common random
+numbers.
+
+**D5. Choosing among policies: bandits**
+
+This chapter decides, run by run, which of several policies to run next and when
+to stop.
+
+*Model*
+- Definition: a bandit with `K` arms. An arm is a policy, a pull is one run on a
+  new seed, and the reward is the negative cost scaled to `[0, 1]`. Regret is the
+  expected cost above that of running the best policy every time.
+- Proposition (regret decomposition), *prove*. Regret equals the sum over arms of
+  the arm's gap `Δ_a` times its expected number of pulls.
+- Theorem (Hoeffding's inequality), *cite* (Wasserman, 2004, pp. 64–67).
+- Theorem (UCB1), *cite* with a sketch of the proof. Running the arm with the
+  largest `mean + √(2 ln t / n_a)` gives regret at most
+  `8 Σ (ln n)/Δ_a + (1 + π²/3) Σ Δ_a` after `n` pulls (Auer, Cesa-Bianchi and
+  Fischer, 2002; Sutton and Barto, 2015, p. 41).
+- Theorem (Lai and Robbins), *cite*. No consistent rule has regret that grows
+  slower than a constant times `ln n`, and the Kullback–Leibler divergences between
+  the arms set the constant (Lai and Robbins, 1985).
+- Definition: Thompson sampling. Draw a mean from each arm's posterior and run the
+  arm with the best draw. D3 supplies the posteriors (Thompson, 1933).
+- Definition: best-arm identification at confidence `1 − δ`.
+- Theorem (successive elimination), *cite*. Dropping every arm whose upper bound
+  falls below another arm's lower bound returns the best arm with probability at
+  least `1 − δ`, after a number of runs of order `Σ Δ_a^{-2} ln(K/(δ Δ_a))`
+  (Even-Dar, Mannor and Mansour, 2006).
+- Proposition (paired elimination), *prove*. On common seeds
+  `Var(X − Y) = Var X + Var Y − 2 Cov(X, Y)`. With equal variances and correlation
+  `ρ`, the runs needed to separate two policies fall by the factor `1 − ρ`.
+- Remark: the union bound over arms in the elimination proof is the Bonferroni
+  correction of §8.4.
+
+*Simulations*
+- Scenario: `two-station` with four candidate policies: the balancing baseline,
+  drain-and-fill, order-up-to at a low level and order-up-to at a high level.
+- Run uniform allocation and successive elimination to the same confidence, many
+  times over. The model predicts that each selects the best policy in a share of
+  at least `1 − δ` of the experiments, and bounds the runs elimination uses.
+- Plot the regret of explore-then-commit, ε-greedy, UCB1 and Thompson sampling.
+  The model predicts UCB1's curve below its bound and the Lai–Robbins slope below
+  every curve in the long run.
+- Run elimination on common seeds and on independent seeds. The measured
+  correlation predicts the ratio of runs.
+
+*Needs*
+- A batch runner that allocates seeds a round at a time. The M6 runner takes its
+  list of seeds before it starts.
+- A `cli` harness that repeats a whole selection experiment many times.
+
+**D7. Tuning a policy: simulation optimisation**
+
+Most policies in the book have a few numbers to set. This chapter treats their
+choice as the minimisation of an expected cost that only runs can estimate.
+
+*Model*
+- Definitions: a policy family indexed by a parameter vector `θ`, the objective
+  `J(θ)` as the expected cost over seeds, and the sample average of the cost on a
+  fixed set of seeds.
+- Theorem (consistency), *cite*. Over a finite set of parameter values, the chance
+  that the minimiser of the sample average fails to minimise `J` falls
+  exponentially in the number of seeds (Kleywegt, Shapiro and Homem-de-Mello,
+  2002).
+- Proposition (optimism of the tuned score), *prove* in one line. The expected
+  minimum of the sample average is at most the minimum of `J`, so the score on the
+  tuning seeds flatters the tuned policy. Held-out seeds give an unbiased
+  estimate (§8.4, overfitting and held-out seeds).
+- Proposition (finite differences), *prove*. A difference quotient with step `d`
+  has variance `(Var X + Var Y − 2 Cov(X, Y))/d²`, and common seeds raise the
+  covariance.
+- Theorem (simultaneous perturbation), *cite*. Perturbing every parameter at once
+  estimates the gradient from two runs whatever the dimension, and the iteration
+  converges under step-size conditions of the Robbins–Monro kind (Spall, 1992).
+- Theorem (score-function gradient), *prove* with the log-derivative identity. For
+  a randomised policy `∇J(θ) = E[ Σ_t ∇ log π_θ(A_t | X_t) G_t ]`, and subtracting a
+  baseline that depends only on the state leaves the mean unchanged (Williams,
+  1992; Sutton and Barto, 2015, ch. 11).
+- Definition: a Gaussian-process model of `J`. Proposition, *prove* by conditioning
+  a joint normal: the posterior mean and variance of `J` at a new `θ` (Deisenroth,
+  Faisal and Ong, 2020, p. 198; MacKay, 2003, ch. 45).
+- Definition: expected improvement, with its closed form *cite* (Jones, Schonlau
+  and Welch, 1998).
+- Remark: stock levels are integers, and one run's cost is a step function of a
+  level. Search without derivatives suits level parameters, and the score-function
+  gradient suits randomised policies.
+- Remark: a learned policy becomes readable when a decision tree fitted to its
+  decisions is emitted as Lua (research track). The metaheuristics of §8.3 are
+  alternatives to every method here.
+
+*Simulations*
+- Scenario: one site with lost sales and a lead time, the case §8.1 leaves to
+  search. Tune the order-up-to level by a full sweep. Then tune it by simultaneous
+  perturbation and by Gaussian-process search with expected improvement. The
+  methods should agree within the batch interval, and the chapter reports the
+  runs each uses beside the exact optimum from D1's recursion.
+- Score the tuned level on the tuning seeds and on held-out seeds. The model
+  predicts the sign of the gap and that it shrinks as seeds are added.
+- Scenario: `classic.serial_chain` with backorders. Tune one echelon level per
+  stage. The model predicts the Clark–Scarf levels (§8.2; Clark and Scarf, 1960;
+  Axsäter, 2015, pp. 192–198).
+- Estimate a finite difference on common seeds and on independent seeds. The
+  measured correlation predicts the ratio of the variances.
+- The line of D2 with a randomised policy over load sizes, trained by the
+  score-function gradient with and without a baseline. The model predicts equal
+  mean gradients and D2 supplies `g*`.
+
+*Needs*
+- Tunable parameters declared in a policy and in-browser search (M10).
+- Separate tuning and evaluation seed sets (M8), and parameter sweeps (M6, still
+  to come).
+- The training loop of D6.
+
+#### What the part needs from the simulator
+
+| Capability | Chapters | Where it stands |
+|---|---|---|
+| Check scripts for recursions and exact solvers | D1, D2 | The book's checks already run Maxima and Python. |
+| A transition model for a small scenario, and a solver in the browser | D2, D6 | New. §8.7 plans the solver. |
+| A random-walk demand level | D4 | Traces exist. `normal-per-period-demand` in §8.8 would replace the trace. |
+| The share of time a bursty flow is on, as a run output | D4 | New. |
+| Seeds allocated a round at a time | D5, D7 | New. The M6 runner takes its seeds up front. |
+| Tuning and evaluation seed sets | D5, D7 | M8. |
+| Tunable parameters and search | D7 | M10. |
+| A training loop that carries state from run to run | D6, D7 | Research track, as the environment over the engine. |
+| A learned table or tree written out as a Lua policy | D6, D7 | Research track, as distillation. |
+
+D1 and D3 need nothing new and depend only on Part II. D2 and D5 need a solver
+and a sequential runner. D4 needs a trace. D6 and D7 wait for the training loop,
+so they come last.
 
 ## 9. Out of scope
 
@@ -863,36 +1291,85 @@ method estimates.
   Springer.
 - Åström, K.J. and Murray, R.M. (2008) *Feedback systems: an introduction for
   scientists and engineers*. Princeton, NJ: Princeton University Press.
+- Auer, P., Cesa-Bianchi, N. and Fischer, P. (2002) 'Finite-time analysis of the
+  multiarmed bandit problem', *Machine Learning*, 47(2–3), pp. 235–256.
 - Axsäter, S. (2015) *Inventory control*. 3rd edn. Cham: Springer (International
   Series in Operations Research and Management Science, 225).
+- Baird, L.C. (1995) 'Residual algorithms: reinforcement learning with function
+  approximation', in *Proceedings of the twelfth international conference on
+  machine learning*. San Francisco, CA: Morgan Kaufmann, pp. 30–37.
 - Boyd, S. and Vandenberghe, L. (2004) *Convex optimization*. Cambridge: Cambridge
   University Press.
 - Brémaud, P. (2020) *Markov chains: Gibbs fields, Monte Carlo simulation and
   queues*. 2nd edn. Cham: Springer (Texts in Applied Mathematics, 31).
+- Clark, A.J. and Scarf, H. (1960) 'Optimal policies for a multi-echelon inventory
+  problem', *Management Science*, 6(4), pp. 475–490.
 - Deisenroth, M.P., Faisal, A.A. and Ong, C.S. (2020) *Mathematics for machine
   learning*. Cambridge: Cambridge University Press.
 - Dorf, R.C. and Bishop, R.H. (2011) *Modern control systems*. 12th edn. Upper
   Saddle River, NJ: Prentice Hall.
 - Eiselt, H.A. and Sandblom, C.-L. (2022) *Operations research: a model-based
   approach*. 3rd edn. Cham: Springer (Springer Texts in Business and Economics).
+- Even-Dar, E., Mannor, S. and Mansour, Y. (2006) 'Action elimination and stopping
+  conditions for the multi-armed bandit and reinforcement learning problems',
+  *Journal of Machine Learning Research*, 7, pp. 1079–1105.
 - Hernández-Lerma, O., Laura-Guarachi, L.R., Mendoza-Palacios, S. and
   González-Sánchez, D. (2023) *An introduction to optimal control theory: the
   dynamic programming approach*. Cham: Springer (Texts in Applied Mathematics, 76).
+- Jones, D.R., Schonlau, M. and Welch, W.J. (1998) 'Efficient global optimization
+  of expensive black-box functions', *Journal of Global Optimization*, 13(4),
+  pp. 455–492.
+- Kleywegt, A.J., Shapiro, A. and Homem-de-Mello, T. (2002) 'The sample average
+  approximation method for stochastic discrete optimization', *SIAM Journal on
+  Optimization*, 12(2), pp. 479–502.
+- Lai, T.L. and Robbins, H. (1985) 'Asymptotically efficient adaptive allocation
+  rules', *Advances in Applied Mathematics*, 6(1), pp. 4–22.
 - Law, A.M. (2015) *Simulation modeling and analysis*. 5th edn. New York:
   McGraw-Hill Education.
 - MacKay, D.J.C. (2003) *Information theory, inference, and learning algorithms*.
   Cambridge: Cambridge University Press.
+- Muth, J.F. (1960) 'Optimal properties of exponentially weighted forecasts',
+  *Journal of the American Statistical Association*, 55(290), pp. 299–306.
+- Puterman, M.L. (1994) *Markov decision processes: discrete stochastic dynamic
+  programming*. New York: John Wiley & Sons.
+- Rabiner, L.R. (1989) 'A tutorial on hidden Markov models and selected
+  applications in speech recognition', *Proceedings of the IEEE*, 77(2),
+  pp. 257–286.
+- Robbins, H. and Monro, S. (1951) 'A stochastic approximation method', *The Annals
+  of Mathematical Statistics*, 22(3), pp. 400–407.
 - Särkkä, S. (2013) *Bayesian filtering and smoothing*. Cambridge: Cambridge
   University Press (Institute of Mathematical Statistics Textbooks, 3).
+- Scarf, H. (1960) 'The optimality of (S, s) policies in the dynamic inventory
+  problem', in Arrow, K.J., Karlin, S. and Suppes, P. (eds) *Mathematical methods
+  in the social sciences, 1959*. Stanford, CA: Stanford University Press,
+  pp. 196–202.
 - Simchi-Levi, D., Chen, X. and Bramel, J. (2014) *The logic of logistics: theory,
   algorithms, and applications for logistics management*. 3rd edn. New York:
   Springer (Springer Series in Operations Research and Financial Engineering).
+- Smallwood, R.D. and Sondik, E.J. (1973) 'The optimal control of partially
+  observable Markov processes over a finite horizon', *Operations Research*, 21(5),
+  pp. 1071–1088.
 - Snyder, L.V. and Shen, Z.-J.M. (2019) *Fundamentals of supply chain theory*. 2nd
   edn. Hoboken, NJ: John Wiley & Sons.
+- Spall, J.C. (1992) 'Multivariate stochastic approximation using a simultaneous
+  perturbation gradient approximation', *IEEE Transactions on Automatic Control*,
+  37(3), pp. 332–341.
 - Sutton, R.S. and Barto, A.G. (2015) *Reinforcement learning: an introduction*.
   2nd edn. Draft. Cambridge, MA: MIT Press. Page numbers refer to the draft, which
   differs from the published edition.
 - Taha, H.A. (2017) *Operations research: an introduction*. 10th edn. Global edn.
   Harlow: Pearson Education.
+- Thompson, W.R. (1933) 'On the likelihood that one unknown probability exceeds
+  another in view of the evidence of two samples', *Biometrika*, 25(3–4),
+  pp. 285–294.
+- Tsitsiklis, J.N. and Van Roy, B. (1997) 'An analysis of temporal-difference
+  learning with function approximation', *IEEE Transactions on Automatic Control*,
+  42(5), pp. 674–690.
 - Wasserman, L. (2004) *All of statistics: a concise course in statistical
   inference*. New York: Springer (Springer Texts in Statistics).
+- Watkins, C.J.C.H. and Dayan, P. (1992) 'Q-learning', *Machine Learning*, 8(3–4),
+  pp. 279–292.
+- Williams, R.J. (1992) 'Simple statistical gradient-following algorithms for
+  connectionist reinforcement learning', *Machine Learning*, 8(3–4), pp. 229–256.
+- Zipkin, P. (2008) 'Old and new methods for lost-sales inventory systems',
+  *Operations Research*, 56(5), pp. 1256–1263.
