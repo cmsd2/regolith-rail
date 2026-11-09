@@ -18,7 +18,7 @@
   },
   {
    "cell_type": "code",
-   "source": "/* Poisson demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal chance. */\nload(distrib)$\nrate: 10$\nreview: 7$\nleads: [1, 3]$\nlead_probs: [1/2, 1/2]$\ncsl(s) := sum(lead_probs[i] * cdf_poisson(s, rate * (review + leads[i])), i, 1, 2)$\nlevel_for(target) := block([s: 0], while csl(s) < target do s: s + 1, s)$\n/* The expected amount by which a Poisson demand of mean m exceeds s. */\nshort(s, m) := m - s + sum((s - n) * pdf_poisson(n, m), n, 0, s)$\nexpected_short(s) := sum(lead_probs[i] * short(s, rate * (review + leads[i])), i, 1, 2)$",
+   "source": "/* Poisson demand of 10 a day, weekly reviews, and a lead time of 1 or 3 days with equal chance. */\n/* The distribution functions the checks use, written out as the distrib package defines them, so that\n   the notebook loads no package. */\npdf_poisson(x, m) := exp(-m) * m^x / x!$\ncdf_poisson(x, m) := gamma_incomplete_regularized(floor(x) + 1, m)$\npdf_normal(x, m, s) := exp(-(x - m)^2 / (2 * s^2)) / (sqrt(2 * %pi) * s)$\ncdf_normal(x, m, s) := 1/2 + erf((x - m) / (s * sqrt(2))) / 2$\nquantile_normal(q, m, s) := m + sqrt(2) * s * inverse_erf(2 * q - 1)$\nrate: 10$\nreview: 7$\nleads: [1, 3]$\nlead_probs: [1/2, 1/2]$\ncsl(s) := sum(lead_probs[i] * cdf_poisson(s, rate * (review + leads[i])), i, 1, 2)$\nlevel_for(target) := block([s: 0], while csl(s) < target do s: s + 1, s)$\n/* The expected amount by which a Poisson demand of mean m exceeds s. */\nshort(s, m) := m - s + sum((s - n) * pdf_poisson(n, m), n, 0, s)$\nexpected_short(s) := sum(lead_probs[i] * short(s, rate * (review + leads[i])), i, 1, 2)$",
    "metadata": {},
    "execution_count": null,
    "outputs": []
